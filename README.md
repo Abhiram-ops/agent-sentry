@@ -1,5 +1,9 @@
 # AgentSentry 🛡️
 
+![CI](https://github.com/Abhiram-ops/agent-sentry/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 **Open-source auditor for Non-Human Identities and AI Agent attack surfaces in cloud environments.**
 
 > *"45 machine identities for every 1 human. Almost none of them are governed."*
