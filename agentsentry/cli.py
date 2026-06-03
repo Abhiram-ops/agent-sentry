@@ -62,9 +62,12 @@ def main():
               help="Path for the HTML visualization output")
 @click.option("--path", default=".", show_default=True,
               help="Directory to scan (used with 'agents' target)")
+@click.option("--enrich", is_flag=True, default=False,
+              help="Enrich findings with CISA KEV threat intelligence (requires internet)")
 @click.option("--json", "output_json", is_flag=True, default=False,
               help="Output findings as JSON instead of terminal table")
-def scan(target: str, visualize: bool, output: str, path: str, output_json: bool):
+def scan(target: str, visualize: bool, output: str, path: str,
+         enrich: bool, output_json: bool):
     """Scan an environment for NHI and AI agent risks."""
 
     _print_banner()
@@ -97,6 +100,18 @@ def scan(target: str, visualize: bool, output: str, path: str, output_json: bool
     scorer = NHIScorer()
     with console.status("[bold green]Computing risk scores...[/bold green]"):
         result.nhis = scorer.score_all(result.nhis)
+
+    # ── CISA KEV Enrichment ───────────────────────────────────────────
+    if enrich:
+        from agentsentry.enrichment.cisa_kev import CISAKEVEnricher
+        enricher = CISAKEVEnricher()
+        enricher.load()
+        result.nhis = enricher.enrich(result.nhis)
+        stats = enricher.stats()
+        console.print(
+            f"[dim]KEV catalog: {stats['total_entries']} entries, "
+            f"{stats['ransomware_campaigns']} linked to ransomware[/dim]\n"
+        )
 
     # ── Build attack graph ────────────────────────────────────────────
     graph = NHIAttackGraph()
