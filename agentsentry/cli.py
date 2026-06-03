@@ -55,14 +55,16 @@ def main():
 # ---------------------------------------------------------------------------
 
 @main.command()
-@click.argument("target", type=click.Choice(["mock", "aws", "azure", "gcp"]))
+@click.argument("target", type=click.Choice(["mock", "aws", "azure", "gcp", "agents"]))
 @click.option("--visualize", is_flag=True, default=False,
               help="Generate interactive HTML attack graph")
 @click.option("--output", default="agentsentry_graph.html",
               help="Path for the HTML visualization output")
+@click.option("--path", default=".", show_default=True,
+              help="Directory to scan (used with 'agents' target)")
 @click.option("--json", "output_json", is_flag=True, default=False,
               help="Output findings as JSON instead of terminal table")
-def scan(target: str, visualize: bool, output: str, output_json: bool):
+def scan(target: str, visualize: bool, output: str, path: str, output_json: bool):
     """Scan an environment for NHI and AI agent risks."""
 
     _print_banner()
@@ -79,6 +81,10 @@ def scan(target: str, visualize: bool, output: str, output_json: bool):
         except ImportError:
             console.print("[red]AWS scanner not yet implemented. Use 'mock' target.[/red]")
             sys.exit(1)
+    elif target == "agents":
+        from agentsentry.scanners.langchain_scanner import LangChainScanner
+        scanner = LangChainScanner(scan_path=path)
+        console.print(f"[dim]Scanning Python files for AI agent definitions in: {path}[/dim]\n")
     else:
         console.print(f"[red]Scanner for '{target}' coming soon. Use 'mock' for now.[/red]")
         sys.exit(1)

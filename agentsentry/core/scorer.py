@@ -123,6 +123,14 @@ class NHIScorer:
         if has_admin_policy:
             nhi.risk_score = max(nhi.risk_score, 100.0)
 
+        # AI agents without cloud permissions use a scaled threshold:
+        # they can't be compared directly to an IAM role with AdminAccess.
+        # Cap pure AI agent scores at HIGH unless fully autonomous.
+        if (nhi.type == NHIType.AI_AGENT
+                and not nhi.attached_policies
+                and nhi.autonomy_level != AutonomyLevel.FULLY_AUTONOMOUS):
+            nhi.risk_score = min(nhi.risk_score, 99.0)
+
         nhi.risk_level       = self._risk_level(nhi.risk_score)
         nhi.findings         = self._generate_findings(nhi)
         nhi.mitre_techniques = self._map_mitre(nhi)
