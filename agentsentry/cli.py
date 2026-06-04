@@ -1,25 +1,8 @@
-"""
-AgentSentry CLI
-
-Usage:
-    agentsentry scan local                    # No creds — scan this machine
-    agentsentry scan aws                      # Scan AWS account
-    agentsentry scan azure                    # Scan Azure subscriptions
-    agentsentry scan gcp                      # Scan GCP project
-    agentsentry scan github                   # Scan GitHub tokens/secrets
-    agentsentry scan k8s                      # Scan Kubernetes cluster
-    agentsentry scan agents --path .          # Scan AI agent code (LangChain/CrewAI)
-    agentsentry scan mock                     # Demo — no credentials needed
-    agentsentry scan all                      # Auto-detect + scan every ready provider
-
-    agentsentry providers                     # List all providers + their status
-    agentsentry permissions aws               # Show exactly what permissions are needed
-    agentsentry blast <nhi-name>              # Blast radius for a specific NHI
-"""
-
+"""AgentSentry CLI"""
 from __future__ import annotations
 
 import sys
+import time
 from typing import Sequence
 
 import click
@@ -28,6 +11,10 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import box
 from rich.text import Text
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
+from rich.rule import Rule
+from rich.columns import Columns
+from rich.align import Align
 
 from agentsentry import __version__
 from agentsentry.core.graph import NHIAttackGraph
@@ -36,24 +23,31 @@ from agentsentry.core.scorer import NHIScorer
 
 console = Console()
 
+# ── Design tokens ─────────────────────────────────────────────────────────────
+
 RISK_STYLES = {
     RiskLevel.CRITICAL: "bold red",
-    RiskLevel.HIGH:     "bold yellow",
-    RiskLevel.MEDIUM:   "yellow",
-    RiskLevel.LOW:      "green",
-    RiskLevel.INFO:     "dim",
+    RiskLevel.HIGH:     "bold orange1",
+    RiskLevel.MEDIUM:   "bold yellow",
+    RiskLevel.LOW:      "bold green",
+    RiskLevel.INFO:     "dim white",
 }
-RISK_ICONS = {
-    RiskLevel.CRITICAL: "● CRITICAL",
-    RiskLevel.HIGH:     "● HIGH    ",
-    RiskLevel.MEDIUM:   "◐ MEDIUM  ",
-    RiskLevel.LOW:      "○ LOW     ",
-    RiskLevel.INFO:     "· INFO    ",
+RISK_BADGES = {
+    RiskLevel.CRITICAL: "[on red][bold white] CRITICAL [/bold white][/on red]",
+    RiskLevel.HIGH:     "[on orange1][bold white] HIGH [/bold white][/on orange1]",
+    RiskLevel.MEDIUM:   "[on yellow][bold black] MEDIUM [/bold black][/on yellow]",
+    RiskLevel.LOW:      "[on green][bold black] LOW [/bold black][/on green]",
+    RiskLevel.INFO:     "[dim] INFO [/dim]",
+}
+RISK_DOTS = {
+    RiskLevel.CRITICAL: "[bold red]◉[/bold red]",
+    RiskLevel.HIGH:     "[bold orange1]◉[/bold orange1]",
+    RiskLevel.MEDIUM:   "[bold yellow]◎[/bold yellow]",
+    RiskLevel.LOW:      "[bold green]○[/bold green]",
+    RiskLevel.INFO:     "[dim]·[/dim]",
 }
 
-PROVIDER_CHOICES = [
-    "mock", "local", "aws", "azure", "gcp", "github", "k8s", "agents", "all",
-]
+PROVIDER_CHOICES = ["mock", "local", "aws", "azure", "gcp", "github", "k8s", "agents", "all"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -67,9 +61,7 @@ def main():
     pass
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# providers — list all providers and their status
-# ─────────────────────────────────────────────────────────────────────────────
+# ── providers ────────────────────────────────────────────────────────────────
 
 @main.command("providers")
 def cmd_providers():
@@ -77,50 +69,51 @@ def cmd_providers():
     _print_banner()
     from agentsentry.providers import registry
 
-    console.print("[bold]Available Providers[/bold]\n")
-
-    table = Table(box=box.ROUNDED, show_header=True, header_style="bold cyan",
-                  title="Provider Status", title_style="bold")
-    table.add_column("Provider",     min_width=10)
-    table.add_column("Name",         min_width=24)
-    table.add_column("Status",       min_width=10)
-    table.add_column("Details",      min_width=44)
+    table = Table(
+        box=box.SIMPLE_HEAD,
+        show_header=True,
+        header_style="bold #00ff88",
+        border_style="dim",
+        title="[bold]Provider Status[/bold]",
+        title_style="bold white",
+        show_edge=False,
+        pad_edge=True,
+    )
+    table.add_column("",          min_width=3,  justify="center")
+    table.add_column("Provider",  min_width=10, style="bold")
+    table.add_column("Name",      min_width=26)
+    table.add_column("Status",    min_width=14)
+    table.add_column("Next Step", min_width=44, style="dim")
 
     statuses = registry.detect()
     for s in statuses:
         if s.ok:
-            status_text = Text("✓  Ready", style="bold green")
+            dot    = "[bold #00ff88]●[/bold #00ff88]"
+            status = "[bold #00ff88]ready[/bold #00ff88]"
         elif not s.sdk_available:
-            status_text = Text("✗  No SDK", style="dim red")
+            dot    = "[dim red]●[/dim red]"
+            status = "[dim]no sdk[/dim]"
         else:
-            status_text = Text("✗  No Creds", style="red")
+            dot    = "[red]●[/red]"
+            status = "[red]no creds[/red]"
 
-        table.add_row(
-            s.provider_name,
-            registry.all().get(s.provider_name, type).__name__ if False else
-                _provider_display_name(s.provider_name),
-            status_text,
-            s.message[:60] if s.message else "",
-        )
+        table.add_row(dot, s.provider_name, _provider_display_name(s.provider_name),
+                      status, (s.message or "")[:55])
 
-    # Also list agents scanner
     table.add_row(
-        "agents",
-        "AI Agent Code Scanner",
-        Text("✓  Ready", style="bold green"),
-        "Scans LangChain / CrewAI / AutoGen codebases",
+        "[bold #00ff88]●[/bold #00ff88]", "agents", "AI Agent Code Scanner",
+        "[bold #00ff88]ready[/bold #00ff88]", "agentsentry scan agents --path .",
     )
 
+    console.print()
     console.print(table)
     console.print()
-    console.print("[dim]Run[/dim] [bold]agentsentry permissions <provider>[/bold] [dim]to see exactly what each provider needs.[/dim]")
-    console.print("[dim]Run[/dim] [bold]agentsentry scan <provider>[/bold] [dim]to start a scan.[/dim]")
-    console.print("[dim]Run[/dim] [bold]agentsentry scan all[/bold] [dim]to scan every ready provider at once.[/dim]")
+    console.print("  [dim]agentsentry[/dim] [bold]permissions <provider>[/bold]  [dim]→ see what each one needs[/dim]")
+    console.print("  [dim]agentsentry[/dim] [bold]scan all[/bold]               [dim]→ scan every ready provider[/dim]")
+    console.print()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# permissions — show what a provider needs
-# ─────────────────────────────────────────────────────────────────────────────
+# ── permissions ───────────────────────────────────────────────────────────────
 
 @main.command("permissions")
 @click.argument("provider_name", metavar="PROVIDER")
@@ -131,65 +124,51 @@ def cmd_permissions(provider_name: str):
 
     provider = registry.get(provider_name)
     if provider is None:
-        console.print(f"[red]Unknown provider: '{provider_name}'[/red]")
-        console.print(f"Available: {', '.join(registry.all().keys())} agents")
+        console.print(f"  [red]✗[/red]  Unknown provider: [bold]{provider_name}[/bold]")
+        console.print(f"  Available: {', '.join(registry.all().keys())}, agents\n")
         sys.exit(1)
 
     status = provider.check_permissions()
+    ok_str = "[bold #00ff88]ready[/bold #00ff88]" if status.ok else "[bold red]not ready[/bold red]"
 
     console.print(Panel(
-        f"[bold]Provider:[/bold]  {provider.display_name}\n"
-        f"[bold]Status:[/bold]    {'[green]Ready[/green]' if status.ok else '[red]Not Ready[/red]'}\n"
-        f"[bold]Details:[/bold]   {status.message}",
-        title=f"[cyan]{provider_name}[/cyan] — Permissions",
-        border_style="cyan",
+        f"  [bold]{provider.display_name}[/bold]   {ok_str}\n\n"
+        + ("  [dim]" + (status.message or "") + "[/dim]"),
+        title=f"[bold]{provider_name}[/bold]  permissions",
+        border_style="#00ff88" if status.ok else "red",
+        padding=(1, 2),
     ))
-    console.print()
 
     if provider.required_permissions:
-        console.print("[bold]Required Permissions:[/bold]")
+        console.print("\n  [bold]Required[/bold]")
         for perm in provider.required_permissions:
-            console.print(f"  [dim]•[/dim] {perm}")
-        console.print()
+            console.print(f"  [dim #00ff88]→[/dim #00ff88]  {perm}")
 
     if provider.setup_hint:
-        console.print("[bold]Setup:[/bold]")
+        console.print("\n  [bold]Setup[/bold]")
         for line in provider.setup_hint.splitlines():
             console.print(f"  {line}")
+    console.print()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# scan
-# ─────────────────────────────────────────────────────────────────────────────
+# ── scan ──────────────────────────────────────────────────────────────────────
 
 @main.command("scan")
 @click.argument("target", type=click.Choice(PROVIDER_CHOICES, case_sensitive=False))
-@click.option("--visualize",    is_flag=True, default=False,
-              help="Generate interactive HTML attack graph")
-@click.option("--output",       default="agentsentry_graph.html", show_default=True,
-              help="Path for the HTML visualization")
-@click.option("--path",         default=".", show_default=True,
-              help="Directory to scan (used with 'agents' and 'local' targets)")
-@click.option("--enrich",       is_flag=True, default=False,
-              help="Enrich findings with CISA KEV threat intelligence")
-@click.option("--json",  "output_json", is_flag=True, default=False,
-              help="Output findings as JSON")
-@click.option("--profile",      default=None,
-              help="AWS credential profile name")
-@click.option("--region",       default="us-east-1", show_default=True,
-              help="AWS region (or GCP project)")
-@click.option("--org",          default=None,
-              help="GitHub organisation name")
-@click.option("--namespace",    default=None,
-              help="Kubernetes namespace (default: all namespaces)")
-@click.option("--context",      default=None,
-              help="Kubernetes kubeconfig context")
-@click.option("--force",        is_flag=True, default=False,
-              help="Skip permission pre-check and scan anyway")
+@click.option("--visualize",    is_flag=True,  help="Generate interactive HTML attack graph")
+@click.option("--output",       default="agentsentry_graph.html", show_default=True)
+@click.option("--path",         default=".", show_default=True, help="Directory to scan")
+@click.option("--enrich",       is_flag=True,  help="Enrich with CISA KEV threat intel")
+@click.option("--json",  "output_json", is_flag=True, help="Output as JSON")
+@click.option("--profile",      default=None,  help="AWS credential profile")
+@click.option("--region",       default="us-east-1", show_default=True)
+@click.option("--org",          default=None,  help="GitHub org")
+@click.option("--namespace",    default=None,  help="K8s namespace")
+@click.option("--context",      default=None,  help="K8s kubeconfig context")
+@click.option("--force",        is_flag=True,  help="Skip permission check")
 def scan(target, visualize, output, path, enrich, output_json,
          profile, region, org, namespace, context, force):
     """Scan an environment for NHI and AI agent risks."""
-
     _print_banner()
 
     if target == "all":
@@ -202,37 +181,40 @@ def scan(target, visualize, output, path, enrich, output_json,
         org=org, namespace=namespace, context=context,
     )
 
-    # ── Permission pre-check ──────────────────────────────────────────
     if not force and provider is not None:
         status = provider.check_permissions()
         if not status.ok:
             console.print(Panel(
                 f"[red]{status}[/red]\n\n"
                 + (f"[dim]{provider.setup_hint}[/dim]" if provider.setup_hint else ""),
-                title="[red]Permission check failed[/red]",
+                title="[red]permission check failed[/red]",
                 border_style="red",
             ))
-            console.print("[dim]Pass --force to skip this check.[/dim]")
+            console.print("  [dim]pass --force to skip this check[/dim]\n")
             sys.exit(1)
-        console.print(f"[green]✓[/green] {status.message}\n")
+        console.print(f"  [bold #00ff88]✓[/bold #00ff88]  {status.message}\n")
 
-    # ── Run scan ──────────────────────────────────────────────────────
-    with console.status("[bold green]Scanning environment…[/bold green]"):
+    with Progress(
+        SpinnerColumn(spinner_name="dots2", style="#00ff88"),
+        TextColumn("[bold]{task.description}[/bold]"),
+        TimeElapsedColumn(),
+        console=console,
+        transient=True,
+    ) as progress:
+        task = progress.add_task(f"scanning {target}…", total=None)
         result = scanner.scan()
+        progress.update(task, completed=True)
 
     _finalise_and_print(result, scanner, enrich=enrich, visualize=visualize,
                         output=output, output_json=output_json)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# blast
-# ─────────────────────────────────────────────────────────────────────────────
+# ── blast ─────────────────────────────────────────────────────────────────────
 
 @main.command("blast")
 @click.argument("nhi_name")
 @click.option("--provider", "target", default="mock",
-              type=click.Choice(PROVIDER_CHOICES[:-1], case_sensitive=False),
-              help="Which environment to use (default: mock)")
+              type=click.Choice(PROVIDER_CHOICES[:-1], case_sensitive=False))
 def blast(nhi_name: str, target: str):
     """Show blast radius for a specific NHI."""
     _, scanner = _build_provider(target)
@@ -249,138 +231,115 @@ def blast(nhi_name: str, target: str):
         for from_id, to_id, perm, weight in scanner.build_access_edges():
             graph.add_access_edge(from_id, to_id, perm, weight)
 
-    target_nhi = next(
-        (n for n in result.nhis if nhi_name.lower() in n.name.lower()), None
-    )
+    target_nhi = next((n for n in result.nhis if nhi_name.lower() in n.name.lower()), None)
     if not target_nhi:
-        console.print(f"[red]NHI '{nhi_name}' not found.[/red]")
+        console.print(f"\n  [red]✗[/red]  '{nhi_name}' not found\n")
         for n in result.nhis:
-            console.print(f"  • {n.name}")
+            console.print(f"  [dim]→[/dim]  {n.name}")
         sys.exit(1)
 
     br = graph.blast_radius(target_nhi.id)
+    cj = br.get("crown_jewels_at_risk", [])
+
+    console.print()
     console.print(Panel(
-        f"[bold]Compromised Identity:[/bold] {br['compromised_nhi']}\n"
-        f"[bold]Reachable Nodes:[/bold]      {br['reachable_count']}\n"
-        f"[bold]Crown Jewels at Risk:[/bold] {', '.join(br['crown_jewels_at_risk']) or 'None'}\n"
-        f"[bold]Blast Radius Score:[/bold]   {br['blast_radius_score']}",
-        title="[red]Blast Radius Analysis[/red]",
+        f"  [bold red]{br['compromised_nhi']}[/bold red]\n\n"
+        f"  [dim]reachable nodes[/dim]   [bold red]{br['reachable_count']}[/bold red]\n"
+        f"  [dim]crown jewels[/dim]      [bold red]{len(cj)}[/bold red]"
+        + (f"\n\n  [dim]" + "  →  ".join(cj) + "[/dim]" if cj else ""),
+        title="[bold red]⚡ blast radius[/bold red]",
         border_style="red",
+        padding=(1, 2),
     ))
-    for cj, path in (br.get("attack_paths") or {}).items():
-        console.print(f"\n  [red]→ {cj}[/red]")
-        console.print(f"    {'  →  '.join(path)}")
+
+    for cj_item, path in (br.get("attack_paths") or {}).items():
+        console.print(f"\n  [red]→ {cj_item}[/red]")
+        console.print(f"    [dim]{'  →  '.join(path)}[/dim]")
+    console.print()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Internal helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _build_provider(target: str, *, path: str = ".", profile=None, region="us-east-1",
+def _build_provider(target, *, path=".", profile=None, region="us-east-1",
                     org=None, namespace=None, context=None):
-    """Return (provider_instance_or_None, scanner_object)."""
     from agentsentry.providers import registry
-
     if target == "mock":
         from agentsentry.scanners.mock import MockScanner
-        console.print("[dim]Running against mock environment — no credentials needed[/dim]\n")
+        console.print("  [dim]demo mode — no credentials needed[/dim]\n")
         return None, MockScanner()
-
     if target == "agents":
         from agentsentry.scanners.langchain_scanner import LangChainScanner
-        console.print(f"[dim]Scanning AI agent code in: {path}[/dim]\n")
+        console.print(f"  [dim]scanning AI agent code → {path}[/dim]\n")
         return None, LangChainScanner(scan_path=path)
-
     if target == "local":
         from agentsentry.providers.local import LocalProvider
         p = LocalProvider(path=path)
         return p, p
-
     if target == "aws":
         from agentsentry.providers.aws import AWSProvider
         p = AWSProvider(profile=profile, region=region)
         return p, p
-
     if target == "azure":
         from agentsentry.providers.azure import AzureProvider
-        p = AzureProvider()
-        return p, p
-
+        return (p := AzureProvider()), p
     if target == "gcp":
         from agentsentry.providers.gcp import GCPProvider
-        p = GCPProvider()
-        return p, p
-
+        return (p := GCPProvider()), p
     if target == "github":
         from agentsentry.providers.github import GitHubProvider
-        p = GitHubProvider(org=org)
-        return p, p
-
+        return (p := GitHubProvider(org=org)), p
     if target == "k8s":
         from agentsentry.providers.k8s import KubernetesProvider
-        p = KubernetesProvider(context=context, namespace=namespace)
-        return p, p
-
-    console.print(f"[red]Unknown target: {target}[/red]")
+        return (p := KubernetesProvider(context=context, namespace=namespace)), p
+    console.print(f"  [red]unknown target: {target}[/red]")
     sys.exit(1)
 
 
-def _scan_all(*, enrich: bool, visualize: bool, output: str,
-              output_json: bool, force: bool):
-    """Detect all ready providers and scan them sequentially."""
+def _scan_all(*, enrich, visualize, output, output_json, force):
     from agentsentry.providers import registry
-
     ready = registry.detect_ready()
     if not ready:
-        console.print(
-            "[red]No providers are ready.[/red]  "
-            "Run [bold]agentsentry providers[/bold] to see what's missing."
-        )
+        console.print("  [red]✗[/red]  No providers ready — run [bold]agentsentry providers[/bold]\n")
         sys.exit(1)
 
-    console.print(f"[green]Auto-detected {len(ready)} ready provider(s):[/green] "
-                  + ", ".join(ready) + "\n")
+    console.print(f"  [bold #00ff88]auto-detected {len(ready)} provider(s):[/bold #00ff88]  "
+                  + "  ".join(f"[bold]{r}[/bold]" for r in ready) + "\n")
 
-    combined_nhis = []
-    combined_resources = []
-    all_scanners = []
-
+    combined_nhis, combined_resources, all_scanners = [], [], []
     for name in ready:
-        console.print(f"[bold cyan]── Scanning: {name} ──[/bold cyan]")
+        console.print(f"  [bold #00ff88]→[/bold #00ff88]  [bold]{name}[/bold]")
         provider, scanner = _build_provider(name)
         try:
-            with console.status(f"[green]Scanning {name}…[/green]"):
+            with Progress(SpinnerColumn(spinner_name="dots2", style="#00ff88"),
+                          TextColumn("[dim]{task.description}[/dim]"),
+                          console=console, transient=True) as p:
+                t = p.add_task(f"scanning {name}…", total=None)
                 result = scanner.scan()
+                p.update(t, completed=True)
             combined_nhis.extend(result.nhis)
             combined_resources.extend(result.resources)
             all_scanners.append(scanner)
-            console.print(
-                f"  [green]✓[/green] {name}: {result.total_nhis} NHIs found"
-            )
+            console.print(f"     [#00ff88]✓[/#00ff88]  {result.total_nhis} NHIs found\n")
         except Exception as exc:
-            console.print(f"  [red]✗[/red] {name}: {exc}")
-        console.print()
+            console.print(f"     [red]✗[/red]  {exc}\n")
 
-    # Build aggregate result
     from agentsentry.core.models import CloudProvider, ScanResult
-    aggregate = ScanResult(
-        scan_id="all-scan",
-        provider=CloudProvider.LOCAL,
-        nhis=combined_nhis,
-        resources=combined_resources,
-    )
-
+    aggregate = ScanResult(scan_id="all-scan", provider=CloudProvider.LOCAL,
+                           nhis=combined_nhis, resources=combined_resources)
     _finalise_and_print(aggregate, all_scanners[0] if all_scanners else None,
-                        enrich=enrich, visualize=visualize, output=output,
-                        output_json=output_json)
+                        enrich=enrich, visualize=visualize, output=output, output_json=output_json)
 
 
-def _finalise_and_print(result: ScanResult, scanner, *, enrich: bool,
-                        visualize: bool, output: str, output_json: bool):
-    """Score, enrich, graph, and display a completed ScanResult."""
+def _finalise_and_print(result, scanner, *, enrich, visualize, output, output_json):
     scorer = NHIScorer()
-    with console.status("[bold green]Computing risk scores…[/bold green]"):
+    with Progress(SpinnerColumn(spinner_name="dots2", style="#00ff88"),
+                  TextColumn("[dim]{task.description}[/dim]"),
+                  console=console, transient=True) as p:
+        t = p.add_task("computing risk scores…", total=None)
         result.nhis = scorer.score_all(result.nhis)
+        p.update(t, completed=True)
 
     if enrich:
         from agentsentry.enrichment.cisa_kev import CISAKEVEnricher
@@ -388,79 +347,95 @@ def _finalise_and_print(result: ScanResult, scanner, *, enrich: bool,
         enricher.load()
         result.nhis = enricher.enrich(result.nhis)
         stats = enricher.stats()
-        console.print(
-            f"[dim]KEV catalog: {stats['total_entries']} entries, "
-            f"{stats['ransomware_campaigns']} linked to ransomware[/dim]\n"
-        )
+        console.print(f"  [dim]KEV catalog: {stats['total_entries']} entries · "
+                      f"{stats['ransomware_campaigns']} ransomware-linked[/dim]\n")
 
     graph = NHIAttackGraph()
     for nhi in result.nhis:
         graph.add_nhi(nhi)
     for resource in result.resources:
         graph.add_resource(resource)
-    if scanner is not None and hasattr(scanner, "build_access_edges"):
+    if scanner and hasattr(scanner, "build_access_edges"):
         for from_id, to_id, perm, weight in scanner.build_access_edges():
             graph.add_access_edge(from_id, to_id, perm, weight)
 
     if output_json:
         import json
-        data = [n.model_dump(mode="json") for n in result.nhis]
-        console.print_json(json.dumps(data, default=str))
+        console.print_json(json.dumps([n.model_dump(mode="json") for n in result.nhis], default=str))
     else:
         _print_summary(result)
         _print_nhi_table(result)
         _print_findings(result)
-        _print_blast_radius_top(result, graph)
+        _print_blast_top(result, graph)
 
     if visualize:
-        with console.status(f"[bold green]Generating graph → {output}[/bold green]"):
+        with Progress(SpinnerColumn(spinner_name="dots2", style="#00ff88"),
+                      TextColumn("[dim]generating graph…[/dim]"),
+                      console=console, transient=True) as p:
+            t = p.add_task("", total=None)
             graph.visualize(output)
-        console.print(f"\n[bold green]✓ Graph saved:[/bold green] {output}")
-        console.print("[dim]  Open in any browser for the interactive view.[/dim]")
+            p.update(t, completed=True)
+        console.print(f"  [bold #00ff88]✓[/bold #00ff88]  graph saved → [bold]{output}[/bold]")
+        console.print("  [dim]open in any browser for the interactive view[/dim]\n")
 
 
 def _print_banner():
-    console.print(Panel(
-        "[bold cyan]AgentSentry[/bold cyan]  [dim]v" + __version__ + "[/dim]\n"
-        "[dim]Non-Human Identity & AI Agent Risk Auditor[/dim]",
-        border_style="cyan",
-        padding=(0, 2),
-    ))
+    console.print()
+    console.rule(style="dim #333333")
+    console.print(
+        f"  [bold #00ff88]⬡  AGENTSENTRY[/bold #00ff88]  "
+        f"[dim]v{__version__}[/dim]  [dim]·[/dim]  "
+        f"[dim]NHI & AI Agent Risk Scanner[/dim]  [dim]·[/dim]  "
+        f"[dim]MIT · free forever[/dim]"
+    )
+    console.rule(style="dim #333333")
     console.print()
 
 
 def _print_summary(result: ScanResult):
+    c = result.critical_count
+    h = result.high_count
+    crit_str = f"[bold red]{c} critical[/bold red]" if c else f"[dim]{c} critical[/dim]"
+    high_str = f"[bold orange1]{h} high[/bold orange1]" if h else f"[dim]{h} high[/dim]"
+
     console.print(
-        f"  [bold]NHIs Discovered:[/bold] {result.total_nhis}   "
-        f"[bold red]Critical: {result.critical_count}[/bold red]   "
-        f"[bold yellow]High: {result.high_count}[/bold yellow]   "
-        f"[bold]AI Agents: {result.ai_agent_count}[/bold]"
+        f"  [bold white]{result.total_nhis}[/bold white] [dim]identities found[/dim]  "
+        f"[dim]·[/dim]  {crit_str}  [dim]·[/dim]  {high_str}  "
+        f"[dim]·[/dim]  [dim]{result.ai_agent_count} AI agents[/dim]"
     )
     console.print()
 
 
 def _print_nhi_table(result: ScanResult):
+    if not result.nhis:
+        console.print("  [dim]no NHIs found — environment looks clean ✓[/dim]\n")
+        return
+
     table = Table(
-        box=box.ROUNDED, title="NHI Inventory", title_style="bold",
-        show_header=True, header_style="bold cyan",
+        box=box.SIMPLE_HEAD,
+        show_header=True,
+        header_style="dim",
+        show_edge=False,
+        pad_edge=True,
+        border_style="dim",
     )
-    table.add_column("Identity",  style="bold", min_width=28)
+    table.add_column("",          min_width=2,  justify="center")
+    table.add_column("Identity",  min_width=30, style="bold")
     table.add_column("Provider",  min_width=8)
-    table.add_column("Type",      min_width=20)
-    table.add_column("Risk",      min_width=12)
-    table.add_column("Score",     justify="right", min_width=7)
-    table.add_column("Findings",  justify="center", min_width=8)
+    table.add_column("Type",      min_width=18, style="dim")
+    table.add_column("Score",     min_width=7,  justify="right")
+    table.add_column("Findings",  min_width=4,  justify="center")
 
     for nhi in sorted(result.nhis, key=lambda n: n.risk_score, reverse=True):
-        icon  = RISK_ICONS[nhi.risk_level]
-        style = RISK_STYLES[nhi.risk_level]
+        dot   = RISK_DOTS[nhi.risk_level]
+        score_style = RISK_STYLES[nhi.risk_level]
         table.add_row(
-            nhi.name[:36],
+            dot,
+            nhi.name[:38],
             nhi.provider.value,
             nhi.type.value,
-            Text(icon, style=style),
-            f"{nhi.risk_score:.1f}",
-            str(len(nhi.findings)),
+            Text(f"{nhi.risk_score:.1f}", style=score_style),
+            Text(str(len(nhi.findings)), style="dim" if not nhi.findings else "bold"),
         )
 
     console.print(table)
@@ -468,52 +443,54 @@ def _print_nhi_table(result: ScanResult):
 
 
 def _print_findings(result: ScanResult):
-    critical_nhis = [n for n in result.nhis if n.risk_level == RiskLevel.CRITICAL]
-    if not critical_nhis:
+    critical = [n for n in result.nhis if n.risk_level == RiskLevel.CRITICAL]
+    high     = [n for n in result.nhis if n.risk_level == RiskLevel.HIGH]
+
+    if not critical and not high:
         return
-    console.print("[bold red]Critical Findings[/bold red]\n")
-    for nhi in critical_nhis:
-        for finding in nhi.findings:
-            if finding.risk_level != RiskLevel.CRITICAL:
+
+    console.rule("[bold red]  findings  [/bold red]", style="dim red")
+    console.print()
+
+    for nhi in critical + high:
+        for f in nhi.findings:
+            if f.risk_level not in (RiskLevel.CRITICAL, RiskLevel.HIGH):
                 continue
+            badge = RISK_BADGES[f.risk_level]
             console.print(Panel(
-                f"[bold]{finding.title}[/bold]\n\n"
-                f"{finding.description}\n\n"
-                f"[bold cyan]Remediation:[/bold cyan] {finding.remediation}\n\n"
-                f"[dim]MITRE: {', '.join(finding.mitre_techniques)}[/dim]",
-                title=f"[red]⚠  {nhi.name[:50]}[/red]",
-                border_style="red",
+                f"  {badge}  [bold]{f.title}[/bold]\n\n"
+                f"  [dim]{f.description}[/dim]\n\n"
+                f"  [bold #00ff88]fix →[/bold #00ff88]  {f.remediation}\n\n"
+                f"  [dim]MITRE {', '.join(f.mitre_techniques)}[/dim]",
+                subtitle=f"[dim]{nhi.name}[/dim]",
+                border_style="red" if f.risk_level == RiskLevel.CRITICAL else "orange1",
                 padding=(1, 2),
             ))
+
     console.print()
 
 
-def _print_blast_radius_top(result: ScanResult, graph: NHIAttackGraph):
+def _print_blast_top(result: ScanResult, graph: NHIAttackGraph):
     top_ids = graph.top_risk_nhis(n=3)
     if not top_ids:
         return
-    console.print("[bold]Top Blast Radius Analysis[/bold]\n")
+
+    console.rule("[dim]  blast radius  [/dim]", style="dim")
+    console.print()
     for nhi_id in top_ids:
         br = graph.blast_radius(nhi_id)
-        if br.get("reachable_count", 0) == 0:
+        if not br.get("reachable_count"):
             continue
+        cj = br.get("crown_jewels_at_risk", [])
         console.print(
-            f"  [bold]{br['compromised_nhi']}[/bold]  →  "
-            f"[red]{br['reachable_count']} nodes reachable[/red],  "
-            f"[bold red]{len(br['crown_jewels_at_risk'])} crown jewel(s)[/bold red]"
+            f"  [bold]{br['compromised_nhi']}[/bold]"
+            f"  [dim]→[/dim]  [red]{br['reachable_count']} nodes[/red]"
+            + (f"  [dim]→[/dim]  [bold red]{', '.join(cj)}[/bold red]" if cj else "")
         )
-        if br["crown_jewels_at_risk"]:
-            console.print(f"    [dim]{', '.join(br['crown_jewels_at_risk'])}[/dim]")
     console.print()
 
 
 def _provider_display_name(name: str) -> str:
-    mapping = {
-        "aws": "Amazon Web Services",
-        "azure": "Microsoft Azure",
-        "gcp": "Google Cloud Platform",
-        "github": "GitHub",
-        "k8s": "Kubernetes",
-        "local": "Local Environment",
-    }
-    return mapping.get(name, name.title())
+    return {"aws": "Amazon Web Services", "azure": "Microsoft Azure",
+            "gcp": "Google Cloud Platform", "github": "GitHub",
+            "k8s": "Kubernetes", "local": "Local Environment"}.get(name, name.title())

@@ -110,6 +110,7 @@ class LocalProvider(BaseProvider):
             nhis.extend(self._scan_docker())
 
         nhis.extend(self._scan_git_credentials())
+        nhis.extend(self._scan_source_files())
 
         return ScanResult(
             scan_id=f"local-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
@@ -379,4 +380,80 @@ class LocalProvider(BaseProvider):
                 ))
             except PermissionError:
                 pass
+        return nhis
+
+
+    # ── Source file scanner ───────────────────────────────────────────────────
+
+    def _scan_source_files(self) -> list[NonHumanIdentity]:
+        """Scan source files in self.path for hardcoded secrets."""
+        nhis = []
+        EXTENSIONS = {".py", ".js", ".ts", ".sh", ".yaml", ".yml",
+                      ".json", ".toml", ".tf", ".env", ".conf", ".cfg", ".ini"}
+
+        # Patterns that look like hardcoded secrets in code
+        SECRET_PATTERNS = [
+            (re.compile(r"""(?:api[_-]?key|apikey)\s*[=:]\s*["']([A-Za-z0-9_\-]{20,})["']""", re.I), "Hardcoded API key", RiskLevel.CRITICAL),
+            (re.compile(r"""(?:secret|password|passwd)\s*[=:]\s*["']([^"']{8,})["']""", re.I), "Hardcoded secret/password", RiskLevel.CRITICAL),
+            (re.compile(r"""(?:token)\s*[=:]\s*["']([A-Za-z0-9_\-\.]{20,})["']""", re.I), "Hardcoded token", RiskLevel.HIGH),
+            (re.compile(r"AKIA[0-9A-Z]{16}"), "AWS Access Key ID", RiskLevel.CRITICAL),
+            (re.compile(r"ghp_[A-Za-z0-9]{36}"), "GitHub Personal Access Token", RiskLevel.CRITICAL),
+            (re.compile(r"sk-[A-Za-z0-9]{48}"), "OpenAI API Key", RiskLevel.CRITICAL),
+            (re.compile(r"""private[_-]?key\s*[=:]\s*["']([^"']{20,})["']""", re.I), "Hardcoded private key", RiskLevel.CRITICAL),
+        ]
+
+        scanned = 0
+        for fpath in self.path.rglob("*"):
+            if not fpath.is_file():
+                continue
+            if fpath.suffix.lower() not in EXTENSIONS:
+                continue
+            # Skip hidden dirs, node_modules, venvs, .git
+            parts = fpath.parts
+            if any(p.startswith(".") or p in ("node_modules", "__pycache__", "venv", ".venv", "dist", "build") for p in parts):
+                continue
+            if fpath.stat().st_size > 500_000:  # skip files > 500KB
+                continue
+
+            try:
+                content = fpath.read_text(errors="ignore")
+                scanned += 1
+            except (PermissionError, OSError):
+                continue
+
+            hits: list[tuple[str, RiskLevel, int]] = []
+            for pattern, label, risk in SECRET_PATTERNS:
+                for match in pattern.finditer(content):
+                    line_no = content[:match.start()].count("\n") + 1
+                    hits.append((label, risk, line_no))
+
+            if not hits:
+                continue
+
+            worst_risk = max(hits, key=lambda h: list(RiskLevel).index(h[1]))[1]
+            finding_desc = "\n".join(
+                f"  Line {ln}: {label}" for label, _, ln in hits[:8]
+            )
+
+            nhis.append(NonHumanIdentity(
+                id=f"local-file-{hash(str(fpath)) & 0xFFFFFF:06x}",
+                name=f"file: {fpath.relative_to(self.path)}",
+                type=NHIType.API_KEY,
+                provider=CloudProvider.LOCAL,
+                source_file=str(fpath),
+                findings=[Finding(
+                    finding_id=f"local-file-secret-{hash(str(fpath)) & 0xFFFFFF:06x}",
+                    title=f"Hardcoded secrets in {fpath.name} ({len(hits)} hit{'s' if len(hits)>1 else ''})",
+                    description=f"Potential secrets found in {fpath}:\n{finding_desc}",
+                    risk_level=worst_risk,
+                    mitre_techniques=["T1552.001"],
+                    remediation=(
+                        "Move secrets to environment variables or a secrets manager. "
+                        "Rotate any credentials that may have been committed. "
+                        "Add this file pattern to .gitignore if it contains secrets."
+                    ),
+                )],
+                mitre_techniques=["T1552.001"],
+            ))
+
         return nhis

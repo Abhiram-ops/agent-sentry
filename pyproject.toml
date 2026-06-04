@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agentsentry"
+name = "nhi-audit"
 version = "0.1.0"
 description = "Open-source auditor for Non-Human Identities and AI Agent attack surfaces in cloud environments"
 readme = "README.md"
@@ -14,10 +14,15 @@ keywords = ["security", "cloud", "iam", "ai-agents", "non-human-identity", "atta
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Information Technology",
+    "Intended Audience :: Developers",
     "Topic :: Security",
+    "Topic :: System :: Systems Administration",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
 ]
-
 dependencies = [
     "networkx>=3.2",
     "pyvis>=0.3",
@@ -29,8 +34,13 @@ dependencies = [
     "python-dateutil>=2.9",
 ]
 
+[project.urls]
+Homepage = "https://agent-sentry-beta.vercel.app"
+Repository = "https://github.com/Abhiram-ops/agent-sentry"
+"Bug Tracker" = "https://github.com/Abhiram-ops/agent-sentry/issues"
+Documentation = "https://agent-sentry-beta.vercel.app/docs"
+
 [project.optional-dependencies]
-# Cloud providers — install only what you need
 aws    = ["boto3>=1.34"]
 azure  = [
     "azure-identity>=1.16",
@@ -41,10 +51,8 @@ gcp    = [
     "google-auth>=2.28",
     "google-api-python-client>=2.120",
 ]
-github = ["requests>=2.31"]          # requests is also a core dep — already available
+github = ["requests>=2.31"]
 k8s    = ["kubernetes>=29.0"]
-
-# Convenience bundles
 all-clouds = [
     "agentsentry[aws]",
     "agentsentry[azure]",
@@ -52,7 +60,6 @@ all-clouds = [
     "agentsentry[github]",
     "agentsentry[k8s]",
 ]
-
 dev       = ["pytest>=8.0", "pytest-cov", "black", "ruff", "mypy"]
 dashboard = ["streamlit>=1.32"]
 
