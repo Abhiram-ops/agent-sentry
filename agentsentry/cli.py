@@ -503,45 +503,74 @@ def _provider_display_name(name: str) -> str:
 @click.option("--enrich",    is_flag=True, help="Enrich with CISA KEV threat intel")
 def cmd_interactive(visualize: bool, enrich: bool):
     """Interactive mode — pick your providers and path visually."""
+    import subprocess
     from rich.prompt import Prompt, Confirm
     from agentsentry.providers import registry
 
     _print_banner()
 
-    # ── Provider picker ───────────────────────────────────────────────
-    console.print("  [bold]Which environments do you want to scan?[/bold]\n")
+    SDK_INSTALL = {
+        "aws":    "nhi-audit[aws]",
+        "azure":  "nhi-audit[azure]",
+        "gcp":    "nhi-audit[gcp]",
+        "github": "nhi-audit[github]",
+        "k8s":    "nhi-audit[k8s]",
+    }
+    SETUP_HINT = {
+        "aws":    "run: aws configure",
+        "azure":  "run: az login",
+        "gcp":    "run: gcloud auth application-default login",
+        "github": "set env var: GITHUB_TOKEN=<your-token>  (github.com/settings/tokens)",
+        "k8s":    "ensure kubectl is configured: kubectl config get-contexts",
+    }
 
     all_providers = [
-        ("mock",   "Demo mode (no credentials needed)",   True),
-        ("local",  "This machine — env vars, SSH keys, files", True),
-        ("aws",    "Amazon Web Services",                  False),
-        ("azure",  "Microsoft Azure",                      False),
-        ("gcp",    "Google Cloud Platform",                False),
-        ("github", "GitHub — PATs, deploy keys, secrets", False),
-        ("k8s",    "Kubernetes cluster",                   False),
-        ("agents", "AI agent code (LangChain/CrewAI/AutoGen)", True),
+        ("local",  "This machine — env vars, SSH keys, files"),
+        ("aws",    "Amazon Web Services — IAM, Lambda, S3"),
+        ("azure",  "Microsoft Azure — Managed Identities, Service Principals"),
+        ("gcp",    "Google Cloud Platform — Service Accounts, SA Keys"),
+        ("github", "GitHub — PATs, deploy keys, Actions secrets"),
+        ("k8s",    "Kubernetes — ServiceAccounts, ClusterRoleBindings"),
+        ("agents", "AI agent code — LangChain / CrewAI / AutoGen"),
+        ("mock",   "Demo mode — realistic fake data, no credentials"),
     ]
 
-    statuses = {s.provider_name: s.ok for s in registry.detect()}
-    statuses["mock"]   = True
-    statuses["agents"] = True
+    detected = {s.provider_name: s for s in registry.detect()}
 
-    console.print(f"  {'#':<4} {'Provider':<10} {'Status':<14} Description")
+    _print_banner()
+    console.print("  [bold]Select environments to scan[/bold]\n")
+    console.print(f"  [dim]  #   provider     status          next step[/dim]")
     console.rule(style="dim")
-    for i, (name, desc, _) in enumerate(all_providers, 1):
-        ok = statuses.get(name, False)
-        status = "[bold #00ff88]ready[/bold #00ff88]" if ok else "[dim]needs setup[/dim]"
-        dot    = "[bold #00ff88]●[/bold #00ff88]" if ok else "[dim red]●[/dim red]"
-        console.print(f"  [dim]{i}[/dim]   {dot} [bold]{name:<10}[/bold] {status:<24} [dim]{desc}[/dim]")
-    console.print()
 
+    for i, (name, desc) in enumerate(all_providers, 1):
+        if name in ("mock", "agents", "local"):
+            dot    = "[bold #00ff88]●[/bold #00ff88]"
+            status = "[bold #00ff88]ready[/bold #00ff88]"
+            hint   = desc
+        else:
+            s = detected.get(name)
+            if s and s.ok:
+                dot    = "[bold #00ff88]●[/bold #00ff88]"
+                status = "[bold #00ff88]ready[/bold #00ff88]"
+                hint   = desc
+            elif s and not s.sdk_available:
+                dot    = "[dim red]●[/dim red]"
+                status = "[yellow]no sdk[/yellow]"
+                hint   = f"pip install {SDK_INSTALL[name]}"
+            else:
+                dot    = "[red]●[/red]"
+                status = "[red]no creds[/red]"
+                hint   = SETUP_HINT.get(name, "")
+        console.print(f"  [dim]{i}[/dim]   {dot} [bold]{name:<10}[/bold] {status:<22} [dim]{hint}[/dim]")
+
+    console.print()
     raw = Prompt.ask(
-        "  [bold]Enter numbers to scan[/bold] (e.g. [cyan]1,2,5[/cyan] or [cyan]all[/cyan])",
+        "  [bold]Enter numbers[/bold] (e.g. [cyan]1,2,3[/cyan] or [cyan]all[/cyan])",
         default="1"
     )
 
     if raw.strip().lower() == "all":
-        chosen = [name for name, _, _ in all_providers]
+        chosen = [name for name, _ in all_providers]
     else:
         indices = []
         for part in raw.replace(" ", "").split(","):
@@ -552,34 +581,64 @@ def cmd_interactive(visualize: bool, enrich: bool):
         chosen = [all_providers[i][0] for i in indices if 0 <= i < len(all_providers)]
 
     if not chosen:
-        console.print("  [red]✗[/red]  No valid selections. Exiting.\n")
+        console.print("  [red]✗[/red]  No valid selections.\n")
         return
 
-    console.print(f"\n  [bold #00ff88]Scanning:[/bold #00ff88]  {', '.join(chosen)}\n")
+    # ── Auto-fix missing SDKs ─────────────────────────────────────────
+    console.print()
+    for target in chosen:
+        s = detected.get(target)
+        if s and not s.sdk_available and target in SDK_INSTALL:
+            console.print(f"  [yellow]⚠[/yellow]  [bold]{target}[/bold] SDK not installed")
+            if Confirm.ask(f"     Install [bold]nhi-audit[{target}][/bold] now?", default=True):
+                console.print(f"  [dim]running pip install {SDK_INSTALL[target]}…[/dim]")
+                result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", SDK_INSTALL[target]],
+                    capture_output=True, text=True
+                )
+                if result.returncode == 0:
+                    console.print(f"  [#00ff88]✓[/#00ff88]  installed — you may still need to authenticate")
+                    console.print(f"  [dim]{SETUP_HINT.get(target, '')}[/dim]\n")
+                else:
+                    console.print(f"  [red]✗[/red]  install failed: {result.stderr.splitlines()[-1] if result.stderr else ''}\n")
+            else:
+                chosen.remove(target)
+                continue
 
-    # ── Path for local/agents ─────────────────────────────────────────
+        elif s and not s.ok and target in SETUP_HINT:
+            console.print(f"  [red]✗[/red]  [bold]{target}[/bold] needs credentials")
+            console.print(f"     [dim]{SETUP_HINT[target]}[/dim]")
+            if not Confirm.ask(f"     Try scanning anyway?", default=False):
+                chosen.remove(target)
+            console.print()
+
+    if not chosen:
+        console.print("  [dim]Nothing to scan.[/dim]\n")
+        return
+
+    console.print(f"  [bold #00ff88]Scanning:[/bold #00ff88]  {chr(44)+chr(32).join(chosen)}\n")
+
     path = "."
     if "local" in chosen or "agents" in chosen:
-        path = Prompt.ask(
-            "  [bold]Path to scan[/bold]",
-            default="."
-        )
+        path = Prompt.ask("  [bold]Directory to scan[/bold]", default=".")
 
     # ── Run each chosen provider ──────────────────────────────────────
     combined_nhis, combined_resources, all_scanners = [], [], []
 
     for target in chosen:
         console.rule(f"[dim]  {target}  [/dim]", style="dim")
-        provider, scanner = _build_provider(target, path=path)
+        try:
+            provider, scanner = _build_provider(target, path=path)
+        except Exception as exc:
+            console.print(f"  [red]✗[/red]  {target}: could not load — {exc}\n")
+            continue
 
         if provider is not None:
             status = provider.check_permissions()
             if not status.ok:
                 console.print(f"  [red]✗[/red]  {target}: {status.message}")
-                if not Confirm.ask(f"  Skip [bold]{target}[/bold] and continue?", default=True):
-                    continue
-                else:
-                    continue
+                console.print(f"  [dim]{SETUP_HINT.get(target, '')}[/dim]\n")
+                continue
 
         try:
             with Progress(
