@@ -37,8 +37,8 @@ cmd = [
 print(f"Building {APP_NAME} executable...")
 result = subprocess.run(cmd, cwd=os.path.dirname(__file__) or ".")
 if result.returncode == 0:
-    print(f"\n✓ Built: dist/{APP_NAME}")
+    print(f"\nBuilt: dist/{APP_NAME}")
     print(f"  Share this single file — no Python needed!")
 else:
-    print("\n✗ Build failed")
+    print("\nFAILED Build failed")
     sys.exit(1)
