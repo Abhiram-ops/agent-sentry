@@ -3,7 +3,9 @@ import Hero from "@/components/Hero";
 import Stats from "@/components/Stats";
 import HowItWorks from "@/components/HowItWorks";
 import Providers from "@/components/Providers";
+import InteractiveGraph from "@/components/InteractiveGraph";
 import Features from "@/components/Features";
+import RiskCalculator from "@/components/RiskCalculator";
 import Research from "@/components/Research";
 import Pricing from "@/components/Pricing";
 import Footer from "@/components/Footer";
@@ -16,7 +18,9 @@ export default function Home() {
       <Stats />
       <HowItWorks />
       <Providers />
+      <InteractiveGraph />
       <Features />
+      <RiskCalculator />
       <Research />
       <Pricing />
       <Footer />

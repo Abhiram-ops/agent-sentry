@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
+const ChatBot = dynamic(() => import("@/components/ChatBot"), { ssr: false });
+const CursorTrail = dynamic(() => import("@/components/CursorTrail"), { ssr: false });
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -34,6 +37,8 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark`}>
       <body className="min-h-full antialiased bg-black text-white overflow-x-hidden">
         {children}
+        <ChatBot />
+        <CursorTrail />
       </body>
     </html>
   );
