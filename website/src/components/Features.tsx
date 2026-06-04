@@ -84,18 +84,18 @@ function TiltCard({
 // ─── Features ──────────────────────────────────────────────────────────────
 
 const FEATURES = [
-  { icon: Network,      title: "NHI Discovery",         color: "#00ff88", wide: true,
-    desc: "Finds every IAM role, API key, service account, and OAuth token in your cloud. The ones you know about — and the ones you don't. Full inventory in minutes." },
-  { icon: Bot,          title: "AI Agent Scanner",       color: "#0099ff", wide: false,
+  { icon: Network,      title: "Multi-Cloud NHI Discovery", color: "#00ff88", wide: true,
+    desc: "Finds every IAM role, API key, service account, Managed Identity, and OAuth token — across AWS, Azure, GCP, GitHub, Kubernetes, and your local machine. One command. Every environment." },
+  { icon: Bot,          title: "AI Agent Scanner",          color: "#0099ff", wide: false,
     desc: "Statically analyzes LangChain, CrewAI, and AutoGen codebases. Extracts tool permissions. Computes the AI-Amplification Factor." },
-  { icon: AlertTriangle,title: "CISA KEV Enrichment",   color: "#ff3366", wide: false,
+  { icon: AlertTriangle,title: "CISA KEV Enrichment",       color: "#ff3366", wide: false,
     desc: "Correlates every finding against 1,610+ actively exploited CVEs. Flags ransomware-linked vulnerabilities in real time." },
-  { icon: Shield,       title: "Attack Graph",          color: "#ffcc00", wide: false,
-    desc: "Directed graph of access relationships. Computes blast radius: if this identity is compromised, what does the attacker reach?" },
-  { icon: FileSearch,   title: "MITRE ATT&CK Mapping",  color: "#00ff88", wide: false,
-    desc: "Every finding maps to ATT&CK techniques. T1078.004, T1528, T1651 — the language your SOC already speaks." },
-  { icon: Zap,          title: "Risk Scoring: P×R×E×A", color: "#ff8800", wide: true,
-    desc: "Privilege × Reachability × Exposure × AI-Amplification. The first scoring model that accounts for autonomous AI agent blast radius. Novel contribution — no prior framework defines this." },
+  { icon: Shield,       title: "Attack Graph",              color: "#ffcc00", wide: false,
+    desc: "Cross-provider attack graph. Computes blast radius: if this identity is compromised, what does the attacker reach — regardless of which cloud it lives in?" },
+  { icon: FileSearch,   title: "MITRE ATT&CK Mapping",      color: "#00ff88", wide: false,
+    desc: "Every finding maps to ATT&CK techniques. T1078.004, T1528, T1552, T1611 — the language your SOC already speaks." },
+  { icon: Zap,          title: "Risk Scoring: P×R×E×A",     color: "#ff8800", wide: true,
+    desc: "Privilege × Reachability × Exposure × AI-Amplification. Consistent across all providers — the same score model whether the identity lives in AWS, K8s, or a local .env file. Novel academic contribution." },
 ];
 
 export default function Features() {
@@ -116,8 +116,8 @@ export default function Features() {
             Every attack surface.<br />One scanner.
           </h2>
           <p style={{ color: "#4a4a4a", maxWidth: 480, fontSize: "clamp(0.95rem, 1.4vw, 1.05rem)", lineHeight: 1.75 }}>
-            The only open-source tool that audits machine identities and AI agents
-            in the same scan — with the same risk model.
+            The only open-source tool that audits machine identities across every
+            cloud and environment — with the same risk model, in the same scan.
           </p>
         </motion.div>
 

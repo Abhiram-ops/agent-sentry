@@ -18,9 +18,10 @@ export default function Navbar() {
 
   const links = [
     { label: "How it works", href: "#how-it-works" },
-    { label: "Features", href: "#features" },
-    { label: "Research", href: "#research" },
-    { label: "Pricing", href: "#pricing" },
+    { label: "Providers",    href: "#providers" },
+    { label: "Features",     href: "#features" },
+    { label: "Research",     href: "#research" },
+    { label: "Pricing",      href: "#pricing" },
   ];
 
   return (
