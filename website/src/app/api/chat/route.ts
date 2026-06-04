@@ -72,7 +72,9 @@ export async function POST(req: Request) {
           messages,
         });
 
-        for await (const text of msgStream.text_stream) {
+        for await (const event of msgStream) {
+          if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
+          const text = event.delta.text;
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
           );
