@@ -19,15 +19,26 @@ from pydantic import BaseModel, Field
 # ---------------------------------------------------------------------------
 
 class NHIType(str, Enum):
-    IAM_ROLE           = "iam_role"
-    IAM_USER_KEY       = "iam_user_key"
-    SERVICE_ACCOUNT    = "service_account"
-    API_KEY            = "api_key"
-    OAUTH_TOKEN        = "oauth_token"
-    SSH_KEY            = "ssh_key"
-    GITHUB_SECRET      = "github_secret"
-    AI_AGENT           = "ai_agent"
-    UNKNOWN            = "unknown"
+    # AWS
+    IAM_ROLE              = "iam_role"
+    IAM_USER_KEY          = "iam_user_key"
+    # Azure
+    MANAGED_IDENTITY      = "managed_identity"
+    SERVICE_PRINCIPAL     = "service_principal"
+    # GCP
+    GCP_SERVICE_ACCOUNT   = "gcp_service_account"
+    WORKLOAD_IDENTITY     = "workload_identity"
+    # Kubernetes
+    K8S_SERVICE_ACCOUNT   = "k8s_service_account"
+    # Universal
+    SERVICE_ACCOUNT       = "service_account"
+    API_KEY               = "api_key"
+    OAUTH_TOKEN           = "oauth_token"
+    SSH_KEY               = "ssh_key"
+    GITHUB_SECRET         = "github_secret"
+    DEPLOY_KEY            = "deploy_key"
+    AI_AGENT              = "ai_agent"
+    UNKNOWN               = "unknown"
 
 
 class AutonomyLevel(str, Enum):
@@ -45,10 +56,12 @@ class RiskLevel(str, Enum):
 
 
 class CloudProvider(str, Enum):
-    AWS   = "aws"
-    AZURE = "azure"
-    GCP   = "gcp"
-    LOCAL = "local"
+    AWS    = "aws"
+    AZURE  = "azure"
+    GCP    = "gcp"
+    GITHUB = "github"
+    K8S    = "k8s"
+    LOCAL  = "local"
 
 
 # ---------------------------------------------------------------------------
