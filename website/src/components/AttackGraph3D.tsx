@@ -96,8 +96,8 @@ export default function AttackGraph3D({ className = "" }: { className?: string }
       scene.add(group);
 
       /* ── Nodes ── */
-      const pulseNodes: THREE.Mesh[]  = [];
-      const pulseRings: THREE.Mesh[]  = [];
+      const pulseNodes: T.Mesh[]  = [];
+      const pulseRings: T.Mesh[]  = [];
 
       NODES.forEach((n) => {
         const geo = new THREE.SphereGeometry(n.r, 20, 20);
@@ -172,7 +172,7 @@ export default function AttackGraph3D({ className = "" }: { className?: string }
         pulseRings.forEach((r, i) => {
           const s = 1 + Math.sin(t * 2.8 - i * 0.6) * 0.35;
           r.scale.setScalar(s);
-          (r.material as THREE.MeshBasicMaterial).opacity =
+          (r.material as T.MeshBasicMaterial).opacity =
             0.18 * (1 - Math.abs(Math.sin(t * 2.8 - i * 0.6)) * 0.65);
         });
 
