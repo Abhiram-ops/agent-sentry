@@ -46,15 +46,11 @@ pip install agentsentry[all-clouds]  # Everything
 
 ## Common Findings & Fixes
 - AdminAccess on IAM role → Apply least-privilege, use specific policies
-- Unrotated access key >90 days → Rotate immediately, set rotation reminder
+- Unrotated access key >90 days → Rotate immediately
 - AI agent with irreversible tools + no human gate → Add approval step
 - cluster-admin ClusterRoleBinding → Scope to specific namespace + Role
 - Unencrypted SSH key → Add passphrase: ssh-keygen -p -f ~/.ssh/id_rsa
 - .env file with secrets → Move to secrets manager, add to .gitignore
-- Docker socket accessible → Remove from docker group, use rootless Docker
-
-## Research
-The P×R×E×A model with AI-Amplification Factor is a novel academic contribution — no prior framework accounts for autonomous AI agent blast radius. Published as IEEE-format research paper.
 
 GitHub: https://github.com/Abhiram-ops/agent-sentry
 License: MIT | Author: Abhiram Lanka
@@ -68,28 +64,25 @@ export async function POST(req: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const response = await client.messages.create({
+        // Use .stream() for clean async iteration
+        const msgStream = client.messages.stream({
           model: "claude-haiku-4-5-20251001",
           max_tokens: 600,
           system: SYSTEM,
           messages,
-          stream: true,
         });
 
-        for await (const event of response) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`)
-            );
-          }
+        for await (const text of msgStream.text_stream) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
+          );
         }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Unknown error";
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`)
+        );
       } finally {
         controller.close();
       }

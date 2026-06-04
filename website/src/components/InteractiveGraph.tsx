@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
-import type * as T from "three";
 import Container from "./Container";
 
 // ─── Demo data ─────────────────────────────────────────────────────────────
@@ -46,14 +45,14 @@ function GraphCanvas({ onSelect }: { onSelect: (id: string | null) => void }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const rafRef   = useRef<number>(0);
   const stateRef = useRef({ drag: false, prevMouse: { x:0,y:0 }, rotY: -0.3, rotX: 0.15, zoom: 9, hoverId: null as string|null });
-  const meshMapRef = useRef<Map<string, T.Mesh>>(new Map());
+  const meshMapRef = useRef<Map<string, any>>(new Map());
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount || typeof window === "undefined") return;
     let running = true;
 
-    import("three").then((THREE: typeof T) => {
+    import("three").then((THREE) => {
       if (!running || !mount) return;
 
       const scene = new THREE.Scene();
@@ -73,7 +72,7 @@ function GraphCanvas({ onSelect }: { onSelect: (id: string | null) => void }) {
       scene.add(group);
 
       // Build node meshes
-      const meshes: T.Mesh[] = [];
+      const meshes: any[] = [];
       NODES.forEach(n => {
         const geo = new THREE.SphereGeometry(n.r, 24, 24);
         const mat = new THREE.MeshBasicMaterial({ color: n.c });
@@ -199,7 +198,7 @@ function GraphCanvas({ onSelect }: { onSelect: (id: string | null) => void }) {
           const scale = isSelected ? 1.35 : isHover ? 1.18 : baseScale;
           m.scale.setScalar(scale + (scale - m.scale.x) * 0.15);
 
-          const gm = m.userData.glowMat as T.MeshBasicMaterial | undefined;
+          const gm = m.userData.glowMat as any;
           if (gm) gm.opacity = isSelected ? 0.18 : isHover ? 0.12 : 0.04;
         });
 
