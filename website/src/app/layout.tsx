@@ -1,9 +1,11 @@
+import React from "react";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
-const ChatBot = dynamic(() => import("@/components/ChatBot"), { ssr: false });
-const CursorTrail = dynamic(() => import("@/components/CursorTrail"), { ssr: false });
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+
+const ChatBot = dynamic(() => import("@/components/ChatBot"), { ssr: false });
+const CursorTrail = dynamic(() => import("@/components/CursorTrail"), { ssr: false });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

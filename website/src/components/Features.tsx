@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Shield, Bot, Zap, Network, AlertTriangle, FileSearch } from "lucide-react";
