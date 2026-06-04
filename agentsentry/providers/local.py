@@ -402,8 +402,36 @@ class LocalProvider(BaseProvider):
             (re.compile(r"""private[_-]?key\s*[=:]\s*["']([^"']{20,})["']""", re.I), "Hardcoded private key", RiskLevel.CRITICAL),
         ]
 
+        MAX_FILES = 300
+        MAX_DEPTH = 4
+        SKIP_DIRS = {
+            "node_modules", "__pycache__", "venv", ".venv", "dist", "build",
+            ".git", ".svn", "AppData", "site-packages", "lib", "Lib",
+            "Windows", "Program Files", "Program Files (x86)",
+        }
+
+        def iter_files(base, max_depth):
+            """Yield files up to max_depth, skipping known large dirs."""
+            for entry in base.iterdir():
+                try:
+                    if entry.is_symlink():
+                        continue
+                    if entry.is_dir():
+                        if entry.name.startswith(".") or entry.name in SKIP_DIRS:
+                            continue
+                        if max_depth > 1:
+                            yield from iter_files(entry, max_depth - 1)
+                    elif entry.is_file():
+                        yield entry
+                except (PermissionError, OSError):
+                    continue
+
         scanned = 0
-        for fpath in self.path.rglob("*"):
+        file_count = 0
+        for fpath in iter_files(self.path, MAX_DEPTH):
+            if file_count >= MAX_FILES:
+                break
+            file_count += 1
             if not fpath.is_file():
                 continue
             if fpath.suffix.lower() not in EXTENSIONS:

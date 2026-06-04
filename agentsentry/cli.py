@@ -494,3 +494,120 @@ def _provider_display_name(name: str) -> str:
     return {"aws": "Amazon Web Services", "azure": "Microsoft Azure",
             "gcp": "Google Cloud Platform", "github": "GitHub",
             "k8s": "Kubernetes", "local": "Local Environment"}.get(name, name.title())
+
+
+# ── interactive ───────────────────────────────────────────────────────────────
+
+@main.command("interactive")
+@click.option("--visualize", is_flag=True, help="Generate HTML attack graph after scan")
+@click.option("--enrich",    is_flag=True, help="Enrich with CISA KEV threat intel")
+def cmd_interactive(visualize: bool, enrich: bool):
+    """Interactive mode — pick your providers and path visually."""
+    from rich.prompt import Prompt, Confirm
+    from agentsentry.providers import registry
+
+    _print_banner()
+
+    # ── Provider picker ───────────────────────────────────────────────
+    console.print("  [bold]Which environments do you want to scan?[/bold]\n")
+
+    all_providers = [
+        ("mock",   "Demo mode (no credentials needed)",   True),
+        ("local",  "This machine — env vars, SSH keys, files", True),
+        ("aws",    "Amazon Web Services",                  False),
+        ("azure",  "Microsoft Azure",                      False),
+        ("gcp",    "Google Cloud Platform",                False),
+        ("github", "GitHub — PATs, deploy keys, secrets", False),
+        ("k8s",    "Kubernetes cluster",                   False),
+        ("agents", "AI agent code (LangChain/CrewAI/AutoGen)", True),
+    ]
+
+    statuses = {s.provider_name: s.ok for s in registry.detect()}
+    statuses["mock"]   = True
+    statuses["agents"] = True
+
+    console.print(f"  {'#':<4} {'Provider':<10} {'Status':<14} Description")
+    console.rule(style="dim")
+    for i, (name, desc, _) in enumerate(all_providers, 1):
+        ok = statuses.get(name, False)
+        status = "[bold #00ff88]ready[/bold #00ff88]" if ok else "[dim]needs setup[/dim]"
+        dot    = "[bold #00ff88]●[/bold #00ff88]" if ok else "[dim red]●[/dim red]"
+        console.print(f"  [dim]{i}[/dim]   {dot} [bold]{name:<10}[/bold] {status:<24} [dim]{desc}[/dim]")
+    console.print()
+
+    raw = Prompt.ask(
+        "  [bold]Enter numbers to scan[/bold] (e.g. [cyan]1,2,5[/cyan] or [cyan]all[/cyan])",
+        default="1"
+    )
+
+    if raw.strip().lower() == "all":
+        chosen = [name for name, _, _ in all_providers]
+    else:
+        indices = []
+        for part in raw.replace(" ", "").split(","):
+            try:
+                indices.append(int(part) - 1)
+            except ValueError:
+                pass
+        chosen = [all_providers[i][0] for i in indices if 0 <= i < len(all_providers)]
+
+    if not chosen:
+        console.print("  [red]✗[/red]  No valid selections. Exiting.\n")
+        return
+
+    console.print(f"\n  [bold #00ff88]Scanning:[/bold #00ff88]  {', '.join(chosen)}\n")
+
+    # ── Path for local/agents ─────────────────────────────────────────
+    path = "."
+    if "local" in chosen or "agents" in chosen:
+        path = Prompt.ask(
+            "  [bold]Path to scan[/bold]",
+            default="."
+        )
+
+    # ── Run each chosen provider ──────────────────────────────────────
+    combined_nhis, combined_resources, all_scanners = [], [], []
+
+    for target in chosen:
+        console.rule(f"[dim]  {target}  [/dim]", style="dim")
+        provider, scanner = _build_provider(target, path=path)
+
+        if provider is not None:
+            status = provider.check_permissions()
+            if not status.ok:
+                console.print(f"  [red]✗[/red]  {target}: {status.message}")
+                if not Confirm.ask(f"  Skip [bold]{target}[/bold] and continue?", default=True):
+                    continue
+                else:
+                    continue
+
+        try:
+            with Progress(
+                SpinnerColumn(spinner_name="dots2", style="#00ff88"),
+                TextColumn("[dim]{task.description}[/dim]"),
+                console=console, transient=True,
+            ) as p:
+                t = p.add_task(f"scanning {target}…", total=None)
+                result = scanner.scan()
+                p.update(t, completed=True)
+
+            combined_nhis.extend(result.nhis)
+            combined_resources.extend(result.resources)
+            all_scanners.append(scanner)
+            console.print(f"  [#00ff88]✓[/#00ff88]  {result.total_nhis} NHIs found\n")
+        except Exception as exc:
+            console.print(f"  [red]✗[/red]  {target}: {exc}\n")
+
+    if not combined_nhis:
+        console.print("  [dim]No NHIs found across selected providers.[/dim]\n")
+        return
+
+    from agentsentry.core.models import CloudProvider as CP, ScanResult as SR
+    aggregate = SR(scan_id="interactive-scan", provider=CP.LOCAL,
+                   nhis=combined_nhis, resources=combined_resources)
+
+    _finalise_and_print(
+        aggregate, all_scanners[0] if all_scanners else None,
+        enrich=enrich, visualize=visualize,
+        output="agentsentry_graph.html", output_json=False,
+    )
