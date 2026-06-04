@@ -3,8 +3,11 @@ name: Build & Release Executables
 on:
   push:
     tags:
-      - "v*"          # triggers on: git tag v0.1.2 && git push --tags
-  workflow_dispatch:  # manual trigger from GitHub UI
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
