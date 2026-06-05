@@ -1,4 +1,6 @@
-// Uses Gemini REST API directly — no SDK needed, no package issues
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const RAW = "https://raw.githubusercontent.com/Abhiram-ops/agent-sentry/master";
 const FILES: Record<string, string> = {
@@ -58,84 +60,34 @@ Be concise. Use code blocks for commands.`;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return new Response("data: " + JSON.stringify({ error: "GEMINI_API_KEY not set" }) + "\n\n", {
-      headers: { "Content-Type": "text/event-stream" },
-    });
-  }
 
   const codeContext = await getCodebaseContext();
-  const systemText = codeContext
+  const system = codeContext
     ? `${STATIC_SYSTEM}\n\n## Live Codebase\n${codeContext}`
     : STATIC_SYSTEM;
 
-  // Convert messages to Gemini format
-  const contents = messages.map((m: { role: string; content: string }) => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
-
-  const body = {
-    system_instruction: { parts: [{ text: systemText }] },
-    contents,
-    generationConfig: { maxOutputTokens: 1024, temperature: 0.7 },
-  };
-
-  // Try gemini-2.0-flash first, fallback to gemini-1.5-flash-latest
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash-latest"];
-  
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      let success = false;
-      for (const model of models) {
-        try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-          const geminiRes = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          });
+      try {
+        const msgStream = client.messages.stream({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 1024,
+          system,
+          messages,
+        });
 
-          if (!geminiRes.ok || !geminiRes.body) {
-            const errText = await geminiRes.text();
-            if (errText.includes("not found") || errText.includes("404")) continue; // try next model
-            throw new Error(`Gemini ${geminiRes.status}: ${errText.slice(0, 200)}`);
-          }
-
-          const reader = geminiRes.body.getReader();
-          const dec = new TextDecoder();
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = dec.decode(value);
-            for (const line of chunk.split("\n")) {
-              if (!line.startsWith("data: ")) continue;
-              const data = line.slice(6).trim();
-              if (!data || data === "[DONE]") continue;
-              try {
-                const parsed = JSON.parse(data);
-                const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
-              } catch { /* skip malformed */ }
-            }
-          }
-          success = true;
-          break;
-        } catch (err) {
-          if (model === models[models.length - 1]) {
-            const msg = err instanceof Error ? err.message : "Unknown error";
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
-          }
+        for await (const event of msgStream) {
+          if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`));
         }
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
+      } finally {
+        controller.close();
       }
-      if (!success && !controller.desiredSize) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "All models unavailable" })}\n\n`));
-      }
-      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      controller.close();
     },
   });
 
