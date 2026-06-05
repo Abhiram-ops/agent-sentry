@@ -2,10 +2,12 @@
 
 ![CI](https://github.com/Abhiram-ops/agent-sentry/actions/workflows/ci.yml/badge.svg)
 [![PyPI](https://img.shields.io/pypi/v/nhi-audit?label=PyPI&color=00cc6a)](https://pypi.org/project/nhi-audit/)
-[![PyPI Downloads](https://img.shields.io/pypi/dm/nhi-audit?color=00cc6a)](https://pypi.org/project/nhi-audit/)
+
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 [![Website](https://img.shields.io/badge/website-agent--sentry--beta.vercel.app-brightgreen)](https://agent-sentry-beta.vercel.app)
+
+![AgentSentry Demo](https://raw.githubusercontent.com/Abhiram-ops/agent-sentry/main/agentsentry/demo.gif)
 
 **Open-source auditor for Non-Human Identities and AI Agent attack surfaces across AWS, Azure, GCP, GitHub, Kubernetes, and your local machine.**
 
