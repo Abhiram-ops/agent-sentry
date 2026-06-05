@@ -124,10 +124,11 @@ export default function ChatBot() {
       }
       if (!open) setUnread(u => u + 1);
     } catch (err) {
-      setMsgs(prev => [...prev, {
-        role: "assistant",
-        content: `Sorry, something went wrong. Please try again in a moment. (${err instanceof Error ? err.message : "Unknown error"})`,
-      }]);
+      const rawMsg = err instanceof Error ? err.message : "";
+      const content = rawMsg === "rate_limited"
+        ? "The assistant is at capacity right now — Groq's free tier has per-minute limits. Please try again in a moment."
+        : "Sorry, something went wrong. Please try again.";
+      setMsgs(prev => [...prev, { role: "assistant", content }]);
     } finally {
       setLoading(false);
     }
