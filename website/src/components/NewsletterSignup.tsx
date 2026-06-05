@@ -39,7 +39,7 @@ export function NewsletterSignup() {
         </h2>
         <p style={{ color: "#666", fontSize: 15, lineHeight: 1.7, marginBottom: 32 }}>
           Weekly intel on NHI security and AI agent risks — real findings, practical commands, no fluff.
-          Join security engineers and DevOps teams already subscribed.
+          Get it before it hits the feeds. Every Tuesday, free.
         </p>
 
         {status === "success" ? (
