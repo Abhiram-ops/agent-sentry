@@ -1,6 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// Groq API — free tier, 14,400 req/day, OpenAI-compatible
 
 const RAW = "https://raw.githubusercontent.com/Abhiram-ops/agent-sentry/master";
 const FILES: Record<string, string> = {
@@ -56,35 +54,82 @@ AWS: aws configure | Azure: az login | GCP: gcloud auth application-default logi
 GitHub: GITHUB_TOKEN env var | Local: no setup needed
 
 GitHub: https://github.com/Abhiram-ops/agent-sentry
-Be concise. Use code blocks for commands.`;
+Be concise and direct. Use code blocks for commands.`;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
+  const apiKey = process.env.GROQ_API_KEY;
+
+  if (!apiKey) {
+    return new Response(
+      `data: ${JSON.stringify({ error: "GROQ_API_KEY not set in Vercel" })}\n\ndata: [DONE]\n\n`,
+      { headers: { "Content-Type": "text/event-stream" } }
+    );
+  }
 
   const codeContext = await getCodebaseContext();
-  const system = codeContext
+  const systemContent = codeContext
     ? `${STATIC_SYSTEM}\n\n## Live Codebase\n${codeContext}`
     : STATIC_SYSTEM;
+
+  const groqMessages = [
+    { role: "system", content: systemContent },
+    ...messages.map((m: { role: string; content: string }) => ({
+      role: m.role === "assistant" ? "assistant" : "user",
+      content: m.content,
+    })),
+  ];
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const msgStream = client.messages.stream({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 1024,
-          system,
-          messages,
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "llama-3.1-8b-instant",
+            messages: groqMessages,
+            stream: true,
+            max_tokens: 1024,
+            temperature: 0.7,
+          }),
         });
 
-        for await (const event of msgStream) {
-          if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`));
+        if (!res.ok || !res.body) {
+          const err = await res.text();
+          throw new Error(`Groq ${res.status}: ${err.slice(0, 200)}`);
         }
+
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = dec.decode(value);
+          for (const line of chunk.split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") break;
+            try {
+              const parsed = JSON.parse(data);
+              const text = parsed?.choices?.[0]?.delta?.content;
+              if (text) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
+              }
+            } catch { /* skip malformed */ }
+          }
+        }
+
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Unknown error";
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       } finally {
         controller.close();
       }
