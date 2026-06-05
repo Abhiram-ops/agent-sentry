@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { motion } from "framer-motion";
-import { Send, Github, Mail, MessageCircle, CheckCircle, AlertCircle } from "lucide-react";
+import { Send, GitBranch, Mail, MessageCircle, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -16,7 +16,7 @@ const channels = [
     accent: "#1d9bf0",
   },
   {
-    icon: Github,
+    icon: GitBranch,
     label: "GitHub Issues",
     handle: "Open an issue",
     href: "https://github.com/Abhiram-ops/agent-sentry/issues/new",
@@ -73,7 +73,7 @@ export default function ContactPage() {
           </div>
           <h1 className="text-4xl font-bold text-white mb-3">Get in touch</h1>
           <p className="text-[#555] text-base max-w-md">
-            Found a bug? Have a feature idea? Just want to talk security? Send a message and I'll get back to you.
+            Found a bug? Have a feature idea? Just want to talk security? Send a message and I&apos;ll get back to you.
           </p>
         </motion.div>
 
@@ -89,7 +89,7 @@ export default function ContactPage() {
                 <CheckCircle className="w-12 h-12 text-[#00ff88] mb-5" />
                 <h2 className="text-xl font-semibold text-white mb-2">Message received</h2>
                 <p className="text-[#555] text-sm max-w-xs">
-                  You'll get a confirmation email shortly. I typically reply within 24–48 hours.
+                  You&apos;ll get a confirmation email shortly. I typically reply within 24–48 hours.
                 </p>
                 <button
                   onClick={() => setStatus("idle")}
@@ -216,7 +216,7 @@ export default function ContactPage() {
 
             <div className="pt-4 border-t border-white/[0.06]">
               <p className="text-xs text-[#333] leading-relaxed">
-                Response time is usually 24–48 hours. For urgent security issues, DM on X for the fastest reply.
+                Response time is usually 24–48 hours. For urgent issues, DM on X for the fastest reply.
               </p>
             </div>
           </motion.div>

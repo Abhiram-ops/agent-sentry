@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MessageCircle, Github, Mail, ExternalLink } from "lucide-react";
+import { MessageCircle, GitBranch, Mail, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 const channels = [
@@ -15,7 +15,7 @@ const channels = [
     accent: "#1d9bf0",
   },
   {
-    icon: Github,
+    icon: GitBranch,
     label: "GitHub Issues",
     handle: "agent-sentry",
     description: "Bug reports, feature requests, and pull requests welcome.",
@@ -33,6 +33,7 @@ const channels = [
     accent: "#a855f7",
   },
 ];
+
 export default function Contact() {
   return (
     <section id="contact" className="py-24">
