@@ -11,24 +11,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
   }
 
-  const gmailUser = process.env.GMAIL_USER;
-  const gmailPass = process.env.GMAIL_APP_PASSWORD;
+  const brevoLogin = process.env.BREVO_LOGIN;
+  const brevoKey = process.env.BREVO_SMTP_KEY;
+  const SENDER = "agentsentry.tool@gmail.com";
 
-  if (!gmailUser || !gmailPass) {
-    console.error("Gmail credentials not configured");
+  if (!brevoLogin || !brevoKey) {
+    console.error("Brevo credentials not configured");
     return NextResponse.json({ error: "Server misconfigured." }, { status: 500 });
   }
 
   const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user: gmailUser, pass: gmailPass },
+    host: "smtp-relay.brevo.com",
+    port: 587,
+    secure: false,
+    auth: { user: brevoLogin, pass: brevoKey },
   });
 
   try {
     // 1. Forward submission to agentsentry inbox
     await transporter.sendMail({
-      from: `"AgentSentry Contact" <${gmailUser}>`,
-      to: gmailUser,
+      from: `"AgentSentry Contact" <${SENDER}>`,
+      to: SENDER,
       replyTo: email,
       subject: `[Contact] ${name} — AgentSentry`,
       html: `
@@ -47,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Auto-reply to the sender
     await transporter.sendMail({
-      from: `"AgentSentry" <${gmailUser}>`,
+      from: `"AgentSentry" <${SENDER}>`,
       to: email,
       subject: "Got your message — AgentSentry",
       html: `

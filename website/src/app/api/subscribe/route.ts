@@ -37,17 +37,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Subscription failed" }, { status: 500 });
   }
 
-  // Send welcome email directly — Beehiiv free tier doesn't reliably fire welcome emails
-  const gmailUser = process.env.GMAIL_USER;
-  const gmailPass = process.env.GMAIL_APP_PASSWORD;
+  // Send welcome email via Brevo SMTP — better deliverability than raw Gmail SMTP
+  const brevoLogin = process.env.BREVO_LOGIN;
+  const brevoKey = process.env.BREVO_SMTP_KEY;
 
-  console.log("[subscribe] GMAIL_USER set:", !!gmailUser, "| GMAIL_PASS set:", !!gmailPass);
+  console.log("[subscribe] BREVO_LOGIN set:", !!brevoLogin, "| BREVO_SMTP_KEY set:", !!brevoKey);
 
-  if (gmailUser && gmailPass) {
+  if (brevoLogin && brevoKey) {
     try {
       const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: { user: gmailUser, pass: gmailPass },
+        host: "smtp-relay.brevo.com",
+        port: 587,
+        secure: false,
+        auth: { user: brevoLogin, pass: brevoKey },
       });
 
       const welcomeHtml = `<div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;background:#080e09;color:#ccc;padding:40px 32px;border-radius:12px;border:1px solid rgba(0,255,136,0.12)">
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
 </div>`;
 
       await transporter.sendMail({
-        from: `"Blast Radius · AgentSentry" <${gmailUser}>`,
+        from: '"Blast Radius · AgentSentry" <agentsentry.tool@gmail.com>',
         to: email,
         subject: "You're in — welcome to Blast Radius",
         html: welcomeHtml,
