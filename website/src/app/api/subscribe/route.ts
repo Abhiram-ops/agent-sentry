@@ -1,5 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+
+const SENDER = { name: "Blast Radius · AgentSentry", email: "agentsentry.tool@gmail.com" };
+
+async function sendBrevoEmail(to: string, subject: string, htmlContent: string) {
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
+    console.error("[brevo] BREVO_API_KEY not set");
+    return;
+  }
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "api-key": apiKey },
+    body: JSON.stringify({ sender: SENDER, to: [{ email: to }], subject, htmlContent }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("[brevo] Send failed:", res.status, err.slice(0, 300));
+  } else {
+    console.log("[brevo] Email sent to", to);
+  }
+}
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json();
@@ -19,14 +39,11 @@ export async function POST(req: NextRequest) {
     `https://api.beehiiv.com/v2/publications/${publicationId}/subscriptions`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         email,
         reactivate_existing: false,
-        send_welcome_email: true,
+        send_welcome_email: false,
         utm_source: "website",
         utm_medium: "form",
       }),
@@ -34,44 +51,21 @@ export async function POST(req: NextRequest) {
   );
 
   if (!res.ok) {
+    const err = await res.text();
+    console.error("[subscribe] Beehiiv error:", res.status, err.slice(0, 200));
     return NextResponse.json({ error: "Subscription failed" }, { status: 500 });
   }
 
-  // Send welcome email via Brevo SMTP — better deliverability than raw Gmail SMTP
-  const brevoLogin = process.env.BREVO_LOGIN;
-  const brevoKey = process.env.BREVO_SMTP_KEY;
-
-  console.log("[subscribe] BREVO_LOGIN set:", !!brevoLogin, "| BREVO_SMTP_KEY set:", !!brevoKey);
-
-  if (brevoLogin && brevoKey) {
-    try {
-      const transporter = nodemailer.createTransport({
-        host: "smtp-relay.brevo.com",
-        port: 587,
-        secure: false,
-        auth: { user: brevoLogin, pass: brevoKey },
-      });
-
-      const welcomeHtml = `<div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;background:#080e09;color:#ccc;padding:40px 32px;border-radius:12px;border:1px solid rgba(0,255,136,0.12)">
+  const welcomeHtml = `<div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;background:#080e09;color:#ccc;padding:40px 32px;border-radius:12px;border:1px solid rgba(0,255,136,0.12)">
 <div style="color:#00ff88;font-weight:700;font-size:20px;margin-bottom:4px">Blast Radius</div>
 <div style="color:#444;font-size:12px;margin-bottom:32px">by AgentSentry</div>
 <h2 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 16px">You&apos;re subscribed.</h2>
-<p style="font-size:15px;line-height:1.7;color:#aaa;margin:0 0 20px">Thanks for signing up. Each issue of <strong style="color:#fff">Blast Radius</strong> covers real NHI and AI agent security incidents — what broke, why it matters, and how to stop it from happening to you.</p>
-<p style="font-size:15px;line-height:1.7;color:#aaa;margin:0 0 32px">In the meantime, check out <a href="https://agent-sentry-beta.vercel.app" style="color:#00ff88;text-decoration:none">AgentSentry</a> — the open-source scanner behind this newsletter.</p>
+<p style="font-size:15px;line-height:1.7;color:#aaa;margin:0 0 20px">Thanks for signing up. Each issue covers real NHI and AI agent security incidents — what broke, why it matters, and how to stop it.</p>
+<p style="font-size:15px;line-height:1.7;color:#aaa;margin:0 0 32px">Check out <a href="https://agent-sentry-beta.vercel.app" style="color:#00ff88;text-decoration:none">AgentSentry</a> — the open-source scanner behind this newsletter.</p>
 <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:20px;font-size:12px;color:#333">You received this because you signed up at agent-sentry-beta.vercel.app.</div>
 </div>`;
 
-      await transporter.sendMail({
-        from: '"Blast Radius · AgentSentry" <agentsentry.tool@gmail.com>',
-        to: email,
-        subject: "You're in — welcome to Blast Radius",
-        html: welcomeHtml,
-      });
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      console.error("[subscribe] Welcome email FAILED:", msg);
-    }
-  }
+  await sendBrevoEmail(email, "You're in — welcome to Blast Radius", welcomeHtml);
 
   return NextResponse.json({ success: true });
 }
