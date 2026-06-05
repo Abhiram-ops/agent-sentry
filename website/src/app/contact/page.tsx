@@ -33,7 +33,6 @@ export default function ContactPage() {
     e.preventDefault();
     setStatus("loading");
     setErrorMsg("");
-
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
@@ -41,7 +40,6 @@ export default function ContactPage() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-
       if (!res.ok) {
         setErrorMsg(data.error || "Something went wrong. Please try again.");
         setStatus("error");
@@ -59,7 +57,7 @@ export default function ContactPage() {
     <div className="min-h-screen bg-black text-white">
       <Navbar />
 
-      <main className="pt-32 pb-24 px-6" style={{ maxWidth: 900, margin: "0 auto" }}>
+      <main style={{ maxWidth: 1100, margin: "0 auto", paddingLeft: 56, paddingRight: 56, paddingTop: 140, paddingBottom: 96 }}>
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -73,19 +71,22 @@ export default function ContactPage() {
           </div>
           <h1 className="text-4xl font-bold text-white mb-3">Get in touch</h1>
           <p className="text-[#555] text-base max-w-md">
-            Found a bug? Have a feature idea? Just want to talk security? Send a message and I&apos;ll get back to you.
+            Found a bug? Have a feature idea? Just want to talk security?{" "}
+            Send a message and I&apos;ll get back to you.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-10">
-          {/* Form */}
+        {/* Two-column layout */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-12">
+
+          {/* Form column */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             {status === "success" ? (
-              <div className="flex flex-col items-center justify-center h-full min-h-[340px] rounded-xl border border-[#00ff88]/20 bg-[#00ff88]/5 p-12 text-center">
+              <div className="flex flex-col items-center justify-center min-h-[340px] rounded-xl border border-[#00ff88]/20 bg-[#00ff88]/5 p-12 text-center">
                 <CheckCircle className="w-12 h-12 text-[#00ff88] mb-5" />
                 <h2 className="text-xl font-semibold text-white mb-2">Message received</h2>
                 <p className="text-[#555] text-sm max-w-xs">
@@ -102,7 +103,7 @@ export default function ContactPage() {
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-xs text-[#555] font-mono mb-2">NAME</label>
+                    <label className="block text-xs text-[#555] font-mono mb-2 tracking-widest">NAME</label>
                     <input
                       type="text"
                       required
@@ -113,7 +114,7 @@ export default function ContactPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#555] font-mono mb-2">EMAIL</label>
+                    <label className="block text-xs text-[#555] font-mono mb-2 tracking-widest">EMAIL</label>
                     <input
                       type="email"
                       required
@@ -126,10 +127,10 @@ export default function ContactPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs text-[#555] font-mono mb-2">MESSAGE</label>
+                  <label className="block text-xs text-[#555] font-mono mb-2 tracking-widest">MESSAGE</label>
                   <textarea
                     required
-                    rows={6}
+                    rows={7}
                     placeholder="Tell me what's on your mind..."
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
@@ -165,14 +166,14 @@ export default function ContactPage() {
             )}
           </motion.div>
 
-          {/* Sidebar */}
+          {/* Sidebar column */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="space-y-4"
+            className="space-y-3 pt-1"
           >
-            <p className="text-xs text-[#444] font-mono mb-5">OR REACH OUT DIRECTLY</p>
+            <p className="text-xs text-[#444] font-mono tracking-widest mb-6">OR REACH OUT DIRECTLY</p>
 
             {channels.map((ch) => {
               const Icon = ch.icon;
@@ -190,9 +191,9 @@ export default function ContactPage() {
                   >
                     <Icon size={16} style={{ color: ch.accent }} />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-xs text-[#444] font-mono">{ch.label}</div>
-                    <div className="text-sm text-white font-medium">{ch.handle}</div>
+                    <div className="text-sm text-white font-medium truncate">{ch.handle}</div>
                   </div>
                 </Link>
               );
@@ -202,15 +203,13 @@ export default function ContactPage() {
               href="mailto:agentsentry.tool@gmail.com"
               className="flex items-center gap-4 p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
             >
-              <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: "#a855f715", border: "1px solid #a855f725" }}
-              >
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: "#a855f715", border: "1px solid #a855f725" }}>
                 <Mail size={16} style={{ color: "#a855f7" }} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs text-[#444] font-mono">Email</div>
-                <div className="text-sm text-white font-medium">agentsentry.tool@gmail.com</div>
+                <div className="text-sm text-white font-medium truncate">agentsentry.tool@gmail.com</div>
               </div>
             </Link>
 
@@ -220,6 +219,7 @@ export default function ContactPage() {
               </p>
             </div>
           </motion.div>
+
         </div>
       </main>
 
