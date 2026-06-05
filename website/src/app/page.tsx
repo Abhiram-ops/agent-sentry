@@ -8,6 +8,7 @@ import Features from "@/components/Features";
 import RiskCalculator from "@/components/RiskCalculator";
 import Research from "@/components/Research";
 import Pricing from "@/components/Pricing";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -23,6 +24,7 @@ export default function Home() {
       <RiskCalculator />
       <Research />
       <Pricing />
+      <NewsletterSignup />
       <Footer />
     </main>
   );
