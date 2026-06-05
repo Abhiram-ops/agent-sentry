@@ -28,6 +28,9 @@ export default function Footer() {
             </Link>
             <Link href="#research" className="hover:text-white transition-colors">Research</Link>
             <Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link>
+            <Link href="#contact" className="hover:text-white transition-colors">Contact</Link>
+            <Link href="https://x.com/AgentSentryApp" target="_blank"
+              className="hover:text-[#1d9bf0] transition-colors">@AgentSentryApp</Link>
           </div>
 
           {/* Copyright */}
