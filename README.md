@@ -7,7 +7,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 [![Website](https://img.shields.io/badge/website-agent--sentry--beta.vercel.app-brightgreen)](https://agent-sentry-beta.vercel.app)
 
-![AgentSentry Demo](https://raw.githubusercontent.com/Abhiram-ops/agent-sentry/main/agentsentry/demo.gif)
+![AgentSentry Demo](https://raw.githubusercontent.com/Abhiram-ops/agent-sentry/main/demo.gif)
 
 **Open-source auditor for Non-Human Identities and AI Agent attack surfaces across AWS, Azure, GCP, GitHub, Kubernetes, and your local machine.**
 
