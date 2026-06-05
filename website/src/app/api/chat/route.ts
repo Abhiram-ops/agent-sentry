@@ -23,7 +23,7 @@ async function getCodebaseContext(): Promise<string> {
         const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
         if (!res.ok) return;
         const raw = await res.text();
-        const text = raw.length > 4000 ? raw.slice(0, 4000) + "\n... [truncated]" : raw;
+        const text = raw.length > 2000 ? raw.slice(0, 2000) + "\n... [truncated]" : raw;
         parts.push(`\n\n---\n### ${label}\n\`\`\`\n${text}\n\`\`\``);
       } catch { /* skip */ }
     })
@@ -100,8 +100,15 @@ export async function POST(req: Request) {
         });
 
         if (!res.ok || !res.body) {
-          const err = await res.text();
-          throw new Error(`Groq ${res.status}: ${err.slice(0, 200)}`);
+          let userErr = `api_error_${res.status}`;
+          try {
+            const errData = JSON.parse(await res.text());
+            const groqMsg: string = errData?.error?.message ?? "";
+            if (res.status === 429 || groqMsg.includes("rate_limit") || groqMsg.includes("quota") || groqMsg.includes("credits")) {
+              userErr = "rate_limited";
+            }
+          } catch { /* use default */ }
+          throw new Error(userErr);
         }
 
         const reader = res.body.getReader();
