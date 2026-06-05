@@ -1,8 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// Uses Gemini REST API directly — no SDK needed, no package issues
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-// ── Open-source files fetched from GitHub ─────────────────────────────────────
 const RAW = "https://raw.githubusercontent.com/Abhiram-ops/agent-sentry/master";
 const FILES: Record<string, string> = {
   "README":        `${RAW}/agentsentry/README.md`,
@@ -19,7 +16,6 @@ const CACHE_TTL = 5 * 60 * 1000;
 
 async function getCodebaseContext(): Promise<string> {
   if (cachedContext && Date.now() - cacheTs < CACHE_TTL) return cachedContext;
-
   const parts: string[] = [];
   await Promise.all(
     Object.entries(FILES).map(async ([label, url]) => {
@@ -29,86 +25,117 @@ async function getCodebaseContext(): Promise<string> {
         const raw = await res.text();
         const text = raw.length > 4000 ? raw.slice(0, 4000) + "\n... [truncated]" : raw;
         parts.push(`\n\n---\n### ${label}\n\`\`\`\n${text}\n\`\`\``);
-      } catch { /* skip on timeout */ }
+      } catch { /* skip */ }
     })
   );
-
   cachedContext = parts.join("");
   cacheTs = Date.now();
   return cachedContext;
 }
 
-const STATIC_SYSTEM = `You are AgentSentry Assistant — an expert, concise helper for the AgentSentry open-source security tool.
-You have been given the actual source code files from the repository. Use them to give precise, accurate answers.
-Only reference open-source files. Never reveal secrets, credentials, or scan results from real environments.
+const STATIC_SYSTEM = `You are AgentSentry Assistant — an expert helper for the AgentSentry open-source security tool.
+Use the source code files provided to give precise, accurate answers.
+Only reference open-source files. Never reveal secrets or credentials.
 
 ## Risk Scoring: P×R×E×A
 Risk = Privilege × Reachability × Exposure × AI-Amplification
-- CRITICAL >100, HIGH 50-100, MEDIUM 20-50, LOW <20
+CRITICAL >100, HIGH 50-100, MEDIUM 20-50, LOW <20
 
-## Quick CLI Reference
+## CLI Reference
 agentsentry scan local / aws / azure / gcp / github / k8s / all
-agentsentry providers          # check what's ready
-agentsentry permissions aws    # what IAM permissions are needed
-agentsentry interactive        # guided menu
+agentsentry providers | agentsentry interactive
 
-## Installation
+## Install
 pip install nhi-audit
 pip install nhi-audit[aws|azure|gcp|github|k8s|all-clouds]
 
-## Provider Auth
-- AWS:    aws configure
-- Azure:  az login
-- GCP:    gcloud auth application-default login
-- GitHub: GITHUB_TOKEN env var
-- K8s:    kubeconfig
-- Local:  no setup needed
+## Auth
+AWS: aws configure | Azure: az login | GCP: gcloud auth application-default login
+GitHub: GITHUB_TOKEN env var | Local: no setup needed
 
 GitHub: https://github.com/Abhiram-ops/agent-sentry
-Keep answers concise and actionable. Use code blocks for commands.`;
+Be concise. Use code blocks for commands.`;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return new Response("data: " + JSON.stringify({ error: "GEMINI_API_KEY not set" }) + "\n\n", {
+      headers: { "Content-Type": "text/event-stream" },
+    });
+  }
 
   const codeContext = await getCodebaseContext();
-  const systemPrompt = codeContext
-    ? `${STATIC_SYSTEM}\n\n## Live Codebase (open-source files from GitHub)\n${codeContext}`
+  const systemText = codeContext
+    ? `${STATIC_SYSTEM}\n\n## Live Codebase\n${codeContext}`
     : STATIC_SYSTEM;
 
-  const history = messages.slice(0, -1).map((m: { role: string; content: string }) => ({
+  // Convert messages to Gemini format
+  const contents = messages.map((m: { role: string; content: string }) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
 
-  const lastMessage = messages[messages.length - 1];
+  const body = {
+    system_instruction: { parts: [{ text: systemText }] },
+    contents,
+    generationConfig: { maxOutputTokens: 1024, temperature: 0.7 },
+  };
 
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
-    systemInstruction: systemPrompt,
-  });
-
-  const chat = model.startChat({ history });
-
+  // Try gemini-2.0-flash first, fallback to gemini-1.5-flash-latest
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash-latest"];
+  
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      try {
-        const result = await chat.sendMessageStream(lastMessage.content);
-        for await (const chunk of result.stream) {
-          const text = chunk.text();
-          if (text) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
-            );
+      let success = false;
+      for (const model of models) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+          const geminiRes = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          if (!geminiRes.ok || !geminiRes.body) {
+            const errText = await geminiRes.text();
+            if (errText.includes("not found") || errText.includes("404")) continue; // try next model
+            throw new Error(`Gemini ${geminiRes.status}: ${errText.slice(0, 200)}`);
+          }
+
+          const reader = geminiRes.body.getReader();
+          const dec = new TextDecoder();
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = dec.decode(value);
+            for (const line of chunk.split("\n")) {
+              if (!line.startsWith("data: ")) continue;
+              const data = line.slice(6).trim();
+              if (!data || data === "[DONE]") continue;
+              try {
+                const parsed = JSON.parse(data);
+                const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
+              } catch { /* skip malformed */ }
+            }
+          }
+          success = true;
+          break;
+        } catch (err) {
+          if (model === models[models.length - 1]) {
+            const msg = err instanceof Error ? err.message : "Unknown error";
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
           }
         }
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Unknown error";
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
-      } finally {
-        controller.close();
       }
+      if (!success && !controller.desiredSize) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "All models unavailable" })}\n\n`));
+      }
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
     },
   });
 
