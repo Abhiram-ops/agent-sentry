@@ -9,6 +9,8 @@
 
 **Open-source auditor for Non-Human Identities and AI Agent attack surfaces across AWS, Azure, GCP, GitHub, Kubernetes, and your local machine.**
 
+![AgentSentry Demo](demo.gif)
+
 > *"45 machine identities for every 1 human. Almost none of them are governed."*
 
 AgentSentry discovers every IAM role, API key, service account, SSH key, and AI agent in your environment — builds an attack graph of their access relationships — and scores the blast radius if any identity is compromised, using a novel **AI-Amplification Factor** that quantifies how autonomous AI agents multiply attack surface.
