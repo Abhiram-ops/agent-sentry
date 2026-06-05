@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
   const gmailUser = process.env.GMAIL_USER;
   const gmailPass = process.env.GMAIL_APP_PASSWORD;
 
+  console.log("[subscribe] GMAIL_USER set:", !!gmailUser, "| GMAIL_PASS set:", !!gmailPass);
+
   if (gmailUser && gmailPass) {
     try {
       const transporter = nodemailer.createTransport({
@@ -63,9 +65,9 @@ export async function POST(req: NextRequest) {
         subject: "You're in — welcome to Blast Radius",
         html: welcomeHtml,
       });
-    } catch (e) {
-      console.error("Welcome email error:", e);
-      // Don't fail the subscription if welcome email fails
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[subscribe] Welcome email FAILED:", msg);
     }
   }
 
