@@ -61,11 +61,10 @@ pip install nhi-audit[aws|azure|gcp|github|k8s|all-clouds]
 - Azure:  az login
 - GCP:    gcloud auth application-default login
 - GitHub: GITHUB_TOKEN env var
-- K8s:    kubeconfig (kubectl config use-context <name>)
+- K8s:    kubeconfig
 - Local:  no setup needed
 
 GitHub: https://github.com/Abhiram-ops/agent-sentry
-Website: https://agent-sentry-beta.vercel.app
 Keep answers concise and actionable. Use code blocks for commands.`;
 
 export async function POST(req: Request) {
@@ -84,7 +83,7 @@ export async function POST(req: Request) {
   const lastMessage = messages[messages.length - 1];
 
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.0-flash",
     systemInstruction: systemPrompt,
   });
 
