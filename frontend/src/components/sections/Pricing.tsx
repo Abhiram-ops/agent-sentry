@@ -30,7 +30,7 @@ const PRO: ProItem[] = [
   "Early access to new features",
 ];
 
-// ─── 3D pricing card ───────────────────────────────────────────────────────
+// ─── 3D pricing card ───────────────────────────────────────────────
 
 function PricingCard({
   children, accentColor, delay = 0,
@@ -99,7 +99,7 @@ function PricingCard({
   );
 }
 
-// ─── Section ───────────────────────────────────────────────────────────────
+// ─── Section ────────────────────────────────────────────────────────────
 
 export default function Pricing() {
   return (
@@ -123,7 +123,7 @@ export default function Pricing() {
             marginBottom:20, lineHeight:1.1, letterSpacing:"-0.02em" }}>
             Free forever.<br />Pro when you need it.
           </h2>
-          <p style={{ color:"#4a4a4a", maxWidth:440, margin:"0 auto",
+          <p style={{ color:"#a0a0a0", maxWidth:440, margin:"0 auto",
             fontSize:"clamp(0.95rem, 1.4vw, 1.05rem)", lineHeight:1.75 }}>
             The core scanner is free and always will be. Pro unlocks continuous governance
             for enterprise teams.
@@ -137,12 +137,12 @@ export default function Pricing() {
           {/* Free */}
           <PricingCard accentColor="#444" delay={0}>
             <div style={{ marginBottom:36 }}>
-              <div style={{ fontFamily:"monospace", fontSize:11, color:"#444",
+              <div style={{ fontFamily:"monospace", fontSize:11, color:"#888",
                 marginBottom:14, letterSpacing:"0.18em", textTransform:"uppercase" }}>Free</div>
               <div style={{ display:"flex", alignItems:"flex-end", gap:4, marginBottom:6 }}>
                 <span style={{ fontSize:64, fontWeight:700, color:"#fff", lineHeight:1 }}>$0</span>
               </div>
-              <div style={{ fontSize:13, color:"#2a2a2a", fontFamily:"monospace" }}>Open source · MIT license</div>
+              <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>Open source · MIT license</div>
             </div>
 
             <Link href="https://github.com/Abhiram-ops/agent-sentry" target="_blank"
@@ -158,7 +158,7 @@ export default function Pricing() {
 
             <ul style={{ listStyle:"none", display:"flex", flexDirection:"column", gap:16 }}>
               {FREE.map((f, i) => (
-                <li key={i} style={{ display:"flex", alignItems:"flex-start", gap:12, fontSize:14, color:"#4a4a4a" }}>
+                <li key={i} style={{ display:"flex", alignItems:"flex-start", gap:12, fontSize:14, color:"#a0a0a0" }}>
                   <Check style={{ width:15, height:15, color:"#00ff88", marginTop:1, flexShrink:0 }} />
                   {f}
                 </li>
@@ -181,9 +181,9 @@ export default function Pricing() {
                 marginBottom:14, letterSpacing:"0.18em", textTransform:"uppercase" }}>Pro</div>
               <div style={{ display:"flex", alignItems:"flex-end", gap:4, marginBottom:6 }}>
                 <span style={{ fontSize:64, fontWeight:700, color:"#fff", lineHeight:1 }}>$49</span>
-                <span style={{ fontSize:20, color:"#333", marginBottom:8 }}>/mo</span>
+                <span style={{ fontSize:20, color:"#777777", marginBottom:8 }}>/mo</span>
               </div>
-              <div style={{ fontSize:13, color:"#2a2a2a", fontFamily:"monospace" }}>Per workspace · cancel anytime</div>
+              <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>Per workspace · cancel anytime</div>
             </div>
 
             <button disabled style={{ display:"block", width:"100%", padding:"14px 20px",
@@ -199,15 +199,15 @@ export default function Pricing() {
                 const text = locked ? (f as { locked: true; text: string }).text : f as string;
                 return (
                   <li key={i} style={{ display:"flex", alignItems:"flex-start", gap:12,
-                    fontSize:14, color: locked ? "#2a2a2a" : "#4a4a4a" }}>
+                    fontSize:14, color: locked ? "#666666" : "#a0a0a0" }}>
                     {locked
-                      ? <Lock style={{ width:15, height:15, color:"#1e1e1e", marginTop:1, flexShrink:0 }} />
+                      ? <Lock style={{ width:15, height:15, color:"#555555", marginTop:1, flexShrink:0 }} />
                       : <Check style={{ width:15, height:15, color:"#00ff88", marginTop:1, flexShrink:0 }} />}
                     <span>
                       {text}
                       {locked && (
                         <span style={{ marginLeft:8, fontSize:10, padding:"2px 6px",
-                          borderRadius:4, background:"#0e0e0e", color:"#2a2a2a",
+                          borderRadius:4, background:"#0e0e0e", color:"#666666",
                           fontFamily:"monospace", letterSpacing:"0.1em", textTransform:"uppercase" }}>
                           pro
                         </span>
