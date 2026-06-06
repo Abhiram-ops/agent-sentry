@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ClientOnlyOverlays } from "@/components/ui/ClientOnlyOverlays";
-import PageLoader from "@/components/PageLoader";
+import dynamic from 'next/dynamic';
+const PageLoader = dynamic(() => import('@/components/PageLoader'), { ssr: false });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
