@@ -6,8 +6,8 @@ const contacts = [
   {
     icon: MessageSquare,
     label: "X / Twitter",
-    handle: "@AgentSentry",
-    href: "https://x.com/AgentSentry",
+    handle: "@AgentSentryApp",
+    href: "https://x.com/AgentSentryApp",
     description: "DM for quick questions or feedback",
   },
   {
