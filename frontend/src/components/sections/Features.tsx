@@ -25,10 +25,10 @@ function TiltCard({ children, accentColor, wide = false, index }: { children: Re
       initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }} transition={{ duration: 0.5, delay: index * 0.07 }}
       onMouseMove={onMove} onMouseLeave={onLeave}
-      style={{ rotateX: rotX, rotateY: rotY, transformPerspective: 900, transformStyle: "preserve-3d", gridColumn: wide ? "span 2" : "span 1" }}
+      style={{ rotateX: rotX, rotateY: rotY, transformPerspective: 900, transformStyle: "preserve-3d", gridColumn: wide ? "span 2" : "span 1", borderTop: "1px solid rgba(0,255,136,0.15)" }}
       whileHover={{ scale: 1.01 }}
-      className="relative rounded-2xl overflow-hidden cursor-default group">
-      <div className="relative h-full backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl hover:border-[#00ff88]/30 hover:bg-white/10 transition-all duration-300" style={{ padding: "36px 36px", boxShadow: "0 24px 64px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)", borderTop: "1px solid rgba(0,255,136,0.2)" }}>
+      className="relative rounded-2xl overflow-hidden cursor-default group backdrop-blur-sm bg-white/5 border border-white/10 hover:border-[#00ff88]/40 hover:bg-white/[0.08] transition-all duration-300">
+      <div className="relative h-full" style={{ padding: "36px 36px", boxShadow: "0 24px 64px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)" }}>
         <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-400"
           style={{ background: `linear-gradient(90deg, transparent, ${accentColor}55, transparent)` }} />
         <div className="absolute inset-0 pointer-events-none rounded-2xl" style={{ background: shine.show ? `radial-gradient(circle at ${shine.x}% ${shine.y}%, ${accentColor}12 0%, transparent 55%)` : "transparent", transition: "background 0.15s ease" }} />
