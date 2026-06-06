@@ -65,8 +65,6 @@ export default function ChatBot() {
   const [loading, setLoading] = useState(false);
   const [unread, setUnread] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
-  const [fabPos, setFabPos] = useState({ bottom: 28, right: 28 });
-  const [atTop, setAtTop] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -74,19 +72,6 @@ export default function ChatBot() {
     const check=()=>setIsMobile(window.innerWidth<520);
     check(); window.addEventListener("resize",check); return()=>window.removeEventListener("resize",check);
   },[]);
-
-  useEffect(()=>{
-    const onScroll=()=>setAtTop(window.scrollY<window.innerHeight*0.85);
-    onScroll(); window.addEventListener("scroll",onScroll,{passive:true}); return()=>window.removeEventListener("scroll",onScroll);
-  },[]);
-
-  useEffect(()=>{
-    const calc=()=>{
-      if(atTop&&!open){ setFabPos({bottom:140,right:150}); }
-      else { setFabPos({bottom:28,right:28}); }
-    };
-    calc(); window.addEventListener("resize",calc); return()=>window.removeEventListener("resize",calc);
-  },[atTop,open]);
 
   useEffect(()=>{
     if(open){setUnread(0);setTimeout(()=>inputRef.current?.focus(),200);}
@@ -140,9 +125,7 @@ export default function ChatBot() {
         onClick={()=>setOpen(o=>!o)}
         whileHover={{scale:1.06}} whileTap={{scale:0.94}}
         aria-label="Open AgentSentry assistant"
-        animate={{bottom:fabPos.bottom,right:fabPos.right}}
-        transition={{type:"spring",stiffness:220,damping:26}}
-        style={{position:"fixed",zIndex:9001,width:56,height:56,borderRadius:"50%",background:"linear-gradient(135deg,#00ff88,#00cc6a)",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 32px rgba(0,255,136,0.45),0 8px 24px rgba(0,0,0,0.5)"}}
+        style={{position:"fixed",bottom:24,right:24,zIndex:9001,width:56,height:56,borderRadius:"50%",background:"linear-gradient(135deg,#00ff88,#00cc6a)",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 32px rgba(0,255,136,0.45),0 8px 24px rgba(0,0,0,0.5)"}}
       >
         <AnimatePresence mode="wait">
           {open
