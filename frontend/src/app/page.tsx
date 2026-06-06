@@ -9,6 +9,7 @@ import RiskCalculator from '@/components/sections/RiskCalculator';
 import Research from '@/components/sections/Research';
 import Pricing from '@/components/sections/Pricing';
 import { NewsletterSignup } from '@/components/sections/NewsletterSignup';
+import Contact from '@/components/sections/Contact';
 import Footer from '@/components/layout/Footer';
 
 export default function Home() {
@@ -25,6 +26,7 @@ export default function Home() {
       <Research />
       <Pricing />
       <NewsletterSignup />
+      <Contact />
       <Footer />
     </main>
   );
