@@ -41,11 +41,11 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: var(--bg);
+  background: transparent;
 }
 
 body {
-  background: var(--bg);
+  background: transparent;
   color: var(--text-1);
   font-family: var(--font-geist-sans), 'Inter', system-ui, sans-serif;
   line-height: 1.6;
@@ -69,6 +69,17 @@ h1, h2, h3, h4 {
 ::selection {
   background: rgba(0, 255, 136, 0.15);
   color: #fff;
+}
+
+/* ── Web3 Hero / Navbar responsive helpers ─────────────── */
+.navbar-web3-links      { display: flex; }
+.navbar-web3-hamburger  { display: none !important; }
+@media (max-width: 768px) {
+  .navbar-web3-links         { display: none !important; }
+  .navbar-web3-hamburger     { display: flex !important; }
+  .navbar-web3-header        { padding-left: 24px !important; padding-right: 24px !important; }
+  .hero-web3-content         { padding-top: 200px !important; }
+  .hero-web3-heading         { font-size: 36px !important; }
 }
 
 /* ── Utility classes ───────────────────────────────────── */
@@ -138,4 +149,48 @@ h1, h2, h3, h4 {
   0%, 100% { transform: translate(0, 0); }
   50%       { transform: translate(-25px, 25px); }
 }
+
+/* ── Source website additions ──────────────────────────── */
+
+/* Gradient text (source alias) */
+.gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, #00ff88 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 3D perspective utilities */
+.perspective-800  { perspective: 800px; }
+.perspective-1000 { perspective: 1000px; }
+.perspective-1400 { perspective: 1400px; }
+.preserve-3d      { transform-style: preserve-3d; }
+
+/* Blink cursor (source alias) */
+@keyframes blink-src { 0%,100%{opacity:1} 50%{opacity:0} }
+.cursor-blink { animation: blink-src 1s step-end infinite; }
+
+/* Ambient float animations used by source Hero orbs */
+@keyframes float1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%     { transform: translate(-28px,18px) scale(1.04); }
+  66%     { transform: translate(18px,-14px) scale(0.97); }
+}
+@keyframes float2 {
+  0%,100% { transform: translate(0,0); }
+  50%     { transform: translate(22px,-26px); }
+}
+@keyframes float3 {
+  0%,100% { transform: translate(0,0); }
+  50%     { transform: translate(-16px,20px); }
+}
+
+/* Pulse ring (hero badge) */
+@keyframes pulse-dot {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%     { opacity:0.5; transform:scale(1.4); }
+}
+
+/* No horizontal overflow on sections */
+section { overflow-x: hidden; }
 
