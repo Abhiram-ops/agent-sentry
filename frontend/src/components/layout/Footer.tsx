@@ -1,92 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { Container } from "@/components/ui/Container";
+import { Shield } from "lucide-react";
 import { GithubIcon } from "@/components/ui/GithubIcon";
 
-const LINKS = [
-  { label: "GitHub",   href: "https://github.com/Abhiram-ops/agent-sentry", external: true },
-  { label: "Research", href: "#research" },
-  { label: "Pricing",  href: "#pricing" },
-];
-
-function ShieldIcon() {
+export default function Footer() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-
-export function Footer() {
-  return (
-    <footer style={{ borderTop: "1px solid var(--border)" }}>
-      <Container>
-        <div style={{
-          height:         72,
-          display:        "flex",
-          alignItems:     "center",
-          justifyContent: "space-between",
-          flexWrap:       "wrap",
-          gap:            16,
-        }}>
-
+    <footer className="border-t border-white/[0.05] py-16">
+      <div style={{ maxWidth: 1100, margin: "0 auto", paddingLeft: 56, paddingRight: 56 }}>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           {/* Logo */}
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-            <div style={{
-              width:          28,
-              height:         28,
-              borderRadius:   8,
-              background:     "rgba(0,255,136,0.07)",
-              border:         "1px solid rgba(0,255,136,0.15)",
-              display:        "flex",
-              alignItems:     "center",
-              justifyContent: "center",
-            }}>
-              <ShieldIcon />
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center">
+              <Shield className="w-3.5 h-3.5 text-[#00ff88]" />
             </div>
-            <span style={{ fontWeight: 600, fontSize: 14, color: "#fff" }}>
-              Agent<span style={{ color: "var(--green)" }}>Sentry</span>
+            <span className="font-semibold text-white text-sm">
+              Agent<span className="text-[#00ff88]">Sentry</span>
             </span>
-          </Link>
+          </div>
 
           {/* Links */}
-          <nav style={{ display: "flex", alignItems: "center", gap: 24 }}>
-            {LINKS.map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                target={link.external ? "_blank" : undefined}
-                rel={link.external ? "noopener noreferrer" : undefined}
-                style={{
-                  display:        "flex",
-                  alignItems:     "center",
-                  gap:            6,
-                  fontSize:       13,
-                  color:          "var(--text-4)",
-                  textDecoration: "none",
-                  transition:     "color 0.15s ease",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.color = "var(--text-2)")}
-                onMouseLeave={e => (e.currentTarget.style.color = "var(--text-4)")}
-              >
-                {link.label === "GitHub" && <GithubIcon size={13} />}
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+          <div className="flex items-center gap-8 text-sm text-[#333]">
+            <Link href="https://github.com/Abhiram-ops/agent-sentry" target="_blank"
+              className="hover:text-white transition-colors flex items-center gap-1.5">
+              <GithubIcon size={14} color="currentColor" />
+              GitHub
+            </Link>
+            <Link href="#research" className="hover:text-white transition-colors">Research</Link>
+            <Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link>
+          </div>
 
           {/* Copyright */}
-          <span style={{
-            fontSize:    12,
-            color:       "var(--text-4)",
-            fontFamily:  "var(--font-geist-mono), monospace",
-          }}>
-            MIT · Abhiram Lanka · 2026
-          </span>
-
+          <div className="text-xs text-[#222] font-mono">
+            MIT License · Built by Abhiram Lanka · 2026
+          </div>
         </div>
-      </Container>
+      </div>
     </footer>
   );
 }
