@@ -1,177 +1,231 @@
-'use client';
+"use client";
 
-import { motion, useInView } from 'framer-motion';
-import { useRef } from 'react';
-import { Container } from '@/components/ui/Container';
-import { GlowLine } from '@/components/graphics/GlowLine';
-import { Button } from '@/components/ui/Button';
-import { Check, Lock } from 'lucide-react';
+import React from "react";
+import { useRef, useState } from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { Check, Lock } from "lucide-react";
+import Link from "next/link";
+import { Container } from "@/components/ui/Container";
 
-export function Pricing() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
+const FREE = [
+  "AWS IAM role & access key scanner",
+  "LangChain / CrewAI / AutoGen agent scanner",
+  "P×R×E×A risk scoring engine",
+  "CISA KEV threat intel enrichment",
+  "Interactive NHI attack graph",
+  "MITRE ATT&CK mapping",
+  "CLI — runs locally, no data leaves you",
+  "Open source — MIT license",
+];
 
-  const tiers = [
-    {
-      name: 'Open Source',
-      price: 'Free',
-      description: 'Full-featured CLI tool',
-      color: '#00ff88',
-      features: [
-        'AWS NHI discovery',
-        'AI agent static analysis',
-        'Risk scoring engine',
-        'Attack graph visualization',
-        'CISA KEV enrichment',
-        'Community support',
-      ],
-      locked: false,
-    },
-    {
-      name: 'Enterprise',
-      price: 'Custom',
-      description: 'SaaS platform with advanced features',
-      color: '#ffcc00',
-      features: [
-        'Everything in Open Source',
-        'Continuous monitoring',
-        'Remediation workflows',
-        'Audit-grade PDF reports',
-        'Multi-cloud support',
-        'Dedicated support',
-      ],
-      locked: true,
-    },
-  ];
+type ProItem = string | { locked: true; text: string };
+const PRO: ProItem[] = [
+  "Everything in Free",
+  { locked: true, text: "Continuous monitoring — alerts on new NHIs" },
+  { locked: true, text: "Remediation workflows — auto Jira/ServiceNow tickets" },
+  { locked: true, text: "Audit-grade PDF reports — SOC 2, ISO 27001, NIS 2" },
+  "Azure AD + GCP scanner",
+  "GitHub Actions secrets scanner",
+  "Priority support",
+  "Early access to new features",
+];
+
+// ─── 3D pricing card ───────────────────────────────────────────────
+
+function PricingCard({
+  children, accentColor, delay = 0,
+}: {
+  children: React.ReactNode; accentColor: string; delay?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const sx = useSpring(mx, { stiffness: 250, damping: 24 });
+  const sy = useSpring(my, { stiffness: 250, damping: 24 });
+  const rotX = useTransform(sy, [-0.5, 0.5], [6, -6]);
+  const rotY = useTransform(sx, [-0.5, 0.5], [-6, 6]);
+  const [shine, setShine] = useState({ x: 50, y: 50, show: false });
+
+  const onMove = (e: React.MouseEvent) => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    mx.set((e.clientX - r.left) / r.width - 0.5);
+    my.set((e.clientY - r.top) / r.height - 0.5);
+    setShine({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100, show: true });
+  };
+  const onLeave = () => { mx.set(0); my.set(0); setShine(s => ({ ...s, show: false })); };
 
   return (
-    <section
+    <motion.div
       ref={ref}
-      style={{
-        paddingTop: '100px',
-        paddingBottom: '100px',
-        background: '#000',
-        position: 'relative',
-      }}
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.55, delay }}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      style={{ rotateX: rotX, rotateY: rotY, transformPerspective: 1000, transformStyle: "preserve-3d" }}
+      whileHover={{ scale: 1.015, y: -4 }}
+      className="relative"
     >
-      <GlowLine variant="secondary" position="top" />
+      {/* Deep shadow (pseudo 3D base) */}
+      <div className="absolute inset-x-4 -bottom-4 h-8 rounded-2xl pointer-events-none" style={{
+        background: `radial-gradient(ellipse, ${accentColor}18 0%, transparent 70%)`,
+        filter: "blur(16px)",
+        transform: "translateZ(-30px)",
+      }} />
 
-      <Container>
-        <div style={{ marginBottom: '80px', textAlign: 'center' }}>
-          <h2
-            style={{
-              fontSize: '42px',
-              fontWeight: 700,
-              color: '#fff',
-              marginBottom: '16px',
-              fontFamily: 'var(--font-geist-sans)',
-            }}
-          >
-            Open Source, Built for Scale
+      <div className="relative rounded-2xl overflow-hidden" style={{
+        border: `1px solid ${accentColor === "#00ff88" ? "rgba(0,255,136,0.14)" : "rgba(255,255,255,0.06)"}`,
+        background: "linear-gradient(160deg, #070707 0%, #050505 100%)",
+        boxShadow: `0 32px 72px rgba(0,0,0,0.6), 0 0 0 1px ${accentColor}08, inset 0 1px 0 rgba(255,255,255,0.04)`,
+        padding: "44px 40px",
+      }}>
+        {/* Top glow line */}
+        <div className="absolute top-0 left-0 right-0 h-px"
+          style={{ background: `linear-gradient(90deg, transparent, ${accentColor}45, transparent)` }} />
+
+        {/* Cursor shine */}
+        <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{
+          background: shine.show
+            ? `radial-gradient(circle at ${shine.x}% ${shine.y}%, ${accentColor}10 0%, transparent 55%)`
+            : "transparent",
+          transition: "background 0.12s ease",
+        }} />
+
+        {children}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Section ────────────────────────────────────────────────────────────
+
+export default function Pricing() {
+  return (
+    <section id="pricing" style={{ padding: "120px 0", position: "relative", overflow: "hidden" }}>
+      {/* Background glow */}
+      <div className="absolute pointer-events-none" style={{
+        top: "40%", left: "50%", transform: "translate(-50%,-50%)",
+        width: 800, height: 400, borderRadius: "50%",
+        background: "radial-gradient(ellipse, rgba(0,255,136,0.035) 0%, transparent 70%)",
+        filter: "blur(60px)",
+      }} />
+
+      <Container className="relative">
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.5 }}
+          style={{ textAlign: "center", marginBottom: 80 }}>
+          <div style={{ fontFamily:"monospace", fontSize:11, color:"#00ff88",
+            marginBottom:20, letterSpacing:"0.2em", textTransform:"uppercase" }}>Pricing</div>
+          <h2 style={{ fontSize:"clamp(2rem, 3.5vw, 3rem)", fontWeight:700, color:"#fff",
+            marginBottom:20, lineHeight:1.1, letterSpacing:"-0.02em" }}>
+            Free forever.<br />Pro when you need it.
           </h2>
-          <p
-            style={{
-              fontSize: '18px',
-              color: '#888',
-              fontFamily: 'var(--font-geist-sans)',
-            }}
-          >
-            Free open source forever. Advanced features coming soon for enterprises.
+          <p style={{ color:"#a0a0a0", maxWidth:440, margin:"0 auto",
+            fontSize:"clamp(0.95rem, 1.4vw, 1.05rem)", lineHeight:1.75 }}>
+            The core scanner is free and always will be. Pro unlocks continuous governance
+            for enterprise teams.
           </p>
-        </div>
+        </motion.div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '40px',
-            maxWidth: '900px',
-            margin: '0 auto',
-          }}
-        >
-          {tiers.map((tier, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-              transition={{ duration: 0.6, delay: i * 0.2 }}
-              style={{
-                padding: '40px',
-                background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
-                border: `2px solid ${tier.color}40`,
-                borderRadius: '12px',
-                position: 'relative',
-              }}
-            >
-              <div style={{ marginBottom: '24px' }}>
-                <h3
-                  style={{
-                    fontSize: '24px',
-                    fontWeight: 700,
-                    color: '#fff',
-                    marginBottom: '8px',
-                    fontFamily: 'var(--font-geist-sans)',
-                  }}
-                >
-                  {tier.name}
-                </h3>
-                <p
-                  style={{
-                    fontSize: '14px',
-                    color: '#888',
-                    fontFamily: 'var(--font-geist-sans)',
-                  }}
-                >
-                  {tier.description}
-                </p>
+        {/* Cards */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:20, maxWidth:900, margin:"0 auto" }}
+          className="pricing-grid">
+
+          {/* Free */}
+          <PricingCard accentColor="#444" delay={0}>
+            <div style={{ marginBottom:36 }}>
+              <div style={{ fontFamily:"monospace", fontSize:11, color:"#888",
+                marginBottom:14, letterSpacing:"0.18em", textTransform:"uppercase" }}>Free</div>
+              <div style={{ display:"flex", alignItems:"flex-end", gap:4, marginBottom:6 }}>
+                <span style={{ fontSize:64, fontWeight:700, color:"#fff", lineHeight:1 }}>$0</span>
               </div>
+              <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>Open source · MIT license</div>
+            </div>
 
-              <div
-                style={{
-                  fontSize: '36px',
-                  fontWeight: 700,
-                  color: tier.color,
-                  marginBottom: '32px',
-                  fontFamily: 'var(--font-geist-mono)',
-                }}
-              >
-                {tier.price}
+            <Link href="https://github.com/Abhiram-ops/agent-sentry" target="_blank"
+              style={{ display:"block", width:"100%", padding:"14px 20px",
+                border:"1px solid rgba(255,255,255,0.09)", color:"#fff", fontSize:14,
+                fontWeight:600, borderRadius:12, textAlign:"center",
+                textDecoration:"none", marginBottom:32,
+                transition:"all 0.2s ease", background:"transparent" }}
+              onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.04)";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.16)";}}
+              onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="transparent";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.09)";}}>
+              Clone on GitHub
+            </Link>
+
+            <ul style={{ listStyle:"none", display:"flex", flexDirection:"column", gap:16 }}>
+              {FREE.map((f, i) => (
+                <li key={i} style={{ display:"flex", alignItems:"flex-start", gap:12, fontSize:14, color:"#a0a0a0" }}>
+                  <Check style={{ width:15, height:15, color:"#00ff88", marginTop:1, flexShrink:0 }} />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </PricingCard>
+
+          {/* Pro */}
+          <PricingCard accentColor="#00ff88" delay={0.1}>
+            {/* Badge */}
+            <div style={{ position:"absolute", top:24, right:24,
+              padding:"4px 12px", borderRadius:8,
+              background:"rgba(0,255,136,0.07)", border:"1px solid rgba(0,255,136,0.15)",
+              fontSize:11, fontFamily:"monospace", color:"#00ff88" }}>
+              Coming soon
+            </div>
+
+            <div style={{ marginBottom:36 }}>
+              <div style={{ fontFamily:"monospace", fontSize:11, color:"#00ff88",
+                marginBottom:14, letterSpacing:"0.18em", textTransform:"uppercase" }}>Pro</div>
+              <div style={{ display:"flex", alignItems:"flex-end", gap:4, marginBottom:6 }}>
+                <span style={{ fontSize:64, fontWeight:700, color:"#fff", lineHeight:1 }}>$49</span>
+                <span style={{ fontSize:20, color:"#777777", marginBottom:8 }}>/mo</span>
               </div>
+              <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>Per workspace · cancel anytime</div>
+            </div>
 
-              <Button
-                href={tier.locked ? '#' : 'https://github.com/Abhiram-ops/agent-sentry'}
-                variant={tier.locked ? 'secondary' : 'primary'}
-                style={{ width: '100%', marginBottom: '32px' }}
-              >
-                {tier.locked ? 'Coming Soon' : 'Get Started'}
-              </Button>
+            <button disabled style={{ display:"block", width:"100%", padding:"14px 20px",
+              background:"rgba(0,255,136,0.06)", color:"rgba(0,255,136,0.3)", fontSize:14,
+              fontWeight:600, borderRadius:12, textAlign:"center", cursor:"not-allowed",
+              border:"1px solid rgba(0,255,136,0.08)", marginBottom:32 }}>
+              Join waitlist
+            </button>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {tier.features.map((feature, j) => (
-                  <div
-                    key={j}
-                    style={{
-                      display: 'flex',
-                      gap: '12px',
-                      alignItems: 'flex-start',
-                      color: '#aaa',
-                      fontSize: '14px',
-                      fontFamily: 'var(--font-geist-sans)',
-                    }}
-                  >
-                    {tier.locked && j >= 1 ? (
-                      <Lock size={18} color="#888" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    ) : (
-                      <Check size={18} color={tier.color} style={{ marginTop: '2px', flexShrink: 0 }} />
-                    )}
-                    <span>{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          ))}
+            <ul style={{ listStyle:"none", display:"flex", flexDirection:"column", gap:16 }}>
+              {PRO.map((f, i) => {
+                const locked = typeof f === "object";
+                const text = locked ? (f as { locked: true; text: string }).text : f as string;
+                return (
+                  <li key={i} style={{ display:"flex", alignItems:"flex-start", gap:12,
+                    fontSize:14, color: locked ? "#666666" : "#a0a0a0" }}>
+                    {locked
+                      ? <Lock style={{ width:15, height:15, color:"#555555", marginTop:1, flexShrink:0 }} />
+                      : <Check style={{ width:15, height:15, color:"#00ff88", marginTop:1, flexShrink:0 }} />}
+                    <span>
+                      {text}
+                      {locked && (
+                        <span style={{ marginLeft:8, fontSize:10, padding:"2px 6px",
+                          borderRadius:4, background:"#0e0e0e", color:"#666666",
+                          fontFamily:"monospace", letterSpacing:"0.1em", textTransform:"uppercase" }}>
+                          pro
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </PricingCard>
         </div>
       </Container>
+
+      <style>{`
+        @media (max-width: 720px) {
+          .pricing-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </section>
   );
 }

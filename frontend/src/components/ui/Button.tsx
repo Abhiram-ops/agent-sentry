@@ -12,6 +12,7 @@ interface ButtonProps {
   disabled?: boolean;
   fullWidth?: boolean;
   size?: "sm" | "md" | "lg";
+  style?: React.CSSProperties;
 }
 
 const BASE: React.CSSProperties = {
@@ -62,6 +63,7 @@ export function Button({
   disabled = false,
   fullWidth = false,
   size = "md",
+  style: styleProp,
 }: ButtonProps) {
   const style: React.CSSProperties = {
     ...BASE,
@@ -69,6 +71,7 @@ export function Button({
     ...VARIANT[variant],
     ...(fullWidth ? { width: "100%" } : {}),
     ...(disabled ? { opacity: 0.4, cursor: "not-allowed" } : {}),
+    ...styleProp,
   };
 
   if (href) {
