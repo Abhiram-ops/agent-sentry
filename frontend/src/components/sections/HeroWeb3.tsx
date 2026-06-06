@@ -177,6 +177,15 @@ export function HeroWeb3() {
       </motion.div>
 
       <ScrollCaret />
+      <style>{`
+        @media (max-width: 768px) {
+          .hero-web3-heading { font-size: 2rem !important; line-height: 1.25 !important; }
+          .hero-web3-content { padding-top: 120px !important; padding-bottom: 64px !important; }
+        }
+        @media (max-width: 480px) {
+          .hero-web3-heading { font-size: 1.75rem !important; }
+        }
+      `}</style>
     </section>
   );
 }

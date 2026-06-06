@@ -151,6 +151,13 @@ export function NavbarWeb3() {
           </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 768px) {
+          .navbar-web3-header { padding-left: 20px !important; padding-right: 20px !important; }
+          .navbar-web3-links { display: none !important; }
+          .navbar-web3-hamburger { display: flex !important; }
+        }
+      `}</style>
     </>
   );
             }
