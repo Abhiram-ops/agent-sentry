@@ -189,7 +189,7 @@ export default function Pricing() {
 
             {/* Gumroad buy button — replace YOUR_GUMROAD_PRODUCT_ID with your actual Gumroad product URL */}
             <Link
-              href="https://agentsentry.gumroad.com/l/pro"
+              href="https://sentryagent.gumroad.com/l/eawugx"
               target="_blank"
               style={{ display:"block", width:"100%", padding:"14px 20px",
                 background:"linear-gradient(135deg, #00ff88, #00cc6a)",
