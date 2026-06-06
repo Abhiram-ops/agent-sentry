@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { NavbarWeb3 as Navbar } from "@/components/layout/NavbarWeb3";
 import Footer from "@/components/layout/Footer";
 import { motion } from "framer-motion";
