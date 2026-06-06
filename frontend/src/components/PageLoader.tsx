@@ -3,412 +3,326 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+interface BulletState {
+  from: { x: number; y: number; z: number };
+  target: { x: number; y: number; z: number };
+  progress: number;
+  done: boolean;
+  id: number;
+}
+
 interface Spark {
   x: number; y: number;
   vx: number; vy: number;
-  life: number; maxLife: number;
+  life: number;
   size: number;
-  type: 'hot' | 'chunk';
-  angle: number;
-}
-
-interface ScorchMark {
-  x: number; y: number; radius: number; alpha: number;
-}
-
-interface ShockWave {
-  x: number; y: number; r: number; maxR: number; life: number;
+  color: string;
 }
 
 export default function PageLoader() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [ready, setReady]         = useState(false);
-  const [phase, setPhase]         = useState<'shield' | 'tagline' | 'out'>('shield');
-  const [visible, setVisible]     = useState(true);
+  const [phase, setPhase] = useState<'shield' | 'tagline' | 'out'>('shield');
+  const [visible, setVisible] = useState(true);
   const [displayText, setDisplayText] = useState('');
   const animFrameRef = useRef<number>(0);
-  const logoRef      = useRef<HTMLImageElement | null>(null);
+
   const tagline = "Find every Machine's Identity before they do.";
 
-  // ── Preload logo ──────────────────────────────────────────────────────────
   useEffect(() => {
-    const img = new window.Image();
-    img.src = '/logo.png';
-    img.onload = () => { logoRef.current = img; setReady(true); };
-    img.onerror = () => { setReady(true); }; // fallback: still run without logo
-  }, []);
-
-  // ── Main animation ────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!ready) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
 
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
     resize();
     window.addEventListener('resize', resize);
 
-    // Shield display geometry
-    const shieldDisplaySize = () => Math.min(canvas.width, canvas.height) * 0.62;
-    const shieldCX = () => canvas.width  / 2;
-    const shieldCY = () => canvas.height / 2 - 20;
-    // Collision: the actual shield polygon is ~45% of the image width
-    const shieldHitRadius = () => shieldDisplaySize() * 0.44;
+    const drawShield = (
+      cx: number, cy: number,
+      scale: number, _rotY: number, glowAlpha: number, hitFlash: number
+    ) => {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
 
-    // ── State ───────────────────────────────────────────────────────────────
+      const s = 90;
+
+      const glow = ctx.createRadialGradient(0, 0, s * 0.3, 0, 0, s * 1.4);
+      glow.addColorStop(0, `rgba(0,255,136,${0.18 + glowAlpha * 0.4})`);
+      glow.addColorStop(1, 'rgba(0,255,136,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 1.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(0, -s);
+      ctx.lineTo(s * 0.72, -s * 0.55);
+      ctx.lineTo(s * 0.72, s * 0.1);
+      ctx.quadraticCurveTo(s * 0.72, s * 0.9, 0, s * 1.15);
+      ctx.quadraticCurveTo(-s * 0.72, s * 0.9, -s * 0.72, s * 0.1);
+      ctx.lineTo(-s * 0.72, -s * 0.55);
+      ctx.closePath();
+
+      const bodyGrad = ctx.createLinearGradient(0, -s, 0, s);
+      bodyGrad.addColorStop(0, '#0a2a1a');
+      bodyGrad.addColorStop(0.5, '#0d3d24');
+      bodyGrad.addColorStop(1, '#051a10');
+      ctx.fillStyle = bodyGrad;
+      ctx.fill();
+
+      ctx.strokeStyle = `rgba(0,255,136,${0.85 + hitFlash * 0.15})`;
+      ctx.lineWidth = 3.5 + hitFlash * 4;
+      ctx.shadowColor = '#00ff88';
+      ctx.shadowBlur = 18 + hitFlash * 30;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.beginPath();
+      ctx.moveTo(0, -s + 12);
+      ctx.lineTo(s * 0.6, -s * 0.5 + 8);
+      ctx.lineTo(s * 0.6, s * 0.05);
+      ctx.quadraticCurveTo(s * 0.6, s * 0.75, 0, s * 0.95);
+      ctx.quadraticCurveTo(-s * 0.6, s * 0.75, -s * 0.6, s * 0.05);
+      ctx.lineTo(-s * 0.6, -s * 0.5 + 8);
+      ctx.closePath();
+      ctx.strokeStyle = `rgba(0,255,136,${0.22 + hitFlash * 0.3})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = `rgba(0,255,136,${0.65 + hitFlash * 0.35})`;
+      ctx.shadowColor = '#00ff88';
+      ctx.shadowBlur = 10 + hitFlash * 20;
+      ctx.font = `bold ${Math.round(s * 0.7)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('⬡', 0, s * 0.05);
+      ctx.shadowBlur = 0;
+
+      if (hitFlash > 0.01) {
+        ctx.beginPath();
+        ctx.moveTo(0, -s);
+        ctx.lineTo(s * 0.72, -s * 0.55);
+        ctx.lineTo(s * 0.72, s * 0.1);
+        ctx.quadraticCurveTo(s * 0.72, s * 0.9, 0, s * 1.15);
+        ctx.quadraticCurveTo(-s * 0.72, s * 0.9, -s * 0.72, s * 0.1);
+        ctx.lineTo(-s * 0.72, -s * 0.55);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(0,255,136,${hitFlash * 0.35})`;
+        ctx.fill();
+      }
+
+      ctx.restore();
+    };
+
     let t = 0;
-    let logoScale    = 0;   // 0→1 on entry
-    let hitFlash     = 0;   // 0→1 on impact, decays
-    let glowPulse    = 0;
+    let shieldScale = 0;
+    let glowPulse = 0;
+    let hitFlash = 0;
     let screenShakeX = 0;
     let screenShakeY = 0;
-    let flashWhite   = 0;   // full-screen flash
 
-    const sparks:       Spark[]      = [];
-    const scorchMarks:  ScorchMark[] = [];
-    const shockWaves:   ShockWave[]  = [];
+    const bullets: BulletState[] = [];
+    const sparks: Spark[] = [];
+    let nextBulletId = 0;
 
-    // Bullets
-    const bullets: { fx: number; fy: number; tx: number; ty: number; p: number; done: boolean }[] = [];
     const bulletSchedule = [
-      { t: 1.0,  angle: 215, dist: 700 },
-      { t: 1.8,  angle: 340, dist: 680 },
-      { t: 2.5,  angle: 125, dist: 720 },
-      { t: 3.1,  angle: 30,  dist: 690 },
+      { t: 0.9,  fromAngle: 220, dist: 600 },
+      { t: 1.55, fromAngle: 340, dist: 550 },
+      { t: 2.1,  fromAngle: 130, dist: 580 },
+      { t: 2.65, fromAngle: 30,  dist: 600 },
     ];
-    let bIdx = 0;
+    let scheduledIdx = 0;
 
-    const spawnBullet = (angleDeg: number, dist: number) => {
-      const cx = shieldCX(), cy = shieldCY();
-      const r  = angleDeg * Math.PI / 180;
-      const tx = cx + (Math.random() - 0.5) * 60;
-      const ty = cy + (Math.random() - 0.5) * 60;
-      bullets.push({ fx: cx + Math.cos(r) * dist, fy: cy + Math.sin(r) * dist, tx, ty, p: 0, done: false });
+    const spawnBullet = (fromAngle: number, dist: number) => {
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const rad = (fromAngle * Math.PI) / 180;
+      bullets.push({
+        id: nextBulletId++,
+        from: { x: cx + Math.cos(rad) * dist, y: cy + Math.sin(rad) * dist, z: 0 },
+        target: { x: cx + (Math.random() - 0.5) * 60, y: cy + (Math.random() - 0.5) * 60, z: 0 },
+        progress: 0,
+        done: false,
+      });
     };
 
-    const spawnImpact = (x: number, y: number) => {
-      // Hot sparks
-      for (let i = 0; i < 50; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const spd = 2 + Math.random() * 8;
-        sparks.push({ x, y, vx: Math.cos(a)*spd, vy: Math.sin(a)*spd - 3.5,
-          life: 1, maxLife: 1, size: 1 + Math.random() * 2.5, type: 'hot', angle: a });
+    const spawnSparks = (x: number, y: number) => {
+      for (let i = 0; i < 60; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.5 + Math.random() * 5;
+        sparks.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 2,
+          life: 1,
+          size: 1.5 + Math.random() * 3,
+          color: Math.random() > 0.4 ? '#00ff88' : '#ffffff',
+        });
       }
-      // Metal chunks
-      for (let i = 0; i < 14; i++) {
-        const a = -Math.PI/2 + (Math.random()-0.5)*Math.PI*1.5;
-        const spd = 1.5 + Math.random() * 4.5;
-        sparks.push({ x, y, vx: Math.cos(a)*spd, vy: Math.sin(a)*spd - 1.5,
-          life: 1, maxLife: 1, size: 2.5 + Math.random() * 4.5, type: 'chunk', angle: a });
-      }
-      shockWaves.push({ x, y, r: 5, maxR: 110, life: 1 });
-      scorchMarks.push({ x, y, radius: 22, alpha: 0.9 });
-      hitFlash   = 1;
-      flashWhite = 1;
-      screenShakeX = (Math.random()-0.5)*28;
-      screenShakeY = (Math.random()-0.5)*28;
     };
 
-    // ── Draw background ──────────────────────────────────────────────────────
-    const drawBackground = () => {
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-      // Green center radial atmosphere
-      const rad = ctx.createRadialGradient(
-        shieldCX(), shieldCY(), 0,
-        shieldCX(), shieldCY(), canvas.height * 0.7
-      );
-      rad.addColorStop(0,   'rgba(0,40,22,0.85)');
-      rad.addColorStop(0.4, 'rgba(0,20,12,0.60)');
-      rad.addColorStop(1,   'rgba(0,0,0,0)');
-      ctx.fillStyle = rad;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Subtle HUD grid
+    const drawScanlines = () => {
       ctx.save();
-      ctx.globalAlpha = 0.03;
+      for (let y = 0; y < canvas.height; y += 4) {
+        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+        ctx.fillRect(0, y, canvas.width, 2);
+      }
+      ctx.restore();
+    };
+
+    const drawGrid = (alpha: number) => {
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.15;
       ctx.strokeStyle = '#00ff88';
-      ctx.lineWidth   = 0.5;
-      for (let x = 0; x < canvas.width;  x += 80) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
-      for (let y = 0; y < canvas.height; y += 80) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width, y);  ctx.stroke(); }
+      ctx.lineWidth = 0.5;
+      const spacing = 60;
+      for (let x = 0; x < canvas.width; x += spacing) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += spacing) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
       ctx.restore();
     };
 
-    // ── Draw logo ────────────────────────────────────────────────────────────
-    const drawLogo = (scale: number, hitF: number, glow: number) => {
-      const logo = logoRef.current;
-      const sz   = shieldDisplaySize() * scale;
-      const cx   = shieldCX(), cy = shieldCY();
-      const x    = cx - sz/2, y  = cy - sz/2;
+    let lastTime = performance.now();
+    let phaseSet = false;
 
-      ctx.save();
-      // Hit flash: green overlay
-      if (hitF > 0.05) {
-        ctx.shadowColor = '#00ff88';
-        ctx.shadowBlur  = 30 + hitF * 80;
-      } else {
-        // Ambient glow
-        ctx.shadowColor = '#00ff88';
-        ctx.shadowBlur  = 15 + glow * 20;
+    const tick = (now: number) => {
+      animFrameRef.current = requestAnimationFrame(tick);
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      t += dt;
+
+      ctx.fillStyle = '#030303';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawGrid(Math.min(t * 0.6, 1));
+      drawScanlines();
+
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+
+      shieldScale = Math.min(shieldScale + dt * 1.8, 1);
+      const eased = shieldScale < 1 ? 1 - Math.pow(1 - shieldScale, 3) : 1;
+
+      glowPulse = Math.sin(t * 2.5) * 0.5 + 0.5;
+      hitFlash = Math.max(0, hitFlash - dt * 5);
+      screenShakeX *= 0.75;
+      screenShakeY *= 0.75;
+
+      if (scheduledIdx < bulletSchedule.length && t >= bulletSchedule[scheduledIdx].t) {
+        spawnBullet(bulletSchedule[scheduledIdx].fromAngle, bulletSchedule[scheduledIdx].dist);
+        scheduledIdx++;
       }
 
-      if (logo) {
-        ctx.drawImage(logo, x, y, sz, sz);
-      } else {
-        // Fallback: green circle
-        ctx.beginPath();
-        ctx.arc(cx, cy, sz*0.4, 0, Math.PI*2);
-        ctx.strokeStyle = '#00ff88';
+      const BULLET_SPEED = 2.8;
+      for (const b of bullets) {
+        if (b.done) continue;
+        b.progress = Math.min(b.progress + dt * BULLET_SPEED, 1);
+        const bx = lerp(b.from.x, b.target.x, b.progress);
+        const by = lerp(b.from.y, b.target.y, b.progress);
+
+        ctx.save();
+        const trailLen = 0.18;
+        const t0 = Math.max(0, b.progress - trailLen);
+        const tx0 = lerp(b.from.x, b.target.x, t0);
+        const ty0 = lerp(b.from.y, b.target.y, t0);
+        const trailGrad = ctx.createLinearGradient(tx0, ty0, bx, by);
+        trailGrad.addColorStop(0, 'rgba(255,220,0,0)');
+        trailGrad.addColorStop(1, 'rgba(255,255,100,0.9)');
+        ctx.strokeStyle = trailGrad;
         ctx.lineWidth = 3;
-        ctx.stroke();
-      }
-      ctx.restore();
-
-      // Scorch marks (drawn on top of logo)
-      for (const sm of scorchMarks) {
-        const g = ctx.createRadialGradient(sm.x, sm.y, 0, sm.x, sm.y, sm.radius);
-        g.addColorStop(0,   `rgba(255,160,0,${sm.alpha*0.7})`);
-        g.addColorStop(0.4, `rgba(100,50,0,${sm.alpha*0.4})`);
-        g.addColorStop(1,   'rgba(0,0,0,0)');
-        ctx.save();
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(sm.x, sm.y, sm.radius, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // Hit energy flash over the logo area
-      if (hitF > 0.05) {
-        const flashGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, sz*0.5);
-        flashGrad.addColorStop(0,   `rgba(0,255,136,${hitF*0.18})`);
-        flashGrad.addColorStop(0.6, `rgba(0,255,136,${hitF*0.06})`);
-        flashGrad.addColorStop(1,   'rgba(0,0,0,0)');
-        ctx.fillStyle = flashGrad;
-        ctx.beginPath();
-        ctx.arc(cx, cy, sz*0.5, 0, Math.PI*2);
-        ctx.fill();
-      }
-    };
-
-    // ── Draw shockwaves ──────────────────────────────────────────────────────
-    const drawShockwaves = () => {
-      for (let i = shockWaves.length-1; i >= 0; i--) {
-        const sw = shockWaves[i];
-        const prog = 1 - sw.life;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI*2);
-        ctx.strokeStyle = `rgba(0,255,136,${sw.life * 0.7})`;
-        ctx.lineWidth   = 3 * sw.life;
-        ctx.shadowColor = '#00ff88';
-        ctx.shadowBlur  = 15 * sw.life;
-        ctx.stroke();
-
-        // Inner ring
-        if (sw.r > 20) {
-          ctx.beginPath();
-          ctx.arc(sw.x, sw.y, sw.r * 0.6, 0, Math.PI*2);
-          ctx.strokeStyle = `rgba(0,255,136,${sw.life * 0.3})`;
-          ctx.lineWidth = 1.5 * sw.life;
-          ctx.stroke();
-        }
+        ctx.shadowColor = '#ffff00';
+        ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.moveTo(tx0, ty0); ctx.lineTo(bx, by); ctx.stroke();
         ctx.restore();
 
-        sw.r    += (sw.maxR - sw.r) * 0.12;
-        sw.life -= 0.04;
-        if (sw.life <= 0) shockWaves.splice(i, 1);
-      }
-    };
-
-    // ── Draw sparks ──────────────────────────────────────────────────────────
-    const drawSparks = (dt: number) => {
-      const G = 0.28;
-      for (let i = sparks.length-1; i >= 0; i--) {
-        const sp = sparks[i];
-        sp.vy   += G;
-        sp.x    += sp.vx;
-        sp.y    += sp.vy;
-        sp.life -= sp.type === 'hot' ? 0.028 : 0.018;
-        if (sp.life <= 0) { sparks.splice(i,1); continue; }
-
-        const alpha = sp.life / sp.maxLife;
         ctx.save();
-        if (sp.type === 'hot') {
-          const r = sp.life > 0.6 ? 255 : Math.round(255 * ((sp.life-0.0)/0.6));
-          const g = Math.round(120 * alpha);
-          ctx.fillStyle = `rgba(${r},${g},0,${alpha})`;
-          ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 4;
-          ctx.beginPath();
-          ctx.arc(sp.x, sp.y, sp.size * alpha, 0, Math.PI*2);
-          ctx.fill();
-        } else {
+        ctx.beginPath();
+        ctx.arc(bx, by, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#ffff00';
+        ctx.shadowBlur = 20;
+        ctx.fill();
+        ctx.restore();
+
+        if (b.progress >= 1) {
+          b.done = true;
+          hitFlash = 1;
+          screenShakeX = (Math.random() - 0.5) * 18;
+          screenShakeY = (Math.random() - 0.5) * 12;
+          spawnSparks(b.target.x, b.target.y);
           ctx.save();
-          ctx.translate(sp.x, sp.y);
-          ctx.rotate(sp.angle + sp.vy * 0.08);
-          ctx.fillStyle = `rgba(160,140,110,${alpha*0.9})`;
-          ctx.fillRect(-sp.size/2, -sp.size/2, sp.size, sp.size*0.5);
+          ctx.beginPath();
+          ctx.arc(b.target.x, b.target.y, 30, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(0,255,136,0.9)';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = '#00ff88';
+          ctx.shadowBlur = 25;
+          ctx.stroke();
           ctx.restore();
         }
-        ctx.restore();
       }
-    };
 
-    // ── Draw bullets ─────────────────────────────────────────────────────────
-    const drawBullets = () => {
-      for (const b of bullets) {
-        if (b.done) continue;
-        const x = b.fx + (b.tx - b.fx) * b.p;
-        const y = b.fy + (b.ty - b.fy) * b.p;
-        const dx = b.tx - b.fx, dy = b.ty - b.fy;
-        const len = Math.hypot(dx,dy);
-        const nx  = dx/len, ny = dy/len;
-        // Tracer: short streak behind bullet
-        const tracerLen = 28;
+      for (const sp of sparks) {
+        sp.x += sp.vx; sp.y += sp.vy;
+        sp.vy += 0.15;
+        sp.life -= dt * 1.4;
+        if (sp.life <= 0) continue;
         ctx.save();
-        const grad = ctx.createLinearGradient(
-          x - nx*tracerLen, y - ny*tracerLen, x, y
-        );
-        grad.addColorStop(0, 'rgba(255,220,140,0)');
-        grad.addColorStop(1, 'rgba(255,240,180,0.95)');
-        ctx.strokeStyle = grad;
-        ctx.lineWidth   = 2.5;
+        ctx.globalAlpha = sp.life;
         ctx.beginPath();
-        ctx.moveTo(x - nx*tracerLen, y - ny*tracerLen);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-        // Bullet tip
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI*2);
+        ctx.arc(sp.x, sp.y, sp.size * sp.life, 0, Math.PI * 2);
+        ctx.fillStyle = sp.color;
+        ctx.shadowColor = sp.color;
+        ctx.shadowBlur = 8;
         ctx.fill();
         ctx.restore();
       }
-    };
 
-    // ── Tagline glitch typing ────────────────────────────────────────────────
-    const glitchChars = '!@#$%^&*<>?/|\\0123456789ABCDEFabcdef';
-    let taglineProgress = 0;
-    let glitchTimer     = 0;
-
-    const updateTagline = (dt: number) => {
-      glitchTimer += dt;
-      if (glitchTimer > 0.04) {
-        glitchTimer = 0;
-        if (taglineProgress < tagline.length) {
-          taglineProgress = Math.min(tagline.length, taglineProgress + 0.9);
-        }
-        const revealed = tagline.slice(0, Math.floor(taglineProgress));
-        const scramble = Math.min(4, tagline.length - Math.floor(taglineProgress));
-        let scrambled = '';
-        for (let i = 0; i < scramble; i++) {
-          scrambled += glitchChars[Math.floor(Math.random()*glitchChars.length)];
-        }
-        setDisplayText(revealed + scrambled);
-      }
-    };
-
-    // ── Main render loop ─────────────────────────────────────────────────────
-    let lastTs = performance.now();
-    let phaseLocal: 'shield' | 'tagline' | 'out' = 'shield';
-
-    const tick = (ts: number) => {
-      const dt = Math.min((ts - lastTs) / 1000, 0.05);
-      lastTs = ts;
-      t     += dt;
-
-      // ── Logo entrance
-      if (t < 0.6) {
-        logoScale = 0;
-      } else if (t < 1.0) {
-        logoScale = Math.min(1, (t - 0.6) / 0.4);
-        // Ease-out cubic
-        logoScale = 1 - Math.pow(1 - logoScale, 3);
-      } else {
-        logoScale = 1;
-      }
-
-      // ── Schedule bullets
-      if (bIdx < bulletSchedule.length && t >= bulletSchedule[bIdx].t) {
-        spawnBullet(bulletSchedule[bIdx].angle, bulletSchedule[bIdx].dist);
-        bIdx++;
-      }
-
-      // ── Update bullets
-      for (const b of bullets) {
-        if (b.done) continue;
-        b.p += dt * 1.6; // travel speed
-        if (b.p >= 1) {
-          b.p    = 1;
-          b.done = true;
-          spawnImpact(b.tx, b.ty);
-        }
-      }
-
-      // ── Phase transitions
-      if (t > 4.2 && phaseLocal === 'shield') {
-        phaseLocal = 'tagline';
-        setPhase('tagline');
-        taglineProgress = 0;
-      }
-      if (t > 9.5 && phaseLocal === 'tagline') {
-        phaseLocal = 'out';
-        setPhase('out');
-        setTimeout(() => setVisible(false), 1000);
-      }
-
-      // ── Update tagline
-      if (phaseLocal === 'tagline') updateTagline(dt);
-
-      // ── Decay values
-      hitFlash     = Math.max(0, hitFlash     - dt * 2.2);
-      glowPulse    = 0.5 + 0.5 * Math.sin(t * 2.4);
-      flashWhite   = Math.max(0, flashWhite   - dt * 3.5);
-      screenShakeX *= 0.70;
-      screenShakeY *= 0.70;
-      for (const sm of scorchMarks) sm.alpha = Math.max(0, sm.alpha - dt * 0.04);
-
-      // ── Render
+      // Shield is immovable — screen shakes, shield stays locked
       ctx.save();
       ctx.translate(screenShakeX, screenShakeY);
-
-      drawBackground();
-      drawLogo(logoScale, hitFlash, glowPulse);
-      drawShockwaves();
-      drawSparks(dt);
-      drawBullets();
-
-      // Full-screen white flash on impact
-      if (flashWhite > 0.01) {
-        ctx.fillStyle = `rgba(255,255,255,${flashWhite * 0.18})`;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      // Vignette
-      const vig = ctx.createRadialGradient(
-        canvas.width/2, canvas.height/2, canvas.height*0.12,
-        canvas.width/2, canvas.height/2, canvas.height*0.9
-      );
-      vig.addColorStop(0, 'rgba(0,0,0,0)');
-      vig.addColorStop(1, 'rgba(0,0,0,0.75)');
-      ctx.fillStyle = vig;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+      drawShield(cx - screenShakeX, cy - screenShakeY, eased, 0, glowPulse, hitFlash);
       ctx.restore();
 
-      animFrameRef.current = requestAnimationFrame(tick);
+      if (t > 3.2 && !phaseSet) { phaseSet = true; setPhase('tagline'); }
+      if (t > 6.0) {
+        setPhase('out');
+        setTimeout(() => setVisible(false), 700);
+        cancelAnimationFrame(animFrameRef.current);
+      }
     };
 
     animFrameRef.current = requestAnimationFrame(tick);
-
     return () => {
       cancelAnimationFrame(animFrameRef.current);
       window.removeEventListener('resize', resize);
     };
-  }, [ready]);
+  }, []);
+
+  useEffect(() => {
+    if (phase !== 'tagline') return;
+    const glitchChars = '!@#$%^&*<>?/\\|0123456789ABCDEF';
+    let revealed = 0;
+    let frame = 0;
+    const interval = setInterval(() => {
+      frame++;
+      if (revealed >= tagline.length) { setDisplayText(tagline); clearInterval(interval); return; }
+      if (frame % 2 === 0) revealed++;
+      const scramble = Array.from({ length: Math.min(5, tagline.length - revealed) })
+        .map(() => glitchChars[Math.floor(Math.random() * glitchChars.length)]).join('');
+      setDisplayText(tagline.slice(0, revealed) + scramble);
+    }, 35);
+    return () => clearInterval(interval);
+  }, [phase]);
 
   if (!visible) return null;
 
@@ -416,74 +330,39 @@ export default function PageLoader() {
     <AnimatePresence>
       <motion.div
         key="loader"
+        className="fixed inset-0 z-[9999] overflow-hidden"
         initial={{ opacity: 1 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.9 }}
-        style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: '#000',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-        }}
+        animate={{ opacity: phase === 'out' ? 0 : 1 }}
+        transition={{ duration: 0.7, ease: 'easeInOut' }}
       >
-        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0 }} />
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%)' }} />
 
-        {/* Tagline overlay */}
-        <AnimatePresence>
-          {phase === 'tagline' && (
-            <motion.div
-              key="tagline"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              style={{
-                position: 'relative', zIndex: 10,
-                marginTop: Math.min(window?.innerHeight * 0.38 ?? 300, 340),
-                textAlign: 'center',
-                padding: '0 32px',
-                maxWidth: 680,
-              }}
-            >
-              {/* Brand */}
-              <div style={{
-                fontFamily: 'var(--font-mono, monospace)',
-                fontSize: 11,
-                letterSpacing: '0.3em',
-                color: '#00ff88',
-                textTransform: 'uppercase',
-                marginBottom: 16,
-                opacity: 0.7,
-              }}>
-                AgentSentry
-              </div>
-              {/* Glitch tagline */}
-              <p style={{
-                fontFamily: 'var(--font-mono, monospace)',
-                fontSize: 'clamp(15px, 2vw, 22px)',
-                color: '#e0ffe8',
-                lineHeight: 1.5,
-                letterSpacing: '0.04em',
-                textShadow: '0 0 20px rgba(0,255,136,0.6), 0 0 40px rgba(0,255,136,0.3)',
-                minHeight: '2.5em',
-              }}>
-                {displayText}
-                <span style={{ opacity: Math.floor(Date.now()/400) % 2 ? 1 : 0, color: '#00ff88' }}>█</span>
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Fade-out overlay */}
-        {phase === 'out' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.9 }}
-            style={{ position: 'absolute', inset: 0, background: '#000', zIndex: 20 }}
-          />
+        {phase === 'tagline' && (
+          <motion.div className="absolute inset-0 flex flex-col items-center justify-end pb-[18%] px-6"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <p className="text-center text-xl sm:text-2xl md:text-3xl font-mono tracking-widest"
+              style={{ color: '#00ff88', textShadow: '0 0 20px #00ff88, 0 0 40px #00ff8866', letterSpacing: '0.12em' }}>
+              {displayText}<span className="animate-pulse">▌</span>
+            </p>
+            <p className="mt-3 text-sm font-mono tracking-[0.3em] uppercase"
+              style={{ color: 'rgba(0,255,136,0.4)' }}>
+              AgentSentry · NHI &amp; AI Agent Security
+            </p>
+          </motion.div>
         )}
+
+        <div className="absolute top-4 left-4 w-10 h-10 border-t-2 border-l-2 border-[#00ff88] opacity-40" />
+        <div className="absolute top-4 right-4 w-10 h-10 border-t-2 border-r-2 border-[#00ff88] opacity-40" />
+        <div className="absolute bottom-4 left-4 w-10 h-10 border-b-2 border-l-2 border-[#00ff88] opacity-40" />
+        <div className="absolute bottom-4 right-4 w-10 h-10 border-b-2 border-r-2 border-[#00ff88] opacity-40" />
+        <div className="absolute top-6 left-0 right-0 flex justify-center">
+          <span className="text-xs font-mono tracking-[0.4em] uppercase animate-pulse"
+            style={{ color: 'rgba(0,255,136,0.5)' }}>
+            {phase === 'shield' ? '[ INITIALIZING SHIELD MATRIX... ]' : '[ SYSTEM SECURED ]'}
+          </span>
+        </div>
       </motion.div>
     </AnimatePresence>
   );
