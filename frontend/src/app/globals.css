@@ -2,33 +2,28 @@
 
 /* ── Design Tokens ─────────────────────────────────────── */
 :root {
-  /* Background */
   --bg:          #000000;
   --bg-surface:  #080808;
   --bg-raised:   #101010;
 
-  /* Borders */
-  --border:      rgba(255, 255, 255, 0.06);
-  --border-dim:  rgba(255, 255, 255, 0.03);
+  --border:      rgba(255, 255, 255, 0.08);
+  --border-dim:  rgba(255, 255, 255, 0.05);
 
-  /* Brand */
   --green:       #00ff88;
   --green-dim:   #00cc6a;
   --green-glow:  rgba(0, 255, 136, 0.12);
 
-  /* Risk levels */
   --red:         #ff3366;
   --red-glow:    rgba(255, 51, 102, 0.08);
   --yellow:      #ffcc00;
   --blue:        #0088ff;
 
-  /* Text */
+  /* Text — all bumped up for dark-bg readability */
   --text-1:      #ffffff;
-  --text-2:      #888888;
-  --text-3:      #444444;
-  --text-4:      #222222;
+  --text-2:      #b0b0b0;
+  --text-3:      #888888;
+  --text-4:      #666666;
 
-  /* Layout */
   --container-width: 1100px;
   --container-px:    56px;
   --container-px-sm: 24px;
@@ -59,6 +54,9 @@ h1, h2, h3, h4 {
   color: var(--text-1);
 }
 
+/* Ensure body text is always readable on dark background */
+p, li, dd, blockquote { color: var(--text-2); }
+
 /* ── Scrollbar ─────────────────────────────────────────── */
 ::-webkit-scrollbar              { width: 4px; }
 ::-webkit-scrollbar-track        { background: #000; }
@@ -83,8 +81,6 @@ h1, h2, h3, h4 {
 }
 
 /* ── Utility classes ───────────────────────────────────── */
-
-/* Consistent page container */
 .container {
   width: 100%;
   max-width: var(--container-width);
@@ -95,13 +91,9 @@ h1, h2, h3, h4 {
 }
 
 @media (max-width: 640px) {
-  .container {
-    padding-left: var(--container-px-sm);
-    padding-right: var(--container-px-sm);
-  }
+  .container { padding-left: var(--container-px-sm); padding-right: var(--container-px-sm); }
 }
 
-/* Gradient text */
 .text-gradient {
   background: linear-gradient(135deg, #ffffff 20%, #00ff88 100%);
   -webkit-background-clip: text;
@@ -109,7 +101,6 @@ h1, h2, h3, h4 {
   background-clip: text;
 }
 
-/* Horizontal glow line */
 .glow-line-green {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--green), transparent);
@@ -121,21 +112,15 @@ h1, h2, h3, h4 {
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
 }
 
-/* Card base */
 .card {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 16px;
 }
 
-/* Blinking cursor */
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .cursor { animation: blink 1s step-end infinite; }
 
-/* Floating animations for orbs */
 @keyframes orb-1 {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33%       { transform: translate(-40px, 30px) scale(1.06); }
@@ -150,9 +135,6 @@ h1, h2, h3, h4 {
   50%       { transform: translate(-25px, 25px); }
 }
 
-/* ── Source website additions ──────────────────────────── */
-
-/* Gradient text (source alias) */
 .gradient-text {
   background: linear-gradient(135deg, #ffffff 0%, #00ff88 100%);
   -webkit-background-clip: text;
@@ -160,17 +142,14 @@ h1, h2, h3, h4 {
   background-clip: text;
 }
 
-/* 3D perspective utilities */
 .perspective-800  { perspective: 800px; }
 .perspective-1000 { perspective: 1000px; }
 .perspective-1400 { perspective: 1400px; }
 .preserve-3d      { transform-style: preserve-3d; }
 
-/* Blink cursor (source alias) */
 @keyframes blink-src { 0%,100%{opacity:1} 50%{opacity:0} }
 .cursor-blink { animation: blink-src 1s step-end infinite; }
 
-/* Ambient float animations used by source Hero orbs */
 @keyframes float1 {
   0%,100% { transform: translate(0,0) scale(1); }
   33%     { transform: translate(-28px,18px) scale(1.04); }
@@ -185,12 +164,9 @@ h1, h2, h3, h4 {
   50%     { transform: translate(-16px,20px); }
 }
 
-/* Pulse ring (hero badge) */
 @keyframes pulse-dot {
   0%,100% { opacity:1; transform:scale(1); }
   50%     { opacity:0.5; transform:scale(1.4); }
 }
 
-/* No horizontal overflow on sections */
 section { overflow-x: hidden; }
-
