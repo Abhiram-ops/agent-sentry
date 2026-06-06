@@ -3,31 +3,31 @@
 import React from "react";
 import { useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, Zap } from "lucide-react";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 
+// Free tier: what the open-source CLI gives you out of the box
 const FREE = [
-  "AWS IAM role & access key scanner",
+  "AWS, Azure, GCP, GitHub & K8s scanners",
   "LangChain / CrewAI / AutoGen agent scanner",
   "P×R×E×A risk scoring engine",
-  "CISA KEV threat intel enrichment",
-  "Interactive NHI attack graph",
-  "MITRE ATT&CK mapping",
+  "MITRE ATT&CK technique mapping",
+  "Blast radius analysis",
   "CLI — runs locally, no data leaves you",
   "Open source — MIT license",
 ];
 
-type ProItem = string | { locked: true; text: string };
+// Pro tier: what you unlock with a license key
+type ProItem = { locked?: true; text: string };
 const PRO: ProItem[] = [
-  "Everything in Free",
-  { locked: true, text: "Continuous monitoring — alerts on new NHIs" },
-  { locked: true, text: "Remediation workflows — auto Jira/ServiceNow tickets" },
-  { locked: true, text: "Audit-grade PDF reports — SOC 2, ISO 27001, NIS 2" },
-  "Azure AD + GCP scanner",
-  "GitHub Actions secrets scanner",
-  "Priority support",
-  "Early access to new features",
+  { text: "Everything in Free" },
+  { text: "--visualize: interactive HTML attack graph" },
+  { text: "--enrich: CISA KEV threat intel enrichment" },
+  { text: "--json: JSON output for pipelines & CI" },
+  { text: "Interactive multi-cloud scan mode" },
+  { text: "One-time purchase — license key, yours forever" },
+  { text: "Priority email support" },
 ];
 
 // ─── 3D pricing card ───────────────────────────────────────────────
@@ -68,7 +68,7 @@ function PricingCard({
       whileHover={{ scale: 1.015, y: -4 }}
       className="relative"
     >
-      {/* Deep shadow (pseudo 3D base) */}
+      {/* Deep shadow */}
       <div className="absolute inset-x-4 -bottom-4 h-8 rounded-2xl pointer-events-none" style={{
         background: `radial-gradient(ellipse, ${accentColor}18 0%, transparent 70%)`,
         filter: "blur(16px)",
@@ -121,12 +121,12 @@ export default function Pricing() {
             marginBottom:20, letterSpacing:"0.2em", textTransform:"uppercase" }}>Pricing</div>
           <h2 style={{ fontSize:"clamp(2rem, 3.5vw, 3rem)", fontWeight:700, color:"#fff",
             marginBottom:20, lineHeight:1.1, letterSpacing:"-0.02em" }}>
-            Free forever.<br />Pro when you need it.
+            Free forever.<br />Pay once for Pro.
           </h2>
-          <p style={{ color:"#a0a0a0", maxWidth:440, margin:"0 auto",
+          <p style={{ color:"#a0a0a0", maxWidth:480, margin:"0 auto",
             fontSize:"clamp(0.95rem, 1.4vw, 1.05rem)", lineHeight:1.75 }}>
-            The core scanner is free and always will be. Pro unlocks continuous governance
-            for enterprise teams.
+            The scanner is open source and always will be. Pro unlocks reports,
+            enrichment, and JSON output — one payment, lifetime license.
           </p>
         </motion.div>
 
@@ -138,11 +138,11 @@ export default function Pricing() {
           <PricingCard accentColor="#444" delay={0}>
             <div style={{ marginBottom:36 }}>
               <div style={{ fontFamily:"monospace", fontSize:11, color:"#888",
-                marginBottom:14, letterSpacing:"0.18em", textTransform:"uppercase" }}>Free</div>
+                marginBottom:14, letterSpacing:"0.18em", textTransform:"uppercase" }}>Community</div>
               <div style={{ display:"flex", alignItems:"flex-end", gap:4, marginBottom:6 }}>
                 <span style={{ fontSize:64, fontWeight:700, color:"#fff", lineHeight:1 }}>$0</span>
               </div>
-              <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>Open source · MIT license</div>
+              <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>Open source · MIT · free forever</div>
             </div>
 
             <Link href="https://github.com/Abhiram-ops/agent-sentry" target="_blank"
@@ -170,10 +170,12 @@ export default function Pricing() {
           <PricingCard accentColor="#00ff88" delay={0.1}>
             {/* Badge */}
             <div style={{ position:"absolute", top:24, right:24,
+              display:"flex", alignItems:"center", gap:6,
               padding:"4px 12px", borderRadius:8,
-              background:"rgba(0,255,136,0.07)", border:"1px solid rgba(0,255,136,0.15)",
+              background:"rgba(0,255,136,0.07)", border:"1px solid rgba(0,255,136,0.20)",
               fontSize:11, fontFamily:"monospace", color:"#00ff88" }}>
-              Coming soon
+              <Zap style={{ width:10, height:10 }} />
+              Available now
             </div>
 
             <div style={{ marginBottom:36 }}>
@@ -181,44 +183,52 @@ export default function Pricing() {
                 marginBottom:14, letterSpacing:"0.18em", textTransform:"uppercase" }}>Pro</div>
               <div style={{ display:"flex", alignItems:"flex-end", gap:4, marginBottom:6 }}>
                 <span style={{ fontSize:64, fontWeight:700, color:"#fff", lineHeight:1 }}>$49</span>
-                <span style={{ fontSize:20, color:"#777777", marginBottom:8 }}>/mo</span>
               </div>
-              <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>Per workspace · cancel anytime</div>
+              <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>One-time · license key · no subscription</div>
             </div>
 
-            <button disabled style={{ display:"block", width:"100%", padding:"14px 20px",
-              background:"rgba(0,255,136,0.06)", color:"rgba(0,255,136,0.3)", fontSize:14,
-              fontWeight:600, borderRadius:12, textAlign:"center", cursor:"not-allowed",
-              border:"1px solid rgba(0,255,136,0.08)", marginBottom:32 }}>
-              Join waitlist
-            </button>
+            {/* Gumroad buy button — replace YOUR_GUMROAD_PRODUCT_ID with your actual Gumroad product URL */}
+            <Link
+              href="https://agentsentry.gumroad.com/l/pro"
+              target="_blank"
+              style={{ display:"block", width:"100%", padding:"14px 20px",
+                background:"linear-gradient(135deg, #00ff88, #00cc6a)",
+                color:"#000", fontSize:14, fontWeight:700, borderRadius:12,
+                textAlign:"center", textDecoration:"none", marginBottom:32,
+                transition:"all 0.2s ease",
+                boxShadow:"0 0 32px rgba(0,255,136,0.25)" }}
+              onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.boxShadow="0 0 48px rgba(0,255,136,0.4)";(e.currentTarget as HTMLElement).style.transform="translateY(-1px)";}}
+              onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.boxShadow="0 0 32px rgba(0,255,136,0.25)";(e.currentTarget as HTMLElement).style.transform="translateY(0)";}}>
+              Buy Pro — $49
+            </Link>
 
             <ul style={{ listStyle:"none", display:"flex", flexDirection:"column", gap:16 }}>
-              {PRO.map((f, i) => {
-                const locked = typeof f === "object";
-                const text = locked ? (f as { locked: true; text: string }).text : f as string;
-                return (
-                  <li key={i} style={{ display:"flex", alignItems:"flex-start", gap:12,
-                    fontSize:14, color: locked ? "#666666" : "#a0a0a0" }}>
-                    {locked
-                      ? <Lock style={{ width:15, height:15, color:"#555555", marginTop:1, flexShrink:0 }} />
-                      : <Check style={{ width:15, height:15, color:"#00ff88", marginTop:1, flexShrink:0 }} />}
-                    <span>
-                      {text}
-                      {locked && (
-                        <span style={{ marginLeft:8, fontSize:10, padding:"2px 6px",
-                          borderRadius:4, background:"#0e0e0e", color:"#666666",
-                          fontFamily:"monospace", letterSpacing:"0.1em", textTransform:"uppercase" }}>
-                          pro
-                        </span>
-                      )}
-                    </span>
-                  </li>
-                );
-              })}
+              {PRO.map((f, i) => (
+                <li key={i} style={{ display:"flex", alignItems:"flex-start", gap:12,
+                  fontSize:14, color:"#a0a0a0" }}>
+                  <Check style={{ width:15, height:15, color:"#00ff88", marginTop:1, flexShrink:0 }} />
+                  <span>{f.text}</span>
+                </li>
+              ))}
             </ul>
+
+            {/* Activate hint */}
+            <div style={{ marginTop:28, padding:"12px 16px", borderRadius:10,
+              background:"rgba(0,255,136,0.04)", border:"1px solid rgba(0,255,136,0.08)" }}>
+              <div style={{ fontFamily:"monospace", fontSize:12, color:"#555", marginBottom:4 }}>After purchase:</div>
+              <div style={{ fontFamily:"monospace", fontSize:12, color:"#00ff88" }}>
+                agentsentry activate AS-XXXX-XXXX-XXXX-XXXX
+              </div>
+            </div>
           </PricingCard>
         </div>
+
+        {/* Bottom note */}
+        <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
+          viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.3 }}
+          style={{ textAlign:"center", marginTop:48, fontSize:13, color:"#555", fontFamily:"monospace" }}>
+          Key delivered instantly by email · Works offline · No account required
+        </motion.p>
       </Container>
 
       <style>{`
