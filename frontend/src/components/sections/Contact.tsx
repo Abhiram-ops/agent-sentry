@@ -1,17 +1,17 @@
 "use client";
 
-import { Github, Mail, Twitter } from "lucide-react";
+import { Code2, Mail, MessageSquare } from "lucide-react";
 
 const contacts = [
   {
-    icon: Twitter,
+    icon: MessageSquare,
     label: "X / Twitter",
     handle: "@AgentSentry",
     href: "https://x.com/AgentSentry",
     description: "DM for quick questions or feedback",
   },
   {
-    icon: Github,
+    icon: Code2,
     label: "GitHub Issues",
     handle: "Abhiram-ops/agent-sentry",
     href: "https://github.com/Abhiram-ops/agent-sentry/issues",
