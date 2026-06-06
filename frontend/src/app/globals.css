@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+/* ── Design Tokens ─────────────────────────────────────── */
+:root {
+  /* Background */
+  --bg:          #000000;
+  --bg-surface:  #080808;
+  --bg-raised:   #101010;
+
+  /* Borders */
+  --border:      rgba(255, 255, 255, 0.06);
+  --border-dim:  rgba(255, 255, 255, 0.03);
+
+  /* Brand */
+  --green:       #00ff88;
+  --green-dim:   #00cc6a;
+  --green-glow:  rgba(0, 255, 136, 0.12);
+
+  /* Risk levels */
+  --red:         #ff3366;
+  --red-glow:    rgba(255, 51, 102, 0.08);
+  --yellow:      #ffcc00;
+  --blue:        #0088ff;
+
+  /* Text */
+  --text-1:      #ffffff;
+  --text-2:      #888888;
+  --text-3:      #444444;
+  --text-4:      #222222;
+
+  /* Layout */
+  --container-width: 1100px;
+  --container-px:    56px;
+  --container-px-sm: 24px;
+}
+
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: transparent;
+}
+
+body {
+  background: transparent;
+  color: var(--text-1);
+  font-family: var(--font-geist-sans), 'Inter', system-ui, sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Typography ────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar              { width: 4px; }
+::-webkit-scrollbar-track        { background: #000; }
+::-webkit-scrollbar-thumb        { background: #1a1a1a; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover  { background: #2a2a2a; }
+
+/* ── Selection ─────────────────────────────────────────── */
+::selection {
+  background: rgba(0, 255, 136, 0.15);
+  color: #fff;
+}
+
+/* ── Web3 Hero / Navbar responsive helpers ─────────────── */
+.navbar-web3-links      { display: flex; }
+.navbar-web3-hamburger  { display: none !important; }
+@media (max-width: 768px) {
+  .navbar-web3-links         { display: none !important; }
+  .navbar-web3-hamburger     { display: flex !important; }
+  .navbar-web3-header        { padding-left: 24px !important; padding-right: 24px !important; }
+  .hero-web3-content         { padding-top: 200px !important; }
+  .hero-web3-heading         { font-size: 36px !important; }
+}
+
+/* ── Utility classes ───────────────────────────────────── */
+
+/* Consistent page container */
+.container {
+  width: 100%;
+  max-width: var(--container-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-px);
+  padding-right: var(--container-px);
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding-left: var(--container-px-sm);
+    padding-right: var(--container-px-sm);
+  }
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(135deg, #ffffff 20%, #00ff88 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Horizontal glow line */
+.glow-line-green {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  opacity: 0.3;
+}
+
+.glow-line-dim {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+}
+
+/* Card base */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+/* Blinking cursor */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.cursor { animation: blink 1s step-end infinite; }
+
+/* Floating animations for orbs */
+@keyframes orb-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(-40px, 30px) scale(1.06); }
+  66%       { transform: translate(25px, -20px) scale(0.96); }
+}
+@keyframes orb-2 {
+  0%, 100% { transform: translate(0, 0); }
+  50%       { transform: translate(30px, -40px); }
+}
+@keyframes orb-3 {
+  0%, 100% { transform: translate(0, 0); }
+  50%       { transform: translate(-25px, 25px); }
+}
+
+/* ── Source website additions ──────────────────────────── */
+
+/* Gradient text (source alias) */
+.gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, #00ff88 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 3D perspective utilities */
+.perspective-800  { perspective: 800px; }
+.perspective-1000 { perspective: 1000px; }
+.perspective-1400 { perspective: 1400px; }
+.preserve-3d      { transform-style: preserve-3d; }
+
+/* Blink cursor (source alias) */
+@keyframes blink-src { 0%,100%{opacity:1} 50%{opacity:0} }
+.cursor-blink { animation: blink-src 1s step-end infinite; }
+
+/* Ambient float animations used by source Hero orbs */
+@keyframes float1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%     { transform: translate(-28px,18px) scale(1.04); }
+  66%     { transform: translate(18px,-14px) scale(0.97); }
+}
+@keyframes float2 {
+  0%,100% { transform: translate(0,0); }
+  50%     { transform: translate(22px,-26px); }
+}
+@keyframes float3 {
+  0%,100% { transform: translate(0,0); }
+  50%     { transform: translate(-16px,20px); }
+}
+
+/* Pulse ring (hero badge) */
+@keyframes pulse-dot {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%     { opacity:0.5; transform:scale(1.4); }
+}
+
+/* No horizontal overflow on sections */
+section { overflow-x: hidden; }
+

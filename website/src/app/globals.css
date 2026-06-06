@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/* ─── Design tokens ─────────────────────────────────────────────────────── */
+:root {
+  --green:      #00ff88;
+  --red:        #ff3366;
+  --yellow:     #ffcc00;
+  --blue:       #0099ff;
+  --orange:     #ff8800;
+  --bg:         #000000;
+  --border:     rgba(255,255,255,0.06);
+}
+
+/* ─── Reset ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: #000;
+  color: #fff;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar              { width: 4px; }
+::-webkit-scrollbar-track        { background: #000; }
+::-webkit-scrollbar-thumb        { background: #1a1a1a; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover  { background: #2a2a2a; }
+
+/* ─── Selection ─────────────────────────────────────────────────────────── */
+::selection { background: rgba(0,255,136,0.18); color: #fff; }
+
+/* ─── Typography helpers ─────────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, #00ff88 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── 3D utilities ───────────────────────────────────────────────────────── */
+.perspective-800  { perspective: 800px; }
+.perspective-1000 { perspective: 1000px; }
+.perspective-1400 { perspective: 1400px; }
+.preserve-3d      { transform-style: preserve-3d; }
+
+/* ─── Blink cursor ───────────────────────────────────────────────────────── */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.cursor-blink { animation: blink 1s step-end infinite; }
+
+/* ─── Ambient float animations (used by Hero orbs) ─────────────────────── */
+@keyframes float1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%     { transform: translate(-28px,18px) scale(1.04); }
+  66%     { transform: translate(18px,-14px) scale(0.97); }
+}
+@keyframes float2 {
+  0%,100% { transform: translate(0,0); }
+  50%     { transform: translate(22px,-26px); }
+}
+@keyframes float3 {
+  0%,100% { transform: translate(0,0); }
+  50%     { transform: translate(-16px,20px); }
+}
+
+/* ─── Pulse ring (hero badge) ────────────────────────────────────────────── */
+@keyframes pulse-dot {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%     { opacity:0.5; transform:scale(1.4); }
+}
+
+/* ─── No horizontal overflow on sections ────────────────────────────────── */
+section { overflow-x: hidden; }

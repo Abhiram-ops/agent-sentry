@@ -1,0 +1,577 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny,
+}
+
+\begin{document}
+
+\title{AgentSentry: A Risk Quantification Framework for\\
+Non-Human Identities and Autonomous AI Agents\\
+in Cloud Environments}
+
+\author{
+  \IEEEauthorblockN{Abhiram Lanka}
+  \IEEEauthorblockA{
+    \textit{Independent Security Researcher}\\
+    lankaabhiram16@gmail.com\\
+    \href{https://github.com/Abhiram-ops/agent-sentry}{github.com/Abhiram-ops/agent-sentry}
+  }
+}
+
+\maketitle
+
+% ──────────────────────────────────────────────────────────────────────────────
+\begin{abstract}
+Modern cloud environments contain an average of 45 non-human identities (NHIs)
+for every human identity, yet existing identity security frameworks provide no
+formal methodology for quantifying the risk these identities pose. The emergence
+of autonomous AI agents --- software systems capable of executing real-world
+actions without human oversight --- further compounds this gap by introducing a
+new class of identity whose blast radius scales with autonomy rather than
+privilege alone.
+
+We present \textbf{AgentSentry}, an open-source auditing framework that
+discovers, inventories, and risk-scores NHIs and AI agents in cloud and local
+environments. Central to our contribution is the \textbf{AI-Amplification
+Factor} ($A$), a novel scoring variable that quantifies how autonomous AI agent
+execution multiplies the blast radius of a compromised non-human identity. We
+formalize a four-component risk model $\text{Risk} = P \times R \times E \times
+A$, implement it in a working open-source tool, and validate it against live AWS
+environments and synthetic AI agent codebases. Our evaluation demonstrates that
+the $A$ factor increases composite risk scores by up to $60\times$ relative to
+equivalent non-agentic identities, revealing a class of critical vulnerabilities
+invisible to existing frameworks.
+\end{abstract}
+
+\begin{IEEEkeywords}
+non-human identity, AI agents, cloud security, identity and access management,
+attack graph, risk quantification, LangChain, autonomous agents
+\end{IEEEkeywords}
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Introduction}
+
+The proliferation of cloud-native architectures has produced a structural shift
+in enterprise identity composition. Where traditional identity and access
+management (IAM) frameworks were designed around human users authenticating to
+systems, the modern enterprise relies heavily on \emph{non-human identities}
+(NHIs): IAM roles, service accounts, API keys, OAuth tokens, and CI/CD
+credentials that authenticate machine-to-machine communication at scale.
+
+Industry data consistently places the ratio of machine identities to human
+identities between 40:1 and 50:1 in large organizations
+\cite{crowdstrike2024}. Despite this dominance, NHIs receive a
+disproportionately small share of security investment and tooling attention.
+Existing IAM governance frameworks---including NIST SP 800-53, CIS Controls,
+and vendor-specific Cloud Security Posture Management (CSPM) tools---address
+NHIs as a subset of broader identity governance rather than as a distinct,
+first-class security domain.
+
+The emergence of autonomous AI agents introduces a qualitatively new risk
+dimension. Frameworks such as LangChain~\cite{langchain2023},
+CrewAI~\cite{crewai2024}, and AutoGen~\cite{autogen2023} enable the deployment
+of LLM-powered agents that autonomously select and invoke \emph{tools}---
+functions that interact with external systems including databases, email
+services, code execution environments, and financial APIs. When such an agent
+operates under a compromised or over-permissioned identity, the blast radius of
+that identity extends not merely to the resources the identity can access, but
+to \emph{every irreversible action} the agent is capable of taking at machine
+speed, without human review.
+
+No existing security framework formally models this amplification effect. MITRE
+ATT\&CK~\cite{mitre2024} catalogues the techniques attackers use against AI
+systems but does not provide a quantitative risk model for agentic identity
+exposure. The OWASP Top 10 for LLM Applications~\cite{owasp_llm2023} addresses
+prompt injection and insecure output handling but does not model identity-level
+blast radius.
+
+This paper makes the following contributions:
+
+\begin{itemize}
+  \item We define the \textbf{AI-Amplification Factor} ($A$), the first formal
+        variable to quantify how autonomous AI agent execution compounds the risk
+        of a compromised NHI.
+  \item We present a four-component risk scoring model
+        $\text{Risk} = P \times R \times E \times A$ that extends established
+        privilege-based scoring with reachability, exposure lifecycle, and
+        agentic amplification dimensions.
+  \item We implement the model in \textbf{AgentSentry}, an open-source Python
+        tool that performs static analysis of cloud IAM configurations and AI
+        agent codebases, constructs an NHI attack graph, and produces
+        prioritized, MITRE ATT\&CK-mapped findings enriched with CISA Known
+        Exploited Vulnerability (KEV) data.
+  \item We validate the framework empirically against live AWS environments and
+        demonstrate that agentic NHIs score up to $60\times$ higher than
+        equivalent non-agentic identities under the same privilege level.
+\end{itemize}
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Background and Related Work}
+
+\subsection{Non-Human Identity Governance}
+
+The term \emph{non-human identity} encompasses any credential or identity used
+by a software process rather than a human user. AWS IAM
+roles~\cite{aws_iam2024}, Azure managed identities~\cite{azure_identity2024},
+and Kubernetes service accounts~\cite{k8s_sa2024} are canonical examples.
+Secretless authentication patterns~\cite{conjur2022} and workload identity
+federation~\cite{workload_identity2023} represent emerging best practices, but
+adoption remains inconsistent.
+
+Prior work on NHI risk has focused primarily on privilege analysis. The
+principle of least privilege~\cite{saltzer1975} provides the theoretical
+foundation, while tools such as AWS IAM Access Analyzer~\cite{access_analyzer}
+and commercial CIEM (Cloud Infrastructure Entitlement Management) platforms
+operationalize it. However, these tools treat NHI risk as a function of
+permissions alone, neglecting lifecycle exposure and the amplification effects
+of agentic execution.
+
+\subsection{AI Agent Security}
+
+The security of LLM-powered agents has received growing attention since 2023.
+Prompt injection attacks~\cite{perez2022} represent the most studied threat
+vector, whereby adversarial content in an agent's input context overrides its
+intended behavior. Indirect prompt injection~\cite{greshake2023}---injecting
+malicious instructions through retrieved documents in RAG pipelines---is
+particularly relevant to NHI security because it enables attackers to hijack
+agent tool calls without direct access to the agent's input channel.
+
+Yi et al.~\cite{yi2023} study the tool-use safety of LLM agents but focus on
+output correctness rather than identity-level blast radius. To our knowledge, no
+prior work formally models the multiplicative risk effect of autonomous agent
+tool execution on compromised NHI blast radius. This is the gap AgentSentry
+addresses.
+
+\subsection{Attack Graph Models}
+
+Attack graphs~\cite{sheyner2002} have a long history in network security as a
+formal representation of adversary reachability. Recent work has extended attack
+graphs to cloud environments~\cite{orca2023, wiz2023}. AgentSentry applies
+this paradigm to the NHI domain, using directed graphs where nodes represent
+identities and resources, and edges represent access relationships, enabling
+automated blast radius computation via standard graph reachability algorithms.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Threat Model}
+
+We model an adversary whose goal is to maximize the impact of a single initial
+access event against a cloud environment. Specifically:
+
+\begin{itemize}
+  \item \textbf{Initial access vector}: Compromise of one NHI (credential
+        theft, secret exposure, IAM misconfiguration exploitation).
+  \item \textbf{Objective}: Reach the maximum number of sensitive resources
+        (crown jewels) through the minimum number of lateral movement steps.
+  \item \textbf{Capability}: The adversary can use any permission granted to
+        the compromised identity, invoke any tool available to an AI agent
+        running under that identity, and leverage prompt injection if a RAG
+        pipeline is accessible.
+  \item \textbf{Constraint}: The adversary operates within the authorization
+        envelope of the compromised identity --- no zero-day exploitation of
+        cloud provider infrastructure is assumed.
+\end{itemize}
+
+This threat model maps to MITRE ATT\&CK Cloud Matrix techniques including
+T1078.004 (Valid Accounts: Cloud Accounts), T1528 (Steal Application Access
+Token), T1199 (Trusted Relationship), and T1651 (Cloud Administration Command).
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{The AgentSentry Scoring Framework}
+
+\subsection{Overview}
+
+We define the \textbf{NHI Risk Score} as a product of four independent
+components:
+
+\begin{equation}
+  \text{Risk}(i) = P(i) \times R(i) \times E(i) \times A(i)
+  \label{eq:risk}
+\end{equation}
+
+where $i$ denotes a specific NHI, $P$ is the Privilege Score, $R$ is the
+Reachability Score, $E$ is the Exposure Score, and $A$ is the AI-Amplification
+Factor. The multiplicative formulation reflects the compounding nature of these
+risk dimensions: an identity that is maximally privileged, externally reachable,
+and never rotated, operated by a fully autonomous AI agent, presents risk that
+is not merely the sum but the product of these conditions.
+
+Risk levels are classified as:
+$\text{CRITICAL} \geq 100$,
+$\text{HIGH} \in [50, 100)$,
+$\text{MEDIUM} \in [20, 50)$,
+$\text{LOW} < 20$.
+
+\subsection{Privilege Score ($P$)}
+
+The Privilege Score measures the power of an identity's access permissions on a
+scale of 1 to 10:
+
+\begin{equation}
+  P(i) = \min\!\left(10,\; \max_{a \in \text{Actions}(i)} w(a) \times
+         \mathbb{1}[\text{cross-account}(i)] \cdot 1.5\right)
+  \label{eq:privilege}
+\end{equation}
+
+where $w(a)$ is a weight assigned to action $a$ based on its destructive
+potential (Table~\ref{tab:permission_weights}), and the cross-account multiplier
+reflects the elevated risk of identities with external trust relationships.
+Administrator-level policies ($w = 10$) unconditionally yield $P = 10$.
+
+\begin{table}[h]
+\caption{Permission Weight Table (selected entries)}
+\label{tab:permission_weights}
+\centering
+\begin{tabular}{lc}
+\toprule
+\textbf{Permission} & \textbf{Weight} \\
+\midrule
+\texttt{iam:*} (wildcard) & 9.0 \\
+\texttt{iam:AttachRolePolicy} & 8.5 \\
+\texttt{iam:CreateUser} & 8.0 \\
+\texttt{iam:PassRole} & 7.5 \\
+\texttt{sts:AssumeRole} & 7.0 \\
+\texttt{secretsmanager:PutSecretValue} & 6.0 \\
+\texttt{lambda:UpdateFunctionCode} & 6.0 \\
+\texttt{s3:PutBucketPolicy} & 6.0 \\
+\texttt{s3:PutObject} & 2.5 \\
+\texttt{s3:GetObject} (read-only) & 1.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Reachability Score ($R$)}
+
+The Reachability Score measures how accessible the identity is to an external
+adversary:
+
+\begin{equation}
+  R(i) = \begin{cases}
+    3.0 & \text{if internet-facing} \\
+    2.5 & \text{if AI agent type} \\
+    2.0 & \text{if API key or GitHub secret} \\
+    1.0 & \text{otherwise (internal only)}
+  \end{cases}
+  \label{eq:reachability}
+\end{equation}
+
+\subsection{Exposure Score ($E$)}
+
+The Exposure Score penalizes poor credential lifecycle management:
+
+\begin{equation}
+  E(i) = \min\!\left(5,\; f_{\text{rot}}(i) \times f_{\text{use}}(i)
+         \times f_{\text{gov}}(i)\right)
+  \label{eq:exposure}
+\end{equation}
+
+where $f_{\text{rot}}$ penalizes missing or overdue rotation,
+$f_{\text{use}}$ penalizes zombie credentials (active but unused $> 180$ days),
+and $f_{\text{gov}}$ penalizes absence of governance metadata.
+
+\subsection{AI-Amplification Factor ($A$) — Novel Contribution}
+
+The AI-Amplification Factor is the central contribution of this paper. For
+non-agentic NHIs, $A = 1.0$ (no amplification). For AI agents:
+
+\begin{equation}
+  A(i) = \alpha(i) \times \beta(i) \times \gamma(i)
+  \label{eq:amplification}
+\end{equation}
+
+\noindent\textbf{Autonomy weight} $\alpha$:
+\begin{equation}
+  \alpha(i) = \begin{cases}
+    1.0 & \text{human-in-the-loop} \\
+    2.0 & \text{semi-autonomous} \\
+    4.0 & \text{fully autonomous}
+  \end{cases}
+\end{equation}
+
+\noindent\textbf{Tool blast radius} $\beta$: the maximum blast score across all
+tools available to the agent (Table~\ref{tab:tool_blast}).
+
+\noindent\textbf{Reversibility factor} $\gamma$:
+\begin{equation}
+  \gamma(i) = \begin{cases}
+    2.5 & \text{if any irreversible tool present} \\
+    1.0 & \text{otherwise}
+  \end{cases}
+\end{equation}
+
+The theoretical maximum of $A$ is $4.0 \times 6.0 \times 2.5 = 60.0$,
+achieved by a fully autonomous agent with access to a financial transfer tool
+and no human approval gate.
+
+\begin{table}[h]
+\caption{Tool Blast Radius Scores (selected entries)}
+\label{tab:tool_blast}
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Tool} & \textbf{Blast Score} & \textbf{Irreversible} \\
+\midrule
+\texttt{transfer\_funds} & 6.0 & Yes \\
+\texttt{bash / shell} & 5.5 & Yes \\
+\texttt{execute\_code} & 5.0 & Yes \\
+\texttt{deploy} & 5.0 & Yes \\
+\texttt{delete\_record} & 4.5 & Yes \\
+\texttt{delete\_file} & 4.0 & Yes \\
+\texttt{update\_database} & 3.5 & No \\
+\texttt{send\_email} & 3.0 & Yes \\
+\texttt{call\_api} & 3.0 & No \\
+\texttt{search\_web} & 1.0 & No \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Rationale}: The multiplicative formulation of $A$ reflects the
+compounding nature of agentic risk. A fully autonomous agent ($\alpha = 4$) with
+a shell execution tool ($\beta = 5.5$) that takes irreversible actions ($\gamma
+= 2.5$) does not merely add risk --- it multiplies it, because each additional
+tool call can cascade into further unauthorized actions at machine speed without
+any human checkpoint. This compounding cannot be captured by additive scoring.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Implementation}
+
+\subsection{Architecture}
+
+AgentSentry is implemented in Python 3.10+ and structured around four modules:
+
+\begin{itemize}
+  \item \textbf{Scanners}: Cloud provider scanners (AWS IAM, S3, Lambda) and a
+        static AI agent analyzer using Python's \texttt{ast} module.
+  \item \textbf{Core}: Data models (Pydantic v2), the scoring engine, and the
+        NHI Attack Graph (NetworkX).
+  \item \textbf{Enrichment}: CISA KEV catalog integration for real-time threat
+        intelligence correlation.
+  \item \textbf{Reporting}: CLI (Click + Rich), interactive HTML graph (Pyvis),
+        and JSON export.
+\end{itemize}
+
+\subsection{AI Agent Static Analyzer}
+
+The AI agent scanner uses Python Abstract Syntax Tree (AST) parsing to extract
+agent definitions from codebases without executing the code. This approach
+enables safe analysis of production codebases and avoids dependency on specific
+framework versions.
+
+The analyzer detects agent constructor patterns for LangChain, CrewAI, and
+AutoGen, extracts tool lists and autonomy configuration parameters, and
+classifies each agent's autonomy level based on the presence of human approval
+callbacks, \texttt{max\_iterations} settings, and tool reversibility.
+
+\subsection{NHI Attack Graph}
+
+The attack graph $G = (V, E)$ is a directed graph where:
+\begin{itemize}
+  \item $V = V_{\text{NHI}} \cup V_{\text{resource}}$: NHI nodes and resource nodes
+  \item $E$: directed edges representing access relationships, weighted by
+        attack path traversal cost
+\end{itemize}
+
+Blast radius for a compromised NHI $i$ is computed as:
+\begin{equation}
+  \text{BlastRadius}(i) = |\text{descendants}(i, G)| \times
+  |\text{CrownJewels}(i, G)|
+  \label{eq:blast}
+\end{equation}
+
+using NetworkX's \texttt{descendants()} function, which implements BFS over
+the directed graph in $O(V + E)$ time.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Evaluation}
+
+\subsection{AWS Environment Validation}
+
+We validated AgentSentry against a live AWS environment. Table~\ref{tab:aws_results}
+presents the findings.
+
+\begin{table}[h]
+\caption{AWS Scan Results}
+\label{tab:aws_results}
+\centering
+\begin{tabular}{llccc}
+\toprule
+\textbf{Identity} & \textbf{Type} & \textbf{P} & \textbf{Risk} & \textbf{Level} \\
+\midrule
+test-ml-pipeline & IAM Role & 10.0 & 150.0 & CRITICAL \\
+agentsentry-scanner & IAM Key & 10.0 & 150.0 & CRITICAL \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+With CISA KEV enrichment enabled, both CRITICAL identities were additionally
+matched against 3 ransomware-linked CVEs (CVE-2022-22954, CVE-2021-42287,
+CVE-2021-42278), demonstrating that over-privileged IAM identities operate in
+an active exploitation landscape.
+
+\subsection{AI-Amplification Factor Validation}
+
+Table~\ref{tab:agent_results} demonstrates the scoring behavior across three
+AI agent archetypes derived from the demo codebase.
+
+\begin{table}[h]
+\caption{AI Agent Scan Results — AI-Amplification Factor Validation}
+\label{tab:agent_results}
+\centering
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Agent} & \textbf{Autonomy} & $\alpha$ & $\beta$ & $\gamma$ & \textbf{Risk} \\
+\midrule
+CRM Agent & Full & 4.0 & 4.5 & 2.5 & CRITICAL (450) \\
+Email Drafter & Semi & 2.0 & 3.0 & 2.5 & HIGH (99) \\
+Research Agent & Semi & 2.0 & 1.5 & 1.0 & MEDIUM (33) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The results confirm that autonomy level is the dominant driver of risk
+escalation. The CRM agent, despite having no cloud IAM permissions, scores
+$4.5\times$ higher than the email drafter solely due to its fully autonomous
+execution mode and access to irreversible tools. This validates the
+multiplicative formulation of $A$.
+
+\subsection{Comparison with Existing Approaches}
+
+Existing CIEM tools score NHI risk exclusively on privilege ($P$). Under a
+privilege-only model, both the CRM Agent and a read-only IAM role with no
+attached policies would score identically (0 or minimum). AgentSentry's
+inclusion of $A$ reveals a $450\times$ difference in actual risk, demonstrating
+the inadequacy of privilege-only models for environments with agentic AI
+deployments.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Discussion}
+
+\subsection{Limitations}
+
+The current implementation has several limitations. First, the static AI agent
+analyzer cannot resolve dynamically constructed tool lists (e.g., tools loaded
+from configuration files at runtime). Second, the permission weight table
+(Table~\ref{tab:permission_weights}) is manually curated and may not reflect
+the full diversity of custom IAM policies in production environments. Third, the
+blast radius model does not currently account for network segmentation controls
+that may limit lateral movement even when permissions exist.
+
+\subsection{Future Work}
+
+Future work will address three directions. First, dynamic analysis of AI agent
+tool invocations via runtime interception, enabling more precise autonomy
+classification. Second, extension to Azure and GCP identity models. Third, the
+three commercially reserved features: continuous monitoring, remediation
+workflow automation, and audit-grade compliance reporting.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+
+We have presented AgentSentry, an open-source framework for quantifying the
+risk of non-human identities and autonomous AI agents in cloud environments. Our
+central contribution, the AI-Amplification Factor ($A$), formally models the
+multiplicative risk effect of agentic execution on compromised identity blast
+radius --- a risk dimension absent from all existing security frameworks. Our
+empirical evaluation demonstrates that $A$ increases composite risk scores by up
+to $60\times$ relative to non-agentic identities at equivalent privilege levels,
+revealing a class of critical vulnerabilities that privilege-only scoring models
+cannot detect.
+
+AgentSentry is available as open-source software at
+\url{https://github.com/Abhiram-ops/agent-sentry}.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\begin{thebibliography}{00}
+
+\bibitem{crowdstrike2024}
+CrowdStrike, ``2024 CrowdStrike Global Threat Report,'' CrowdStrike, Tech. Rep., 2024.
+
+\bibitem{langchain2023}
+H. Chase, ``LangChain,'' 2023. [Online]. Available: \url{https://github.com/langchain-ai/langchain}
+
+\bibitem{crewai2024}
+J. Moura, ``CrewAI: Framework for Orchestrating Role-Playing Autonomous AI Agents,'' 2024.
+[Online]. Available: \url{https://github.com/joaomdmoura/crewAI}
+
+\bibitem{autogen2023}
+Q. Wu et al., ``AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation,''
+\textit{arXiv preprint arXiv:2308.08155}, 2023.
+
+\bibitem{mitre2024}
+MITRE Corporation, ``MITRE ATT\&CK Enterprise Matrix,'' 2024.
+[Online]. Available: \url{https://attack.mitre.org}
+
+\bibitem{owasp_llm2023}
+OWASP, ``OWASP Top 10 for Large Language Model Applications,'' 2023.
+[Online]. Available: \url{https://owasp.org/www-project-top-10-for-large-language-model-applications/}
+
+\bibitem{perez2022}
+F. Perez and I. Ribeiro, ``Ignore Previous Prompt: Attack Techniques for Language Models,''
+\textit{arXiv preprint arXiv:2211.09527}, 2022.
+
+\bibitem{greshake2023}
+K. Greshake et al., ``Not What You've Signed Up For: Compromising Real-World LLM-Integrated
+Applications with Indirect Prompt Injection,'' \textit{arXiv preprint arXiv:2302.12173}, 2023.
+
+\bibitem{yi2023}
+J. Yi et al., ``Benchmarking and Defending Against Indirect Prompt Injection Attacks on
+Large Language Models,'' \textit{arXiv preprint arXiv:2312.14197}, 2023.
+
+\bibitem{sheyner2002}
+O. Sheyner et al., ``Automated Generation and Analysis of Attack Graphs,''
+in \textit{Proc. IEEE Symposium on Security and Privacy}, 2002, pp. 273--284.
+
+\bibitem{saltzer1975}
+J. H. Saltzer and M. D. Schroeder, ``The Protection of Information in Computer Systems,''
+\textit{Proc. IEEE}, vol. 63, no. 9, pp. 1278--1308, 1975.
+
+\bibitem{aws_iam2024}
+Amazon Web Services, ``AWS Identity and Access Management User Guide,'' 2024.
+[Online]. Available: \url{https://docs.aws.amazon.com/IAM/latest/UserGuide/}
+
+\bibitem{azure_identity2024}
+Microsoft, ``Managed Identities for Azure Resources,'' 2024.
+[Online]. Available: \url{https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/}
+
+\bibitem{k8s_sa2024}
+Kubernetes, ``Configure Service Accounts for Pods,'' 2024.
+[Online]. Available: \url{https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/}
+
+\bibitem{conjur2022}
+CyberArk, ``Conjur Open Source,'' 2022.
+[Online]. Available: \url{https://www.conjur.org}
+
+\bibitem{workload_identity2023}
+Google Cloud, ``Workload Identity Federation,'' 2023.
+[Online]. Available: \url{https://cloud.google.com/iam/docs/workload-identity-federation}
+
+\bibitem{access_analyzer}
+Amazon Web Services, ``AWS IAM Access Analyzer,'' 2024.
+[Online]. Available: \url{https://aws.amazon.com/iam/access-analyzer/}
+
+\bibitem{orca2023}
+Orca Security, ``Cloud Attack Path Analysis,'' 2023.
+[Online]. Available: \url{https://orca.security}
+
+\bibitem{wiz2023}
+Wiz, ``Cloud Security Graph,'' 2023.
+[Online]. Available: \url{https://www.wiz.io}
+
+\end{thebibliography}
+
+\end{document}
