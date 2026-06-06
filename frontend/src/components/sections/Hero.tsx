@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { DotGrid } from '@/components/graphics/DotGrid';
 import { Orbs } from '@/components/graphics/Orbs';
 import { Terminal } from 'lucide-react';
+import Link from 'next/link';
 
 export function Hero() {
   const terminalLines = [
@@ -32,6 +33,14 @@ export function Hero() {
       <DotGrid opacity={0.15} />
       <Orbs />
 
+      {/* Radial glow behind hero content */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}
+      >
+        <div className="w-[800px] h-[500px] bg-[#00ff88]/5 blur-3xl rounded-full" />
+      </div>
+
       <Container>
         <div
           style={{
@@ -54,12 +63,12 @@ export function Hero() {
             </div>
 
             <h1
+              className="bg-gradient-to-r from-[#00ff88] to-[#0099ff] bg-clip-text text-transparent"
               style={{
                 fontSize: '56px',
                 fontWeight: 700,
                 lineHeight: 1.2,
                 marginBottom: '24px',
-                color: '#fff',
                 fontFamily: 'var(--font-geist-sans)',
               }}
             >
@@ -80,9 +89,12 @@ export function Hero() {
             </p>
 
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              <Button href="https://github.com/Abhiram-ops/agent-sentry" variant="primary">
+              <Link
+                href="https://github.com/Abhiram-ops/agent-sentry"
+                className="backdrop-blur-sm bg-white/10 border border-white/20 hover:bg-white/20 transition-all inline-flex items-center justify-center gap-2 font-semibold rounded-[10px] text-sm px-[22px] py-[11px] text-white no-underline whitespace-nowrap"
+              >
                 Get Started on GitHub
-              </Button>
+              </Link>
               <Button href="#research" variant="secondary">
                 Read the Paper
               </Button>
