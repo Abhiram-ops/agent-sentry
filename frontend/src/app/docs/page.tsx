@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
+import type { ReactNode, ElementType } from "react";
 import { NavbarWeb3 as Navbar } from "@/components/layout/NavbarWeb3";
 import Footer from "@/components/layout/Footer";
 import { motion } from "framer-motion";
-import { Copy, Check, Terminal, Package, Cpu, Github, Cloud, Server, HardDrive, Layers } from "lucide-react";
+import { Copy, Check, Terminal, Package, Cpu, Cloud, Layers } from "lucide-react";
 
-/* ── Copy button ───────────────────────────────────────── */
+/* ── Copy button ────────────────────────────────────────────────── */
 function CopyBtn({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -20,7 +21,7 @@ function CopyBtn({ text }: { text: string }) {
   );
 }
 
-/* ── Code block ────────────────────────────────────────── */
+/* ── Code block ─────────────────────────────────────────────────── */
 function CodeBlock({ lines, lang = "bash" }: { lines: string[]; lang?: string }) {
   const text = lines.join("\n");
   return (
@@ -32,7 +33,7 @@ function CodeBlock({ lines, lang = "bash" }: { lines: string[]; lang?: string })
       <pre style={{ margin: 0, padding: "16px 20px", fontFamily: "monospace", fontSize: 13, lineHeight: 1.8, overflowX: "auto" }}>
         {lines.map((line, i) => {
           const isComment = line.trim().startsWith("#");
-          const isPrompt  = line.startsWith("$") || line.startsWith(">");
+          const isPrompt  = line.startsWith("$") || line.startsWith(">") || line.startsWith("PS>");
           return (
             <div key={i} style={{ color: isComment ? "#555" : isPrompt ? "#a0a0a0" : "#e0e0e0" }}>
               {line || " "}
@@ -44,8 +45,9 @@ function CodeBlock({ lines, lang = "bash" }: { lines: string[]; lang?: string })
   );
 }
 
-/* ── OS Tab switcher ───────────────────────────────────── */
-function OsTabs({ tabs, children }: { tabs: string[]; children: (os: string) => React.ReactNode }) {
+/* ── OS Tab switcher ────────────────────────────────────────────── */
+type OsTabsProps = { tabs: string[]; renderTab: (os: string) => ReactNode };
+function OsTabs({ tabs, renderTab }: OsTabsProps) {
   const [active, setActive] = useState(tabs[0]);
   return (
     <div>
@@ -63,15 +65,14 @@ function OsTabs({ tabs, children }: { tabs: string[]; children: (os: string) => 
           </button>
         ))}
       </div>
-      {children(active)}
+      {renderTab(active)}
     </div>
   );
 }
 
-/* ── Section card ──────────────────────────────────────── */
-function Section({ id, icon: Icon, accent, title, children }: {
-  id: string; icon: React.ElementType; accent: string; title: string; children: React.ReactNode;
-}) {
+/* ── Section card ───────────────────────────────────────────────── */
+type SectionProps = { id: string; icon: ElementType; accent: string; title: string; children: ReactNode };
+function Section({ id, icon: Icon, accent, title, children }: SectionProps) {
   return (
     <motion.section id={id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.5 }}
@@ -82,20 +83,24 @@ function Section({ id, icon: Icon, accent, title, children }: {
         </div>
         <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#fff", margin: 0 }}>{title}</h2>
       </div>
-      <div style={{ paddingLeft: 0, display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {children}
       </div>
     </motion.section>
   );
 }
 
-/* ── Page ──────────────────────────────────────────────── */
+const OS_TABS = ["Linux / macOS", "Windows", "Windows (PowerShell)"];
+function prompt(os: string): string {
+  return os === "Linux / macOS" ? "$" : os === "Windows" ? ">" : "PS>";
+}
+
+/* ── Page ───────────────────────────────────────────────────────── */
 export default function DocsPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#030303", color: "#fff" }}>
       <Navbar />
 
-      {/* Background glow */}
       <div style={{ position: "fixed", top: "30%", left: "50%", transform: "translateX(-50%)", width: 600, height: 300, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(0,255,136,0.03) 0%, transparent 70%)", filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
 
       <main style={{ flex: 1, maxWidth: 840, margin: "0 auto", width: "100%", padding: "120px 24px 80px", position: "relative", zIndex: 1 }}>
@@ -110,97 +115,59 @@ export default function DocsPage() {
           <p style={{ color: "#a0a0a0", fontSize: "1.05rem", lineHeight: 1.75, maxWidth: 560, margin: "0 0 24px" }}>
             Open-source NHI scanner — runs locally, zero data upload, one command to audit your entire cloud.
           </p>
-          {/* Quick nav */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {[["#install","Installation"],["#quick-start","Quick start"],["#providers","Providers"],["#output","Output formats"],["#advanced","Advanced"]].map(([href, label]) => (
-              <a key={href} href={href} style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.07)", color: "#888", fontSize: 12, textDecoration: "none", fontFamily: "monospace", transition: "all 0.15s ease" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#fff"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.2)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#888"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)"; }}>
+              <a key={href} href={href} style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.07)", color: "#888", fontSize: 12, textDecoration: "none", fontFamily: "monospace" }}>
                 {label}
               </a>
             ))}
           </div>
         </motion.div>
 
-        {/* ── 1. Installation ──────────────────────────────── */}
+        {/* 1. Installation */}
         <Section id="install" icon={Package} accent="#00ff88" title="Installation">
           <p style={{ color: "#a0a0a0", margin: 0, lineHeight: 1.75 }}>
             AgentSentry requires Python 3.9+. Install the base package, then add provider extras for each cloud you want to scan.
           </p>
-
-          <OsTabs tabs={["Linux / macOS", "Windows", "Windows (PowerShell)"]}>
-            {(os) => {
-              if (os === "Linux / macOS") return (
-                <CodeBlock lines={[
-                  "# Base install",
-                  "$ pip install agentsentry",
-                  "",
-                  "# With all provider extras",
-                  "$ pip install 'agentsentry[aws,azure,gcp,github,k8s]'",
-                  "",
-                  "# Verify",
-                  "$ agentsentry --version",
-                ]} />
-              );
-              if (os === "Windows") return (
-                <CodeBlock lines={[
-                  "# Open Command Prompt (cmd.exe) as Administrator",
-                  "",
-                  "# Base install",
-                  "> pip install agentsentry",
-                  "",
-                  "# With all provider extras",
-                  "> pip install agentsentry[aws,azure,gcp,github,k8s]",
-                  "",
-                  "# Verify",
-                  "> agentsentry --version",
-                ]} />
-              );
-              return (
-                <CodeBlock lines={[
-                  "# Open PowerShell as Administrator",
-                  "",
-                  "# Base install",
-                  "PS> pip install agentsentry",
-                  "",
-                  "# With all provider extras",
-                  "PS> pip install 'agentsentry[aws,azure,gcp,github,k8s]'",
-                  "",
-                  "# Verify",
-                  "PS> agentsentry --version",
-                ]} />
-              );
-            }}
-          </OsTabs>
+          <OsTabs tabs={OS_TABS} renderTab={(os) => (
+            <CodeBlock lines={[
+              "# Base install",
+              `${prompt(os)} pip install agentsentry`,
+              "",
+              "# With all provider extras",
+              os === "Linux / macOS"
+                ? `$ pip install 'agentsentry[aws,azure,gcp,github,k8s]'`
+                : os === "Windows"
+                ? `> pip install agentsentry[aws,azure,gcp,github,k8s]`
+                : `PS> pip install 'agentsentry[aws,azure,gcp,github,k8s]'`,
+              "",
+              "# Verify",
+              `${prompt(os)} agentsentry --version`,
+            ]} />
+          )} />
         </Section>
 
-        {/* ── 2. Quick start ───────────────────────────────── */}
+        {/* 2. Quick start */}
         <Section id="quick-start" icon={Terminal} accent="#00ff88" title="Quick start">
           <p style={{ color: "#a0a0a0", margin: 0, lineHeight: 1.75 }}>
             The fastest way to see AgentSentry in action — scan your local environment. No credentials needed.
           </p>
-
-          <OsTabs tabs={["Linux / macOS", "Windows", "Windows (PowerShell)"]}>
-            {(os) => {
-              const prompt = os === "Linux / macOS" ? "$" : os === "Windows" ? ">" : "PS>";
-              return (
-                <CodeBlock lines={[
-                  "# Scan local environment (no credentials needed)",
-                  `${prompt} agentsentry scan local`,
-                  "",
-                  "# Scan everything configured on this machine",
-                  `${prompt} agentsentry scan all`,
-                  "",
-                  "# Open the interactive attack graph in your browser",
-                  `${prompt} agentsentry visualize`,
-                ]} />
-              );
-            }}
-          </OsTabs>
+          <OsTabs tabs={OS_TABS} renderTab={(os) => (
+            <CodeBlock lines={[
+              "# Scan local environment (no credentials needed)",
+              `${prompt(os)} agentsentry scan local`,
+              "",
+              "# Scan everything configured on this machine",
+              `${prompt(os)} agentsentry scan all`,
+              "",
+              "# Open the interactive attack graph in your browser",
+              `${prompt(os)} agentsentry visualize`,
+            ]} />
+          )} />
         </Section>
 
-        {/* ── 3. Providers ─────────────────────────────────── */}
-        <Section id="providers" icon={Cloud} accent="#0099ff" title="Provider setup & scan commands">
+        {/* 3. Providers */}
+        <Section id="providers" icon={Cloud} accent="#0099ff" title="Provider setup &amp; scan commands">
 
           {/* AWS */}
           <div>
@@ -208,28 +175,18 @@ export default function DocsPage() {
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff9900" }} />
               <span style={{ color: "#ccc", fontWeight: 600, fontSize: 14 }}>Amazon Web Services (AWS)</span>
             </div>
-            <OsTabs tabs={["Linux / macOS", "Windows", "Windows (PowerShell)"]}>
-              {(os) => {
-                const prompt = os === "Linux / macOS" ? "$" : os === "Windows" ? ">" : "PS>";
-                const setEnv = os === "Linux / macOS"
-                  ? ["$ export AWS_PROFILE=my-profile  # or run: aws configure"]
-                  : os === "Windows"
-                  ? ["> set AWS_PROFILE=my-profile      # or run: aws configure"]
-                  : ["PS> $env:AWS_PROFILE = 'my-profile'  # or run: aws configure"];
-                return (
-                  <CodeBlock lines={[
-                    "# Install AWS extra",
-                    `${prompt} pip install ${os === "Windows" ? "" : "'"}agentsentry[aws]${os === "Windows" ? "" : "'"}`,
-                    "",
-                    "# Configure credentials",
-                    ...setEnv,
-                    "",
-                    "# Scan",
-                    `${prompt} agentsentry scan aws`,
-                  ]} />
-                );
-              }}
-            </OsTabs>
+            <OsTabs tabs={OS_TABS} renderTab={(os) => (
+              <CodeBlock lines={[
+                "# Install AWS extra",
+                os === "Windows" ? `> pip install agentsentry[aws]` : `${prompt(os)} pip install 'agentsentry[aws]'`,
+                "",
+                "# Configure credentials",
+                os === "Linux / macOS" ? "$ export AWS_PROFILE=my-profile" : os === "Windows" ? "> set AWS_PROFILE=my-profile" : "PS> $env:AWS_PROFILE = 'my-profile'",
+                "",
+                "# Scan",
+                `${prompt(os)} agentsentry scan aws`,
+              ]} />
+            )} />
           </div>
 
           {/* Azure */}
@@ -238,18 +195,13 @@ export default function DocsPage() {
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#0078d4" }} />
               <span style={{ color: "#ccc", fontWeight: 600, fontSize: 14 }}>Microsoft Azure</span>
             </div>
-            <OsTabs tabs={["Linux / macOS", "Windows", "Windows (PowerShell)"]}>
-              {(os) => {
-                const prompt = os === "Linux / macOS" ? "$" : os === "Windows" ? ">" : "PS>";
-                return (
-                  <CodeBlock lines={[
-                    `${prompt} pip install ${os === "Windows" ? "" : "'"}agentsentry[azure]${os === "Windows" ? "" : "'"}`,
-                    `${prompt} az login`,
-                    `${prompt} agentsentry scan azure`,
-                  ]} />
-                );
-              }}
-            </OsTabs>
+            <OsTabs tabs={OS_TABS} renderTab={(os) => (
+              <CodeBlock lines={[
+                os === "Windows" ? `> pip install agentsentry[azure]` : `${prompt(os)} pip install 'agentsentry[azure]'`,
+                `${prompt(os)} az login`,
+                `${prompt(os)} agentsentry scan azure`,
+              ]} />
+            )} />
           </div>
 
           {/* GCP */}
@@ -258,18 +210,13 @@ export default function DocsPage() {
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4285f4" }} />
               <span style={{ color: "#ccc", fontWeight: 600, fontSize: 14 }}>Google Cloud (GCP)</span>
             </div>
-            <OsTabs tabs={["Linux / macOS", "Windows", "Windows (PowerShell)"]}>
-              {(os) => {
-                const prompt = os === "Linux / macOS" ? "$" : os === "Windows" ? ">" : "PS>";
-                return (
-                  <CodeBlock lines={[
-                    `${prompt} pip install ${os === "Windows" ? "" : "'"}agentsentry[gcp]${os === "Windows" ? "" : "'"}`,
-                    `${prompt} gcloud auth application-default login`,
-                    `${prompt} agentsentry scan gcp`,
-                  ]} />
-                );
-              }}
-            </OsTabs>
+            <OsTabs tabs={OS_TABS} renderTab={(os) => (
+              <CodeBlock lines={[
+                os === "Windows" ? `> pip install agentsentry[gcp]` : `${prompt(os)} pip install 'agentsentry[gcp]'`,
+                `${prompt(os)} gcloud auth application-default login`,
+                `${prompt(os)} agentsentry scan gcp`,
+              ]} />
+            )} />
           </div>
 
           {/* GitHub */}
@@ -278,31 +225,13 @@ export default function DocsPage() {
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#f0f0f0" }} />
               <span style={{ color: "#ccc", fontWeight: 600, fontSize: 14 }}>GitHub</span>
             </div>
-            <OsTabs tabs={["Linux / macOS", "Windows", "Windows (PowerShell)"]}>
-              {(os) => {
-                if (os === "Linux / macOS") return (
-                  <CodeBlock lines={[
-                    "$ pip install agentsentry",
-                    "$ export GITHUB_TOKEN=<your-pat>",
-                    "$ agentsentry scan github",
-                  ]} />
-                );
-                if (os === "Windows") return (
-                  <CodeBlock lines={[
-                    "> pip install agentsentry",
-                    "> set GITHUB_TOKEN=<your-pat>",
-                    "> agentsentry scan github",
-                  ]} />
-                );
-                return (
-                  <CodeBlock lines={[
-                    "PS> pip install agentsentry",
-                    "PS> $env:GITHUB_TOKEN = '<your-pat>'",
-                    "PS> agentsentry scan github",
-                  ]} />
-                );
-              }}
-            </OsTabs>
+            <OsTabs tabs={OS_TABS} renderTab={(os) => (
+              <CodeBlock lines={[
+                `${prompt(os)} pip install agentsentry`,
+                os === "Linux / macOS" ? "$ export GITHUB_TOKEN=<your-pat>" : os === "Windows" ? "> set GITHUB_TOKEN=<your-pat>" : "PS> $env:GITHUB_TOKEN = '<your-pat>'",
+                `${prompt(os)} agentsentry scan github`,
+              ]} />
+            )} />
           </div>
 
           {/* Kubernetes */}
@@ -311,44 +240,17 @@ export default function DocsPage() {
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#326ce5" }} />
               <span style={{ color: "#ccc", fontWeight: 600, fontSize: 14 }}>Kubernetes</span>
             </div>
-            <OsTabs tabs={["Linux / macOS", "Windows", "Windows (PowerShell)"]}>
-              {(os) => {
-                const prompt = os === "Linux / macOS" ? "$" : os === "Windows" ? ">" : "PS>";
-                return (
-                  <CodeBlock lines={[
-                    `${prompt} pip install ${os === "Windows" ? "" : "'"}agentsentry[k8s]${os === "Windows" ? "" : "'"}`,
-                    `${prompt} kubectl config use-context <your-cluster>`,
-                    `${prompt} agentsentry scan k8s`,
-                  ]} />
-                );
-              }}
-            </OsTabs>
-          </div>
-
-          {/* Local */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#00ff88" }} />
-              <span style={{ color: "#ccc", fontWeight: 600, fontSize: 14 }}>Local environment</span>
-            </div>
-            <OsTabs tabs={["Linux / macOS", "Windows", "Windows (PowerShell)"]}>
-              {(os) => {
-                const prompt = os === "Linux / macOS" ? "$" : os === "Windows" ? ">" : "PS>";
-                return (
-                  <CodeBlock lines={[
-                    "# No extra install or credentials needed",
-                    `${prompt} agentsentry scan local`,
-                    "",
-                    "# Scans: .env files, SSH keys, Docker socket,",
-                    "# git tokens, credential files",
-                  ]} />
-                );
-              }}
-            </OsTabs>
+            <OsTabs tabs={OS_TABS} renderTab={(os) => (
+              <CodeBlock lines={[
+                os === "Windows" ? `> pip install agentsentry[k8s]` : `${prompt(os)} pip install 'agentsentry[k8s]'`,
+                `${prompt(os)} kubectl config use-context <your-cluster>`,
+                `${prompt(os)} agentsentry scan k8s`,
+              ]} />
+            )} />
           </div>
         </Section>
 
-        {/* ── 4. Output formats ────────────────────────────── */}
+        {/* 4. Output formats */}
         <Section id="output" icon={Layers} accent="#a855f7" title="Output formats">
           <p style={{ color: "#a0a0a0", margin: 0, lineHeight: 1.75 }}>
             Export findings in multiple formats for integration with your existing security toolchain.
@@ -371,40 +273,27 @@ export default function DocsPage() {
           ]} />
         </Section>
 
-        {/* ── 5. Advanced ──────────────────────────────────── */}
+        {/* 5. Advanced */}
         <Section id="advanced" icon={Cpu} accent="#f59e0b" title="Advanced usage">
           <p style={{ color: "#a0a0a0", margin: 0, lineHeight: 1.75 }}>
             Filter by risk threshold, target a specific AWS profile, or run in CI/CD pipelines.
           </p>
-          <OsTabs tabs={["Linux / macOS", "Windows", "Windows (PowerShell)"]}>
-            {(os) => {
-              const prompt = os === "Linux / macOS" ? "$" : os === "Windows" ? ">" : "PS>";
-              const setProfile = os === "Linux / macOS"
-                ? `$ export AWS_PROFILE=prod`
-                : os === "Windows"
-                ? `> set AWS_PROFILE=prod`
-                : `PS> $env:AWS_PROFILE = 'prod'`;
-              return (
-                <CodeBlock lines={[
-                  "# Show only CRITICAL and HIGH findings",
-                  `${prompt} agentsentry scan all --min-risk HIGH`,
-                  "",
-                  "# Use a specific AWS profile",
-                  setProfile,
-                  `${prompt} agentsentry scan aws`,
-                  "",
-                  "# Non-zero exit code on CRITICAL findings (great for CI)",
-                  `${prompt} agentsentry scan all --fail-on CRITICAL`,
-                  "",
-                  "# Scan a specific LangChain / CrewAI project directory",
-                  `${prompt} agentsentry scan agents ./my-agent-project`,
-                  "",
-                  "# Verbose mode (shows all API calls made)",
-                  `${prompt} agentsentry scan all --verbose`,
-                ]} />
-              );
-            }}
-          </OsTabs>
+          <OsTabs tabs={OS_TABS} renderTab={(os) => (
+            <CodeBlock lines={[
+              "# Show only CRITICAL and HIGH findings",
+              `${prompt(os)} agentsentry scan all --min-risk HIGH`,
+              "",
+              "# Use a specific AWS profile",
+              os === "Linux / macOS" ? "$ export AWS_PROFILE=prod" : os === "Windows" ? "> set AWS_PROFILE=prod" : "PS> $env:AWS_PROFILE = 'prod'",
+              `${prompt(os)} agentsentry scan aws`,
+              "",
+              "# Non-zero exit code on CRITICAL findings (great for CI)",
+              `${prompt(os)} agentsentry scan all --fail-on CRITICAL`,
+              "",
+              "# Scan a specific LangChain / CrewAI project directory",
+              `${prompt(os)} agentsentry scan agents ./my-agent-project`,
+            ]} />
+          )} />
 
           {/* CI/CD snippet */}
           <div>
@@ -421,25 +310,13 @@ export default function DocsPage() {
           </div>
         </Section>
 
-        {/* ── Footer nav ───────────────────────────────────── */}
+        {/* Footer nav */}
         <div style={{ paddingTop: 32, borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 16, flexWrap: "wrap" }}>
           <a href="https://github.com/Abhiram-ops/agent-sentry" target="_blank" rel="noopener noreferrer"
-            style={{ display: "flex", alignItems: "center", gap: 6, color: "#888", fontSize: 13, textDecoration: "none", transition: "color 0.15s ease" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#888")}>
-            <Github style={{ width: 14, height: 14 }} />
+            style={{ color: "#888", fontSize: 13, textDecoration: "none" }}>
             View on GitHub
           </a>
-          <a href="https://github.com/Abhiram-ops/agent-sentry/issues/new" target="_blank" rel="noopener noreferrer"
-            style={{ color: "#888", fontSize: 13, textDecoration: "none", transition: "color 0.15s ease" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#888")}>
-            Report an issue
-          </a>
-          <a href="/contact"
-            style={{ color: "#888", fontSize: 13, textDecoration: "none", transition: "color 0.15s ease" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#888")}>
+          <a href="/contact" style={{ color: "#888", fontSize: 13, textDecoration: "none" }}>
             Contact us
           </a>
         </div>
