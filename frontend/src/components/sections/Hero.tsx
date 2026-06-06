@@ -33,13 +33,7 @@ export function Hero() {
       <DotGrid opacity={0.15} />
       <Orbs />
 
-      {/* Radial glow behind hero content */}
-      <div
-        aria-hidden="true"
-        style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}
-      >
-        <div className="w-[800px] h-[500px] bg-[#00ff88]/5 blur-3xl rounded-full" />
-      </div>
+      <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,#00ff8808_0%,transparent_70%)] pointer-events-none" />
 
       <Container>
         <div
@@ -63,16 +57,18 @@ export function Hero() {
             </div>
 
             <h1
-              className="bg-gradient-to-r from-[#00ff88] to-[#0099ff] bg-clip-text text-transparent"
               style={{
                 fontSize: '56px',
                 fontWeight: 700,
                 lineHeight: 1.2,
                 marginBottom: '24px',
+                color: '#fff',
                 fontFamily: 'var(--font-geist-sans)',
               }}
             >
-              Find every Machine's Identity before they do.
+              <span className="bg-gradient-to-r from-[#00ff88] to-[#0099ff] bg-clip-text text-transparent">
+                Find every Machine's Identity before they do.
+              </span>
             </h1>
 
             <p
