@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ClientOnlyOverlays } from "@/components/ui/ClientOnlyOverlays";
-import ClientPageLoader from '@/components/ClientPageLoader';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,7 +53,6 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full antialiased text-white overflow-x-hidden" style={{ background: "transparent" }}>
-        <ClientPageLoader />
         {/* ── Global video background ─────────────────────────── */}
         <video
           autoPlay muted loop playsInline
