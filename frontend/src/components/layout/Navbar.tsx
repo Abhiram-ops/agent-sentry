@@ -137,7 +137,7 @@ export function Navbar() {
                 <GithubIcon size={15} />
                 GitHub
               </Link>
-              <Button href="#pricing" size="sm">Get started free</Button>
+              <Button asChild size="sm"><Link href="#pricing">Get started free</Link></Button>
             </div>
 
             {/* Mobile hamburger */}
@@ -192,8 +192,8 @@ export function Navbar() {
                 </Link>
               ))}
               <div style={{ paddingTop: 8 }}>
-                <Button href="#pricing" fullWidth onClick={() => setMenuOpen(false)}>
-                  Get started free
+                <Button asChild className="w-full" onClick={() => setMenuOpen(false)}>
+                  <Link href="#pricing">Get started free</Link>
                 </Button>
               </div>
             </div>
