@@ -1,8 +1,11 @@
 """
 AgentSentry license management.
 
-Key format: AS-XXXX-XXXX-XXXX-XXXX  (X = base32 chars A-Z2-7)
-Each key embeds a HMAC-SHA256 signature for offline validation.
+Key formats:
+  Free:  AF-XXXX-XXXX-XXXX-XXXX  (X = base32 A-Z2-7)
+  Pro:   AS-XXXX-XXXX-XXXX-XXXX
+
+Both use HMAC-SHA256 offline validation. No server call after activation.
 """
 from __future__ import annotations
 
@@ -14,113 +17,150 @@ import re
 import sys
 from pathlib import Path
 
-from rich.console import Console
-from rich.panel import Panel
+# ── Secrets ───────────────────────────────────────────────────────────────────
+_FREE_SECRET: bytes = b"as-fr-v1-7k2m9p4n"   # free tier
+_PRO_SECRET:  bytes = b"as-lk-v1-3m9n7q2x4p"  # pro tier
 
-# Embedded signing secret — must match AS_LICENSE_SECRET on the Vercel webhook.
-_SECRET: bytes = b"as-lk-v1-3m9n7q2x4p"
-
+# ── Storage ───────────────────────────────────────────────────────────────────
 _LICENSE_DIR  = Path.home() / ".agentsentry"
 _LICENSE_FILE = _LICENSE_DIR / "license.json"
-_KEY_RE       = re.compile(r"^AS-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
 
-console = Console()
+# ── Key regexes ───────────────────────────────────────────────────────────────
+_FREE_RE = re.compile(r"^AF-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
+_PRO_RE  = re.compile(r"^AS-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
 
-
-# ── Key generation (server-side only) ────────────────────────────────────────
-
-def generate_key(purchase_id: str) -> str:
-    """
-    Generate a signed license key deterministically from a purchase ID.
-    Same purchase_id always produces the same key.
-    Call this server-side in the Gumroad webhook; never expose purchase_id to clients.
-    """
-    nonce = hashlib.sha256(purchase_id.encode()).digest()[:4]
-    mac   = hmac.new(_SECRET, nonce, hashlib.sha256).digest()
-    raw   = mac[:6] + nonce                              # 10 bytes
-    enc   = base64.b32encode(raw).decode().rstrip("=")   # 16 chars
-    return f"AS-{enc[:4]}-{enc[4:8]}-{enc[8:12]}-{enc[12:16]}"
+CLAIM_URL = "https://agent-sentry-beta.vercel.app/claim"
 
 
-# ── Validation ────────────────────────────────────────────────────────────────
+# ── Internal helpers ──────────────────────────────────────────────────────────
 
-def _valid_structure(key: str) -> bool:
-    return bool(_KEY_RE.match(key.strip()))
-
-
-def _valid_hmac(key: str) -> bool:
-    """Verify the embedded HMAC without a server call."""
-    payload = key.upper().replace("AS-", "").replace("-", "")   # 16 base32 chars
+def _decode_key(key: str, secret: bytes) -> bool:
+    """Return True if the key's HMAC validates against the given secret."""
+    b32 = key.upper().split("-", 1)[1].replace("-", "")
+    pad = (8 - len(b32) % 8) % 8
     try:
-        padding = "=" * ((8 - len(payload) % 8) % 8)
-        raw = base64.b32decode(payload + padding)
-        if len(raw) < 10:
-            return False
-        mac_stored   = raw[:6]
-        nonce        = raw[6:10]
-        mac_expected = hmac.new(_SECRET, nonce, hashlib.sha256).digest()[:6]
-        return hmac.compare_digest(mac_stored, mac_expected)
+        raw = base64.b32decode(b32 + "=" * pad)
     except Exception:
         return False
+    if len(raw) < 10:
+        return False
+    mac_bytes = raw[:6]
+    nonce     = raw[6:10]
+    expected  = hmac.new(secret, nonce, hashlib.sha256).digest()[:6]
+    return hmac.compare_digest(mac_bytes, expected)
 
 
-# ── Local license store ───────────────────────────────────────────────────────
-
-def activate(key: str) -> bool:
-    """Validate and persist a license key. Returns True on success."""
-    from datetime import datetime, timezone
-
+def _validate_key(key: str) -> str | None:
+    """
+    Validate a key and return its tier: 'free', 'pro', or None if invalid.
+    """
     key = key.strip().upper()
+    if _FREE_RE.match(key) and _decode_key(key, _FREE_SECRET):
+        return "free"
+    if _PRO_RE.match(key) and _decode_key(key, _PRO_SECRET):
+        return "pro"
+    return None
 
-    if not _valid_structure(key):
-        console.print(
-            "\n  [red]✗[/red]  Invalid key format — "
-            "keys look like [bold]AS-ABCD-EFGH-IJKL-MNOP[/bold]\n"
-        )
-        return False
 
-    if not _valid_hmac(key):
-        console.print(
-            "\n  [red]✗[/red]  Key validation failed — the key is invalid or has been tampered with.\n"
-            "  If you think this is wrong, email [bold]support@agentsentry.tool[/bold]\n"
-        )
-        return False
+def _make_key(secret: bytes, prefix: str, nonce: bytes | None = None) -> str:
+    """Generate a key from a nonce (random if not provided)."""
+    import os
+    if nonce is None:
+        nonce = os.urandom(4)
+    mac = hmac.new(secret, nonce, hashlib.sha256).digest()
+    raw = mac[:6] + nonce          # 10 bytes
+    enc = base64.b32encode(raw).decode().rstrip("=")  # 16 chars
+    return f"{prefix}-{enc[:4]}-{enc[4:8]}-{enc[8:12]}-{enc[12:16]}"
 
+
+def generate_free_key(email: str) -> str:
+    """Generate a deterministic free key from an email (server-side use)."""
+    nonce = hashlib.sha256(email.lower().encode()).digest()[:4]
+    return _make_key(_FREE_SECRET, "AF", nonce)
+
+
+def generate_pro_key(purchase_id: str) -> str:
+    """Generate a deterministic pro key from a purchase ID (server-side use)."""
+    nonce = hashlib.sha256(purchase_id.encode()).digest()[:4]
+    return _make_key(_PRO_SECRET, "AS", nonce)
+
+
+# ── Public API ────────────────────────────────────────────────────────────────
+
+def activate(key: str) -> tuple[bool, str]:
+    """
+    Validate and store a license key.
+    Returns (success, tier) where tier is 'free', 'pro', or 'invalid'.
+    """
+    tier = _validate_key(key)
+    if not tier:
+        return False, "invalid"
     _LICENSE_DIR.mkdir(parents=True, exist_ok=True)
-    _LICENSE_FILE.write_text(json.dumps({
-        "key":          key,
-        "plan":         "pro",
-        "activated_at": datetime.now(timezone.utc).isoformat(),
-    }, indent=2))
-    return True
+    data = {"key": key.strip().upper(), "plan": tier}
+    _LICENSE_FILE.write_text(json.dumps(data, indent=2))
+    return True, tier
 
 
-def check() -> tuple[bool, dict]:
-    """Return (is_pro, license_data). Validates the stored key on every call."""
+def check() -> tuple[str | None, dict]:
+    """
+    Read and validate stored license.
+    Returns (tier, data) where tier is 'free', 'pro', or None (trial).
+    """
     if not _LICENSE_FILE.exists():
-        return False, {}
+        return None, {}
     try:
         data = json.loads(_LICENSE_FILE.read_text())
-        key  = data.get("key", "")
-        if _valid_structure(key) and _valid_hmac(key):
-            return True, data
     except Exception:
-        pass
-    return False, {}
+        return None, {}
+    key = data.get("key", "")
+    tier = _validate_key(key)
+    if tier:
+        return tier, data
+    return None, {}
+
+
+def require_free(feature: str) -> None:
+    """
+    Require at least a free license. Exit with claim prompt if trial.
+    Call at the top of any command that requires account activation.
+    """
+    tier, _ = check()
+    if tier in ("free", "pro"):
+        return
+    from rich.console import Console
+    from rich.panel import Panel
+    Console().print(
+        Panel(
+            f"[bold cyan]{feature}[/bold cyan] requires a [bold]free AgentSentry account[/bold].\n\n"
+            f"[dim]Claim your free key in 30 seconds — no credit card:[/dim]\n"
+            f"[bold #00ff88]{CLAIM_URL}[/bold #00ff88]\n\n"
+            f"Already have a key? Run:\n"
+            f"[bold green]  agentsentry activate AF-XXXX-XXXX-XXXX-XXXX[/bold green]",
+            title="[bold yellow]Free Key Required[/bold yellow]",
+            border_style="#00ff88",
+        )
+    )
+    sys.exit(1)
 
 
 def require_pro(feature: str) -> None:
-    """Exit with an upgrade prompt if the user isn't licensed."""
-    is_pro, _ = check()
-    if not is_pro:
-        console.print(Panel(
-            f"  [bold yellow]⚡  {feature}[/bold yellow] requires [bold]AgentSentry Pro[/bold].\n\n"
-            "  [dim]One-time purchase — yours forever:[/dim]\n\n"
-            "  [bold #00ff88]→[/bold #00ff88]  https://agentsentry.tool/pricing\n\n"
-            "  [dim]Already have a key?[/dim]  "
-            "Run [bold]agentsentry activate <key>[/bold]",
-            title="[yellow]⚡ Pro Feature[/yellow]",
+    """
+    Require a Pro license. Exit with upgrade prompt if free or trial.
+    """
+    tier, _ = check()
+    if tier == "pro":
+        return
+    from rich.console import Console
+    from rich.panel import Panel
+    Console().print(
+        Panel(
+            f"[bold yellow]⚡ {feature}[/bold yellow] is an [bold]AgentSentry Pro[/bold] feature.\n\n"
+            "[dim]Unlock with a one-time $49 license:[/dim]\n"
+            "[bold cyan]https://sentryagent.gumroad.com/l/eawugx[/bold cyan]\n\n"
+            "After purchase, run:\n"
+            "[bold green]  agentsentry activate AS-XXXX-XXXX-XXXX-XXXX[/bold green]",
+            title="[bold red]Pro License Required[/bold red]",
             border_style="yellow",
-            padding=(1, 2),
-        ))
-        sys.exit(1)
+        )
+    )
+    sys.exit(1)

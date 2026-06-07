@@ -61,60 +61,96 @@ def main():
     pass
 
 
+# ── claim ─────────────────────────────────────────────────────────────────────
+
+@main.command("claim")
+def cmd_claim():
+    """Claim your free AgentSentry key at the website."""
+    import webbrowser
+    from agentsentry.license import CLAIM_URL, check as _check
+    tier, _ = _check()
+    if tier in ("free", "pro"):
+        console.print(f"  [bold #00ff88]✓[/bold #00ff88]  Already activated ([bold]{tier}[/bold] tier)\n")
+        return
+    console.print()
+    console.print(f"  Opening: [bold #00ff88]{CLAIM_URL}[/bold #00ff88]")
+    console.print(f"  [dim]Create an account → get your free key → run:[/dim]")
+    console.print(f"  [bold green]  agentsentry activate AF-XXXX-XXXX-XXXX-XXXX[/bold green]\n")
+    webbrowser.open(CLAIM_URL)
+
+
 # ── activate ──────────────────────────────────────────────────────────────────
 
 @main.command("activate")
 @click.argument("key")
 def cmd_activate(key: str):
-    """Activate AgentSentry Pro with a license key."""
+    """Activate AgentSentry with a free or pro license key."""
     from agentsentry.license import activate, check
     _print_banner()
 
-    is_pro, data = check()
-    if is_pro:
+    tier, data = check()
+    if tier:
         console.print(
             f"  [bold #00ff88]✓[/bold #00ff88]  Already activated — "
-            f"[dim]{data['key'][:14]}…[/dim]\n"
+            f"[bold]{tier}[/bold] tier  [dim]{data.get('key', '')[:14]}…[/dim]\n"
         )
         return
 
-    if activate(key):
+    ok, new_tier = activate(key)
+    if ok:
+        if new_tier == "free":
+            unlocked = (
+                "  Unlocked: AWS / Azure / GCP / GitHub / K8s scanners\n"
+                "            AI agent analyzer, blast radius analysis\n\n"
+                "  [dim]Upgrade to Pro for --visualize, --enrich, --json:[/dim]\n"
+                "  [dim]https://sentryagent.gumroad.com/l/eawugx[/dim]"
+            )
+        else:
+            unlocked = (
+                "  Unlocked: everything, including --visualize, --enrich,\n"
+                "            --json output, and interactive mode.\n\n"
+                "  [dim]Thank you for supporting AgentSentry.[/dim]"
+            )
         console.print(Panel(
-            "  [bold #00ff88]✓  AgentSentry Pro activated![/bold #00ff88]\n\n"
-            "  Unlocked features:\n"
-            "  [dim]→[/dim]  [bold]--visualize[/bold]   interactive HTML attack graph\n"
-            "  [dim]→[/dim]  [bold]--enrich[/bold]      CISA KEV threat intelligence\n"
-            "  [dim]→[/dim]  [bold]--json[/bold]         JSON output for pipelines\n"
-            "  [dim]→[/dim]  [bold]interactive[/bold]   guided multi-cloud scan mode\n\n"
-            "  [dim]Thank you for supporting AgentSentry.[/dim]",
-            title="[bold #00ff88]Pro Activated[/bold #00ff88]",
+            f"  [bold #00ff88]✓  AgentSentry {new_tier.title()} activated![/bold #00ff88]\n\n"
+            + unlocked,
+            title=f"[bold #00ff88]{new_tier.title()} Activated[/bold #00ff88]",
             border_style="#00ff88",
             padding=(1, 2),
         ))
+    else:
+        console.print(
+            "\n  [red]✗[/red]  Invalid key — check the format and try again.\n"
+            "  Free keys start with [bold]AF-[/bold], Pro keys with [bold]AS-[/bold].\n\n"
+            "  [dim]Don't have a key yet?[/dim]  Run [bold]agentsentry claim[/bold]\n"
+        )
 
 
-# ── license status ─────────────────────────────────────────────────────────────
+# ── license ───────────────────────────────────────────────────────────────────
 
 @main.command("license")
 def cmd_license():
     """Show your license status."""
-    from agentsentry.license import check
+    from agentsentry.license import check, CLAIM_URL
     _print_banner()
 
-    is_pro, data = check()
-    if is_pro:
+    tier, data = check()
+    if tier == "pro":
         console.print(
-            f"  [bold #00ff88]✓[/bold #00ff88]  AgentSentry Pro  "
-            f"[dim]{data['key'][:14]}…[/dim]"
+            f"  [bold yellow]⚡ PRO[/bold yellow]  [dim]{data.get('key', '')[:14]}…[/dim]\n"
         )
-        if data.get("activated_at"):
-            console.print(f"  [dim]activated {data['activated_at'][:10]}[/dim]")
+    elif tier == "free":
+        console.print(
+            f"  [bold #00ff88]✓ FREE[/bold #00ff88]  [dim]{data.get('key', '')[:14]}…[/dim]\n\n"
+            "  Upgrade to Pro — [bold]$49 one-time[/bold]:\n"
+            "  [bold #00ff88]→[/bold #00ff88]  https://sentryagent.gumroad.com/l/eawugx"
+        )
     else:
         console.print(
-            "  [dim]Community edition[/dim]\n\n"
-            "  Upgrade to Pro for HTML reports, CISA KEV enrichment,\n"
-            "  JSON output, and interactive mode:\n\n"
-            "  [bold #00ff88]→[/bold #00ff88]  https://agentsentry.tool/pricing"
+            "  [dim]Trial mode[/dim] — only [bold]scan mock[/bold] and [bold]--help[/bold] are available.\n\n"
+            "  Claim your free key (30 seconds, no credit card):\n"
+            f"  [bold #00ff88]→[/bold #00ff88]  {CLAIM_URL}\n\n"
+            "  Already have a key?  Run [bold]agentsentry activate <key>[/bold]"
         )
     console.print()
 
@@ -229,15 +265,17 @@ def scan(target, visualize, output, path, enrich, output_json,
     """Scan an environment for NHI and AI agent risks."""
     _print_banner()
 
-    # ── License gate — check before wasting time on the scan ─────────────────
+    # Free tier gate — mock is always available; real providers need a free key
+    if target != "mock":
+        from agentsentry.license import require_free
+        require_free(f"agentsentry scan {target}")
+
+    # Pro feature gates
     if visualize or enrich or output_json:
         from agentsentry.license import require_pro
-        if visualize:
-            require_pro("--visualize (interactive HTML attack graph)")
-        elif enrich:
-            require_pro("--enrich (CISA KEV threat intelligence)")
-        elif output_json:
-            require_pro("--json (JSON output)")
+        if visualize:     require_pro("--visualize (interactive HTML attack graph)")
+        elif enrich:      require_pro("--enrich (CISA KEV threat intelligence)")
+        elif output_json: require_pro("--json (JSON output)")
 
     if target == "all":
         _scan_all(enrich=enrich, visualize=visualize, output=output,
@@ -285,6 +323,9 @@ def scan(target, visualize, output, path, enrich, output_json,
               type=click.Choice(PROVIDER_CHOICES[:-1], case_sensitive=False))
 def blast(nhi_name: str, target: str):
     """Show blast radius for a specific NHI."""
+    from agentsentry.license import require_free
+    require_free("blast radius analysis")
+
     _, scanner = _build_provider(target)
     result = scanner.scan()
     scorer = NHIScorer()
@@ -448,16 +489,22 @@ def _finalise_and_print(result, scanner, *, enrich, visualize, output, output_js
 
 
 def _print_banner():
-    from agentsentry.license import check as _check_license
-    is_pro, _ = _check_license()
-    plan_tag = "  [bold #00ff88][PRO][/bold #00ff88]" if is_pro else ""
-
+    from agentsentry.license import check as _license_check
+    tier, _ = _license_check()
+    if tier == "pro":
+        badge = "  [bold yellow]⚡ PRO[/bold yellow]"
+    elif tier == "free":
+        badge = "  [bold #00ff88]✓ FREE[/bold #00ff88]"
+    else:
+        badge = "  [dim]trial[/dim]"
     console.print()
     console.rule(style="dim #333333")
     console.print(
         f"  [bold #00ff88]⬡  AGENTSENTRY[/bold #00ff88]  "
         f"[dim]v{__version__}[/dim]  [dim]·[/dim]  "
-        f"[dim]NHI & AI Agent Risk Scanner[/dim]{plan_tag}"
+        f"[dim]NHI & AI Agent Risk Scanner[/dim]  [dim]·[/dim]  "
+        f"[dim]MIT · free forever[/dim]"
+        + badge
     )
     console.rule(style="dim #333333")
     console.print()
@@ -498,7 +545,7 @@ def _print_nhi_table(result: ScanResult):
     table.add_column("Findings",  min_width=4,  justify="center")
 
     for nhi in sorted(result.nhis, key=lambda n: n.risk_score, reverse=True):
-        dot   = RISK_DOTS[nhi.risk_level]
+        dot         = RISK_DOTS[nhi.risk_level]
         score_style = RISK_STYLES[nhi.risk_level]
         table.add_row(
             dot,
@@ -658,7 +705,6 @@ def cmd_interactive(visualize: bool, enrich: bool):
         console.print("  [red]✗[/red]  No valid selections.\n")
         return
 
-    # ── Auto-fix missing SDKs ─────────────────────────────────────────
     console.print()
     for target in chosen:
         s = detected.get(target)
@@ -696,7 +742,6 @@ def cmd_interactive(visualize: bool, enrich: bool):
     if "local" in chosen or "agents" in chosen:
         path = Prompt.ask("  [bold]Directory to scan[/bold]", default=".")
 
-    # ── Run each chosen provider ──────────────────────────────────────
     combined_nhis, combined_resources, all_scanners = [], [], []
 
     for target in chosen:
