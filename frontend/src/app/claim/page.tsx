@@ -55,6 +55,10 @@ export default function ClaimPage() {
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
             One key. All cloud scanners. No credit card.
           </p>
+          <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            Already registered?{' '}
+            <span style={{ color: 'rgba(0,255,136,0.6)' }}>Re-enter your email below — we&apos;ll resend your key instantly.</span>
+          </p>
         </div>
 
         {status === 'success' ? (
@@ -68,7 +72,7 @@ export default function ClaimPage() {
             </h2>
             <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.6)' }}>
               Your free key was sent to <span className="text-white font-medium">{form.email}</span>.
-              {alreadyClaimed && ' We sent your existing key again.'}
+              {alreadyClaimed && ' We found your existing key and sent it again.'}
             </p>
             <div className="rounded-lg p-4 mb-6 text-left font-mono text-sm"
               style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(0,255,136,0.2)' }}>
@@ -165,7 +169,7 @@ export default function ClaimPage() {
                   onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                 />
                 <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Used to recover your key later if needed.
+                  Used to recover your key — enter the same password if you&apos;re already registered.
                 </p>
               </div>
             </div>
