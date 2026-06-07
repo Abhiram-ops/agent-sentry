@@ -14,12 +14,22 @@ No data leaves the machine.
 """
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import stat
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+def _stable_id(value: str, length: int = 8) -> str:
+    """Return a stable hex ID derived from *value* via SHA-256.
+
+    Unlike ``hash()``, this is deterministic across Python processes and runs,
+    so NHI IDs remain stable for deduplication and graph edge references.
+    """
+    return hashlib.sha256(value.encode()).hexdigest()[:length]
 
 from agentsentry.core.models import (
     CloudProvider, NHIType, NonHumanIdentity,
@@ -183,14 +193,15 @@ class LocalProvider(BaseProvider):
                                 secrets_found.append(k.strip())
 
                     if secrets_found:
+                        _sid = _stable_id(str(env_file))
                         nhis.append(NonHumanIdentity(
-                            id=f"local-dotenv-{hash(str(env_file)) & 0xFFFF:04x}",
+                            id=f"local-dotenv-{_sid}",
                             name=f".env file: {env_file}",
                             type=NHIType.API_KEY,
                             provider=CloudProvider.LOCAL,
                             source_file=str(env_file),
                             findings=[Finding(
-                                finding_id=f"local-dotenv-{hash(str(env_file)) & 0xFFFF:04x}",
+                                finding_id=f"local-dotenv-{_sid}",
                                 title=f".env file with secrets: {env_file.name}",
                                 description=(
                                     f"Found {len(secrets_found)} secret-like variable(s) in {env_file}: "
@@ -228,6 +239,8 @@ class LocalProvider(BaseProvider):
             if key_file.suffix in (".pub", ".known_hosts") or key_file.name == "known_hosts":
                 continue
             try:
+                if key_file.stat().st_size > 500_000:  # skip suspiciously large files
+                    continue
                 content = key_file.read_bytes()
                 if not any(content.startswith(h) or h in content for h in private_key_headers):
                     continue
@@ -463,14 +476,15 @@ class LocalProvider(BaseProvider):
                 f"  Line {ln}: {label}" for label, _, ln in hits[:8]
             )
 
+            _sid = _stable_id(str(fpath))
             nhis.append(NonHumanIdentity(
-                id=f"local-file-{hash(str(fpath)) & 0xFFFFFF:06x}",
+                id=f"local-file-{_sid}",
                 name=f"file: {fpath.relative_to(self.path)}",
                 type=NHIType.API_KEY,
                 provider=CloudProvider.LOCAL,
                 source_file=str(fpath),
                 findings=[Finding(
-                    finding_id=f"local-file-secret-{hash(str(fpath)) & 0xFFFFFF:06x}",
+                    finding_id=f"local-file-secret-{_sid}",
                     title=f"Hardcoded secrets in {fpath.name} ({len(hits)} hit{'s' if len(hits)>1 else ''})",
                     description=f"Potential secrets found in {fpath}:\n{finding_desc}",
                     risk_level=worst_risk,

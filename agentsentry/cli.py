@@ -47,7 +47,7 @@ RISK_DOTS = {
     RiskLevel.INFO:     "[dim]·[/dim]",
 }
 
-PROVIDER_CHOICES = ["mock", "local", "aws", "azure", "gcp", "github", "k8s", "agents", "all"]
+PROVIDER_CHOICES = ["mock", "aws", "azure", "gcp", "github", "k8s", "agents", "local", "all"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -59,100 +59,6 @@ PROVIDER_CHOICES = ["mock", "local", "aws", "azure", "gcp", "github", "k8s", "ag
 def main():
     """AgentSentry — NHI & AI Agent Risk Auditor"""
     pass
-
-
-# ── claim ─────────────────────────────────────────────────────────────────────
-
-@main.command("claim")
-def cmd_claim():
-    """Claim your free AgentSentry key at the website."""
-    import webbrowser
-    from agentsentry.license import CLAIM_URL, check as _check
-    tier, _ = _check()
-    if tier in ("free", "pro"):
-        console.print(f"  [bold #00ff88]✓[/bold #00ff88]  Already activated ([bold]{tier}[/bold] tier)\n")
-        return
-    console.print()
-    console.print(f"  Opening: [bold #00ff88]{CLAIM_URL}[/bold #00ff88]")
-    console.print(f"  [dim]Create an account → get your free key → run:[/dim]")
-    console.print(f"  [bold green]  agentsentry activate AF-XXXX-XXXX-XXXX-XXXX[/bold green]\n")
-    webbrowser.open(CLAIM_URL)
-
-
-# ── activate ──────────────────────────────────────────────────────────────────
-
-@main.command("activate")
-@click.argument("key")
-def cmd_activate(key: str):
-    """Activate AgentSentry with a free or pro license key."""
-    from agentsentry.license import activate, check
-    _print_banner()
-
-    tier, data = check()
-    if tier:
-        console.print(
-            f"  [bold #00ff88]✓[/bold #00ff88]  Already activated — "
-            f"[bold]{tier}[/bold] tier  [dim]{data.get('key', '')[:14]}…[/dim]\n"
-        )
-        return
-
-    ok, new_tier = activate(key)
-    if ok:
-        if new_tier == "free":
-            unlocked = (
-                "  Unlocked: AWS / Azure / GCP / GitHub / K8s scanners\n"
-                "            AI agent analyzer, blast radius analysis\n\n"
-                "  [dim]Upgrade to Pro for --visualize, --enrich, --json:[/dim]\n"
-                "  [dim]https://sentryagent.gumroad.com/l/eawugx[/dim]"
-            )
-        else:
-            unlocked = (
-                "  Unlocked: everything, including --visualize, --enrich,\n"
-                "            --json output, and interactive mode.\n\n"
-                "  [dim]Thank you for supporting AgentSentry.[/dim]"
-            )
-        console.print(Panel(
-            f"  [bold #00ff88]✓  AgentSentry {new_tier.title()} activated![/bold #00ff88]\n\n"
-            + unlocked,
-            title=f"[bold #00ff88]{new_tier.title()} Activated[/bold #00ff88]",
-            border_style="#00ff88",
-            padding=(1, 2),
-        ))
-    else:
-        console.print(
-            "\n  [red]✗[/red]  Invalid key — check the format and try again.\n"
-            "  Free keys start with [bold]AF-[/bold], Pro keys with [bold]AS-[/bold].\n\n"
-            "  [dim]Don't have a key yet?[/dim]  Run [bold]agentsentry claim[/bold]\n"
-        )
-
-
-# ── license ───────────────────────────────────────────────────────────────────
-
-@main.command("license")
-def cmd_license():
-    """Show your license status."""
-    from agentsentry.license import check, CLAIM_URL
-    _print_banner()
-
-    tier, data = check()
-    if tier == "pro":
-        console.print(
-            f"  [bold yellow]⚡ PRO[/bold yellow]  [dim]{data.get('key', '')[:14]}…[/dim]\n"
-        )
-    elif tier == "free":
-        console.print(
-            f"  [bold #00ff88]✓ FREE[/bold #00ff88]  [dim]{data.get('key', '')[:14]}…[/dim]\n\n"
-            "  Upgrade to Pro — [bold]$49 one-time[/bold]:\n"
-            "  [bold #00ff88]→[/bold #00ff88]  https://sentryagent.gumroad.com/l/eawugx"
-        )
-    else:
-        console.print(
-            "  [dim]Trial mode[/dim] — only [bold]scan mock[/bold] and [bold]--help[/bold] are available.\n\n"
-            "  Claim your free key (30 seconds, no credit card):\n"
-            f"  [bold #00ff88]→[/bold #00ff88]  {CLAIM_URL}\n\n"
-            "  Already have a key?  Run [bold]agentsentry activate <key>[/bold]"
-        )
-    console.print()
 
 
 # ── providers ────────────────────────────────────────────────────────────────
@@ -249,37 +155,26 @@ def cmd_permissions(provider_name: str):
 
 @main.command("scan")
 @click.argument("target", type=click.Choice(PROVIDER_CHOICES, case_sensitive=False))
-@click.option("--visualize",    is_flag=True,  help="[Pro] Generate interactive HTML attack graph")
+@click.option("--visualize",    is_flag=True,  help="Generate interactive HTML attack graph")
 @click.option("--output",       default="agentsentry_graph.html", show_default=True)
 @click.option("--path",         default=".", show_default=True, help="Directory to scan")
-@click.option("--enrich",       is_flag=True,  help="[Pro] Enrich with CISA KEV threat intel")
-@click.option("--json",  "output_json", is_flag=True, help="[Pro] Output as JSON")
+@click.option("--enrich",       is_flag=True,  help="Enrich with CISA KEV threat intel")
+@click.option("--json",  "output_json", is_flag=True, help="Output as JSON")
 @click.option("--profile",      default=None,  help="AWS credential profile")
 @click.option("--region",       default="us-east-1", show_default=True)
 @click.option("--org",          default=None,  help="GitHub org")
 @click.option("--namespace",    default=None,  help="K8s namespace")
 @click.option("--context",      default=None,  help="K8s kubeconfig context")
 @click.option("--force",        is_flag=True,  help="Skip permission check")
+@click.option("--pro",          is_flag=True,  help="Pro mode — full attack narratives, MITRE detail, step-by-step remediation")
 def scan(target, visualize, output, path, enrich, output_json,
-         profile, region, org, namespace, context, force):
+         profile, region, org, namespace, context, force, pro):
     """Scan an environment for NHI and AI agent risks."""
     _print_banner()
 
-    # Free tier gate — mock is always available; real providers need a free key
-    if target != "mock":
-        from agentsentry.license import require_free
-        require_free(f"agentsentry scan {target}")
-
-    # Pro feature gates
-    if visualize or enrich or output_json:
-        from agentsentry.license import require_pro
-        if visualize:     require_pro("--visualize (interactive HTML attack graph)")
-        elif enrich:      require_pro("--enrich (CISA KEV threat intelligence)")
-        elif output_json: require_pro("--json (JSON output)")
-
     if target == "all":
         _scan_all(enrich=enrich, visualize=visualize, output=output,
-                  output_json=output_json, force=force)
+                  output_json=output_json, force=force, pro=pro)
         return
 
     provider, scanner = _build_provider(
@@ -312,7 +207,7 @@ def scan(target, visualize, output, path, enrich, output_json,
         progress.update(task, completed=True)
 
     _finalise_and_print(result, scanner, enrich=enrich, visualize=visualize,
-                        output=output, output_json=output_json)
+                        output=output, output_json=output_json, pro=pro)
 
 
 # ── blast ─────────────────────────────────────────────────────────────────────
@@ -323,9 +218,6 @@ def scan(target, visualize, output, path, enrich, output_json,
               type=click.Choice(PROVIDER_CHOICES[:-1], case_sensitive=False))
 def blast(nhi_name: str, target: str):
     """Show blast radius for a specific NHI."""
-    from agentsentry.license import require_free
-    require_free("blast radius analysis")
-
     _, scanner = _build_provider(target)
     result = scanner.scan()
     scorer = NHIScorer()
@@ -382,10 +274,6 @@ def _build_provider(target, *, path=".", profile=None, region="us-east-1",
         from agentsentry.scanners.langchain_scanner import LangChainScanner
         console.print(f"  [dim]scanning AI agent code → {path}[/dim]\n")
         return None, LangChainScanner(scan_path=path)
-    if target == "local":
-        from agentsentry.providers.local import LocalProvider
-        p = LocalProvider(path=path)
-        return p, p
     if target == "aws":
         from agentsentry.providers.aws import AWSProvider
         p = AWSProvider(profile=profile, region=region)
@@ -402,11 +290,15 @@ def _build_provider(target, *, path=".", profile=None, region="us-east-1",
     if target == "k8s":
         from agentsentry.providers.k8s import KubernetesProvider
         return (p := KubernetesProvider(context=context, namespace=namespace)), p
+    if target == "local":
+        from agentsentry.providers.local import LocalProvider
+        console.print(f"  [dim]scanning local machine → {path}[/dim]\n")
+        return None, LocalProvider(scan_path=path)
     console.print(f"  [red]unknown target: {target}[/red]")
     sys.exit(1)
 
 
-def _scan_all(*, enrich, visualize, output, output_json, force):
+def _scan_all(*, enrich, visualize, output, output_json, force, pro=False):
     from agentsentry.providers import registry
     ready = registry.detect_ready()
     if not ready:
@@ -437,11 +329,17 @@ def _scan_all(*, enrich, visualize, output, output_json, force):
     from agentsentry.core.models import CloudProvider, ScanResult
     aggregate = ScanResult(scan_id="all-scan", provider=CloudProvider.LOCAL,
                            nhis=combined_nhis, resources=combined_resources)
-    _finalise_and_print(aggregate, all_scanners[0] if all_scanners else None,
-                        enrich=enrich, visualize=visualize, output=output, output_json=output_json)
+    _finalise_and_print(aggregate, all_scanners,
+                        enrich=enrich, visualize=visualize, output=output, output_json=output_json, pro=pro)
 
 
-def _finalise_and_print(result, scanner, *, enrich, visualize, output, output_json):
+def _finalise_and_print(result, scanners, *, enrich, visualize, output, output_json, pro=False):
+    """*scanners* may be a single scanner object or a list of scanners."""
+    if scanners is None:
+        scanners = []
+    elif not isinstance(scanners, list):
+        scanners = [scanners]
+
     scorer = NHIScorer()
     with Progress(SpinnerColumn(spinner_name="dots2", style="#00ff88"),
                   TextColumn("[dim]{task.description}[/dim]"),
@@ -464,9 +362,11 @@ def _finalise_and_print(result, scanner, *, enrich, visualize, output, output_js
         graph.add_nhi(nhi)
     for resource in result.resources:
         graph.add_resource(resource)
-    if scanner and hasattr(scanner, "build_access_edges"):
-        for from_id, to_id, perm, weight in scanner.build_access_edges():
-            graph.add_access_edge(from_id, to_id, perm, weight)
+    # Collect edges from ALL scanners — not just the first
+    for sc in scanners:
+        if sc and hasattr(sc, "build_access_edges"):
+            for from_id, to_id, perm, weight in sc.build_access_edges():
+                graph.add_access_edge(from_id, to_id, perm, weight)
 
     if output_json:
         import json
@@ -476,6 +376,10 @@ def _finalise_and_print(result, scanner, *, enrich, visualize, output, output_js
         _print_nhi_table(result)
         _print_findings(result)
         _print_blast_top(result, graph)
+
+        if pro:
+            from agentsentry.core.pro_output import print_pro_report
+            print_pro_report(result.nhis)
 
     if visualize:
         with Progress(SpinnerColumn(spinner_name="dots2", style="#00ff88"),
@@ -489,14 +393,6 @@ def _finalise_and_print(result, scanner, *, enrich, visualize, output, output_js
 
 
 def _print_banner():
-    from agentsentry.license import check as _license_check
-    tier, _ = _license_check()
-    if tier == "pro":
-        badge = "  [bold yellow]⚡ PRO[/bold yellow]"
-    elif tier == "free":
-        badge = "  [bold #00ff88]✓ FREE[/bold #00ff88]"
-    else:
-        badge = "  [dim]trial[/dim]"
     console.print()
     console.rule(style="dim #333333")
     console.print(
@@ -504,7 +400,6 @@ def _print_banner():
         f"[dim]v{__version__}[/dim]  [dim]·[/dim]  "
         f"[dim]NHI & AI Agent Risk Scanner[/dim]  [dim]·[/dim]  "
         f"[dim]MIT · free forever[/dim]"
-        + badge
     )
     console.rule(style="dim #333333")
     console.print()
@@ -545,7 +440,7 @@ def _print_nhi_table(result: ScanResult):
     table.add_column("Findings",  min_width=4,  justify="center")
 
     for nhi in sorted(result.nhis, key=lambda n: n.risk_score, reverse=True):
-        dot         = RISK_DOTS[nhi.risk_level]
+        dot   = RISK_DOTS[nhi.risk_level]
         score_style = RISK_STYLES[nhi.risk_level]
         table.add_row(
             dot,
@@ -617,13 +512,10 @@ def _provider_display_name(name: str) -> str:
 # ── interactive ───────────────────────────────────────────────────────────────
 
 @main.command("interactive")
-@click.option("--visualize", is_flag=True, help="[Pro] Generate HTML attack graph after scan")
-@click.option("--enrich",    is_flag=True, help="[Pro] Enrich with CISA KEV threat intel")
+@click.option("--visualize", is_flag=True, help="Generate HTML attack graph after scan")
+@click.option("--enrich",    is_flag=True, help="Enrich with CISA KEV threat intel")
 def cmd_interactive(visualize: bool, enrich: bool):
-    """[Pro] Interactive mode — pick your providers and path visually."""
-    from agentsentry.license import require_pro
-    require_pro("Interactive mode")
-
+    """Interactive mode — pick your providers and path visually."""
     import subprocess
     from rich.prompt import Prompt, Confirm
     from agentsentry.providers import registry
@@ -646,13 +538,13 @@ def cmd_interactive(visualize: bool, enrich: bool):
     }
 
     all_providers = [
-        ("local",  "This machine — env vars, SSH keys, files"),
         ("aws",    "Amazon Web Services — IAM, Lambda, S3"),
         ("azure",  "Microsoft Azure — Managed Identities, Service Principals"),
         ("gcp",    "Google Cloud Platform — Service Accounts, SA Keys"),
         ("github", "GitHub — PATs, deploy keys, Actions secrets"),
         ("k8s",    "Kubernetes — ServiceAccounts, ClusterRoleBindings"),
         ("agents", "AI agent code — LangChain / CrewAI / AutoGen"),
+        ("local",  "This machine — env vars, SSH keys, .env files, credentials"),
         ("mock",   "Demo mode — realistic fake data, no credentials"),
     ]
 
@@ -705,8 +597,9 @@ def cmd_interactive(visualize: bool, enrich: bool):
         console.print("  [red]✗[/red]  No valid selections.\n")
         return
 
+    # ── Auto-fix missing SDKs ─────────────────────────────────────────
     console.print()
-    for target in chosen:
+    for target in list(chosen):  # iterate a copy — we may remove from chosen mid-loop
         s = detected.get(target)
         if s and not s.sdk_available and target in SDK_INSTALL:
             console.print(f"  [yellow]⚠[/yellow]  [bold]{target}[/bold] SDK not installed")
@@ -739,9 +632,10 @@ def cmd_interactive(visualize: bool, enrich: bool):
     console.print(f"  [bold #00ff88]Scanning:[/bold #00ff88]  {chr(44)+chr(32).join(chosen)}\n")
 
     path = "."
-    if "local" in chosen or "agents" in chosen:
+    if "agents" in chosen or "local" in chosen:
         path = Prompt.ask("  [bold]Directory to scan[/bold]", default=".")
 
+    # ── Run each chosen provider ──────────────────────────────────────
     combined_nhis, combined_resources, all_scanners = [], [], []
 
     for target in chosen:
@@ -785,7 +679,8 @@ def cmd_interactive(visualize: bool, enrich: bool):
                    nhis=combined_nhis, resources=combined_resources)
 
     _finalise_and_print(
-        aggregate, all_scanners[0] if all_scanners else None,
+        aggregate, all_scanners,
         enrich=enrich, visualize=visualize,
         output="agentsentry_graph.html", output_json=False,
     )
+

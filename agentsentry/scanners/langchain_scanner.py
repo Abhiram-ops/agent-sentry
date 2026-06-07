@@ -21,9 +21,15 @@ Usage:
 from __future__ import annotations
 
 import ast
+import hashlib
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+
+
+def _stable_id(value: str, length: int = 12) -> str:
+    """Return a stable hex ID from *value* via SHA-256 (deterministic across runs)."""
+    return hashlib.sha256(value.encode()).hexdigest()[:length]
 
 from agentsentry.core.models import (
     AutonomyLevel,
@@ -150,6 +156,7 @@ class LangChainScanner:
 
     def __init__(self, scan_path: str = "."):
         self.scan_path = Path(scan_path)
+        self._last_result = None  # populated by scan() for build_access_edges()
 
     def scan(self) -> ScanResult:
         agents = self._discover_agents()
@@ -158,13 +165,15 @@ class LangChainScanner:
         print(f"[AgentSentry] Scanned {self.scan_path}")
         print(f"[AgentSentry] Found {len(nhis)} AI agent(s)")
 
-        return ScanResult(
+        result = ScanResult(
             scan_id=f"langchain-{self.scan_path.name}",
             provider=CloudProvider.LOCAL,
             account_id=str(self.scan_path.resolve()),
             nhis=nhis,
             resources=[],
         )
+        self._last_result = result  # cache for build_access_edges()
+        return result
 
     # ------------------------------------------------------------------
     # Discovery
@@ -351,11 +360,7 @@ class LangChainScanner:
                                   agent.max_iterations > 10):
             return AutonomyLevel.FULLY_AUTONOMOUS
 
-        # Has irreversible tools but limited iterations = semi-autonomous
-        if has_irreversible:
-            return AutonomyLevel.SEMI_AUTONOMOUS
-
-        # No irreversible tools, limited scope
+        # Has irreversible tools but limited iterations, OR no irreversible tools
         return AutonomyLevel.SEMI_AUTONOMOUS
 
     # ------------------------------------------------------------------
@@ -374,7 +379,7 @@ class LangChainScanner:
         ]
 
         return NonHumanIdentity(
-            id=f"agent-{hash(agent.source_file + str(agent.line_number))}",
+            id=f"agent-{_stable_id(agent.source_file + str(agent.line_number))}",
             name=name,
             type=NHIType.AI_AGENT,
             provider=CloudProvider.LOCAL,
@@ -419,5 +424,42 @@ class LangChainScanner:
         except ValueError:
             return Path(filepath).name
 
-    def build_access_edges(self):
-        return []
+    def build_access_edges(self) -> list[tuple[str, str, str, float]]:
+        """
+        Synthesizes capability resource nodes from each agent's tool list and
+        returns access edges connecting agents to the capabilities their tools grant.
+
+        Edge weight is derived from KNOWN_TOOL_BLAST. Irreversible tools are
+        tagged as crown-jewel / IRREVERSIBLE capability nodes so the graph
+        renderer can highlight the most dangerous paths.
+
+        Returns (from_id, to_id, permission, weight) tuples.
+        """
+        if not hasattr(self, "_last_result") or self._last_result is None:
+            return []
+
+        edges: list[tuple[str, str, str, float]] = []
+
+        for nhi in self._last_result.nhis:
+            for tool in nhi.agent_tools:
+                blast = KNOWN_TOOL_BLAST.get(tool, 1.5)
+                is_irreversible = any(
+                    kw in tool for kw in IRREVERSIBLE_TOOL_KEYWORDS
+                )
+                # Stable capability node ID — same tool always gets the same ID
+                cap_id = f"capability-{_stable_id(tool)}"
+                label = f"tool:{tool}"
+                if is_irreversible:
+                    label = f"tool:{tool} [IRREVERSIBLE]"
+                edges.append((nhi.id, cap_id, label, blast))
+
+        # Deduplicate
+        seen: set[tuple[str, str, str]] = set()
+        deduped = []
+        for e in edges:
+            key = (e[0], e[1], e[2])
+            if key not in seen:
+                seen.add(key)
+                deduped.append(e)
+
+        return deduped

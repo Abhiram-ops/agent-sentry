@@ -58,6 +58,7 @@ class AWSScanner:
         self.s3     = session.client("s3")
         self.lambda_ = session.client("lambda")
         self.region = region
+        self._last_result = None  # populated by scan() for build_access_edges()
 
     def scan(self) -> ScanResult:
         print("[AgentSentry] Connecting to AWS...")
@@ -81,13 +82,15 @@ class AWSScanner:
 
         print(f"[AgentSentry] Done. Found {len(nhis)} NHIs, {len(resources)} resources.")
 
-        return ScanResult(
+        result = ScanResult(
             scan_id=f"aws-{account_id}",
             provider=CloudProvider.AWS,
             account_id=account_id,
             nhis=nhis,
             resources=resources,
         )
+        self._last_result = result  # cache for build_access_edges()
+        return result
 
     # ------------------------------------------------------------------
     # IAM Role Scanner
@@ -239,7 +242,7 @@ class AWSScanner:
 
         for bucket in buckets:
             name = bucket["Name"]
-            is_public = self._is_bucket_public(name)
+            is_public, acl_checked = self._is_bucket_public(name)
 
             # Heuristic crown jewel detection based on name patterns
             is_crown_jewel = any(
@@ -248,6 +251,13 @@ class AWSScanner:
                            "secret", "key", "data", "model", "weights"]
             )
 
+            if not acl_checked:
+                tags = ["PUBLIC_STATUS_UNKNOWN"]
+            elif is_public:
+                tags = ["PUBLIC"]
+            else:
+                tags = []
+
             resources.append(Resource(
                 id=f"s3-{name}",
                 name=name,
@@ -255,22 +265,33 @@ class AWSScanner:
                 provider=CloudProvider.AWS,
                 arn=f"arn:aws:s3:::{name}",
                 is_crown_jewel=is_crown_jewel,
-                is_public=is_public,
-                sensitivity_tags=["PUBLIC"] if is_public else [],
+                is_public=is_public if acl_checked else False,
+                sensitivity_tags=tags,
             ))
 
         return resources
 
-    def _is_bucket_public(self, bucket_name: str) -> bool:
+    def _is_bucket_public(self, bucket_name: str) -> tuple[bool, bool]:
+        """
+        Check whether a bucket is publicly accessible via ACL.
+
+        Returns:
+            (is_public, acl_checked) — if *acl_checked* is False the caller
+            should tag the resource as PUBLIC_STATUS_UNKNOWN rather than
+            assuming the bucket is private (e.g. cross-region ACL denials
+            look the same as a genuinely private bucket in the raw exception).
+        """
         try:
             acl_resp = self.s3.get_bucket_acl(Bucket=bucket_name)
             for grant in acl_resp.get("Grants", []):
                 grantee = grant.get("Grantee", {})
                 if grantee.get("URI") == "http://acs.amazonaws.com/groups/global/AllUsers":
-                    return True
+                    return True, True
+            return False, True
         except ClientError:
-            pass
-        return False
+            # Access denied (cross-region, restrictive policy, etc.) —
+            # we genuinely don't know, so signal that to the caller.
+            return False, False
 
     def _scan_lambda_functions(self) -> list[Resource]:
         resources = []
@@ -323,11 +344,82 @@ class AWSScanner:
 
     def build_access_edges(self) -> list[tuple[str, str, str, float]]:
         """
-        Builds access edges between NHIs and resources based on policy analysis.
-        Returns (from_id, to_id, permission, weight) tuples.
-        Called by the CLI after scan() to populate the attack graph.
+        Derives access edges between IAM roles/users and AWS resources
+        based on attached managed-policy names and inline-policy Action prefixes.
+
+        Returns (from_id, to_id, permission, weight) tuples suitable for
+        populating the attack graph.
         """
-        # For the MVP, we return an empty list.
-        # Full implementation: parse attached policies and map to resource ARNs.
-        # This is Phase 2 — the graph becomes more powerful as we add this.
-        return []
+        if not hasattr(self, "_last_result") or self._last_result is None:
+            return []
+
+        edges: list[tuple[str, str, str, float]] = []
+
+        # Map managed-policy name → (resource_type_prefix, edge_label, weight)
+        POLICY_RESOURCE_MAP: dict[str, tuple[str, str, float]] = {
+            "AmazonS3FullAccess":          ("s3-",      "s3:*",            9.0),
+            "AmazonS3ReadOnlyAccess":      ("s3-",      "s3:GetObject",    2.0),
+            "AWSLambda_FullAccess":        ("lambda-",  "lambda:*",        7.0),
+            "AmazonRDSFullAccess":         ("rds-",     "rds:*",           7.0),
+            "SecretsManagerReadWrite":     ("secret-",  "secretsmanager:*",8.0),
+            "AdministratorAccess":         ("",         "*",               10.0),
+            "PowerUserAccess":             ("",         "power:*",         9.0),
+            "IAMFullAccess":               ("iam-",     "iam:*",           9.0),
+        }
+
+        # Service prefix → resource id prefix (for inline policy Action matching)
+        SERVICE_RESOURCE_PREFIX: dict[str, str] = {
+            "s3":              "s3-",
+            "lambda":          "lambda-",
+            "rds":             "rds-",
+            "secretsmanager":  "secret-",
+            "ec2":             "ec2-",
+            "iam":             "iam-",
+        }
+
+        resource_ids = {r.id for r in self._last_result.resources}
+
+        for nhi in self._last_result.nhis:
+            from_id = nhi.id
+
+            # ── Managed policies ────────────────────────────────────────────
+            for policy in nhi.attached_policies:
+                if policy not in POLICY_RESOURCE_MAP:
+                    continue
+                res_prefix, label, weight = POLICY_RESOURCE_MAP[policy]
+                # Connect to all matching scanned resources
+                matched = [rid for rid in resource_ids if rid.startswith(res_prefix)] if res_prefix else list(resource_ids)
+                if matched:
+                    for to_id in matched:
+                        edges.append((from_id, to_id, label, weight))
+                else:
+                    # No matching scanned resources — add a virtual node
+                    virtual_id = f"virtual-{res_prefix.rstrip('-') or 'all'}"
+                    edges.append((from_id, virtual_id, label, weight))
+
+            # ── Inline policies ─────────────────────────────────────────────
+            for policy_doc in nhi.inline_policies:
+                for stmt in policy_doc.get("Statement", []):
+                    if stmt.get("Effect") != "Allow":
+                        continue
+                    actions = stmt.get("Action", [])
+                    if isinstance(actions, str):
+                        actions = [actions]
+                    for action in actions:
+                        prefix = action.split(":")[0].lower()
+                        res_prefix = SERVICE_RESOURCE_PREFIX.get(prefix, "")
+                        matched = [rid for rid in resource_ids if rid.startswith(res_prefix)] if res_prefix else []
+                        weight = 10.0 if action in ("*", "*:*") else 5.0
+                        for to_id in matched:
+                            edges.append((from_id, to_id, action, weight))
+
+        # Deduplicate (same from/to/permission)
+        seen: set[tuple[str, str, str]] = set()
+        deduped = []
+        for e in edges:
+            key = (e[0], e[1], e[2])
+            if key not in seen:
+                seen.add(key)
+                deduped.append(e)
+
+        return deduped

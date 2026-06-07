@@ -100,7 +100,10 @@ class CISAKEVEnricher:
             kev_findings = self._find_kev_matches(nhi)
             if kev_findings:
                 nhi.findings.extend(kev_findings)
-                # Escalate risk level if KEV finding on already-high NHI
+                # Escalate risk level if KEV finding on already-high NHI.
+                # NOTE: this intentionally overrides the AI-agent score cap (scorer.py).
+                # Active exploitation (KEV) is harder evidence than the heuristic ceiling —
+                # a CISA-flagged CVE beats a conservative static upper bound.
                 if nhi.risk_level in (RiskLevel.HIGH, RiskLevel.CRITICAL):
                     nhi.risk_score = max(nhi.risk_score, 150.0)
                 elif nhi.risk_level == RiskLevel.MEDIUM:
@@ -227,7 +230,7 @@ class CISAKEVEnricher:
             with open(CACHE_PATH) as f:
                 data = json.load(f)
             fetched_at = datetime.fromisoformat(data["fetched_at"])
-            age_hours = (datetime.now(timezone.utc) - fetched_at).seconds / 3600
+            age_hours = (datetime.now(timezone.utc) - fetched_at).total_seconds() / 3600
             return age_hours < CACHE_MAX_AGE_HOURS
         except Exception:
             return False

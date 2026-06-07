@@ -161,7 +161,11 @@ class GitHubProvider(BaseProvider):
                     f"{GITHUB_API}/repos/{repo['full_name']}/keys",
                     headers=headers, timeout=10,
                 )
-                for dk in dk_resp.json():
+                if dk_resp.status_code in (403, 429):
+                    print(f"[AgentSentry/GitHub] Rate-limited on deploy keys (HTTP {dk_resp.status_code}). Stopping.")
+                    break
+                dk_data = dk_resp.json()  # parse once
+                for dk in (dk_data if isinstance(dk_data, list) else []):
                     findings: list[Finding] = []
                     if dk.get("read_only") is False:
                         findings.append(Finding(
@@ -217,7 +221,11 @@ class GitHubProvider(BaseProvider):
                 f"{GITHUB_API}/user/repos?per_page=100&affiliation=owner",
                 headers=headers, timeout=15,
             )
-            return resp.json() if isinstance(resp.json(), list) else []
+            if resp.status_code in (403, 429):
+                print(f"[AgentSentry/GitHub] Rate-limited listing repos (HTTP {resp.status_code}). Skipping.")
+                return []
+            data = resp.json()  # parse once
+            return data if isinstance(data, list) else []
         except Exception:
             return []
 

@@ -154,10 +154,9 @@ class NHIScorer:
 
         score = 1.0
 
-        # Check for AdministratorAccess
-        admin_policies = {"AdministratorAccess", "PowerUserAccess"}
+        # Check for AdministratorAccess — reuse class constant to avoid drift
         for policy in nhi.attached_policies:
-            if policy in admin_policies:
+            if policy in self.ALWAYS_CRITICAL_POLICIES:
                 return 10.0  # Maximum privilege — short circuit
             score = max(score, PERMISSION_WEIGHTS.get(policy, 1.0))
 
