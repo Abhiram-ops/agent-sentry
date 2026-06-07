@@ -16,6 +16,56 @@ const fadeUp = {
   show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.65, ease: [0.16, 0.77, 0.32, 1] as [number,number,number,number] } },
 };
 
+// Animated SVG circuit-line paths — adapted from Background Paths by Kokonut UI (21st.dev)
+function FloatingPaths({ position }: { position: number }) {
+  const paths = Array.from({ length: 36 }, (_, i) => ({
+    id: i,
+    d: `M-${380 - i * 5 * position} -${189 + i * 6}C-${
+      380 - i * 5 * position
+    } -${189 + i * 6} -${312 - i * 5 * position} ${216 - i * 6} ${
+      152 - i * 5 * position
+    } ${343 - i * 6}C${616 - i * 5 * position} ${470 - i * 6} ${
+      684 - i * 5 * position
+    } ${875 - i * 6} ${684 - i * 5 * position} ${875 - i * 6}`,
+    stroke: i % 4 === 0
+      ? `rgba(0,255,136,${0.04 + i * 0.006})`
+      : `rgba(255,255,255,${0.02 + i * 0.004})`,
+    width: 0.5 + i * 0.03,
+    duration: 20 + (i * 7) % 10,
+  }));
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      <svg
+        style={{ width: '100%', height: '100%' }}
+        viewBox="0 0 696 316"
+        fill="none"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        {paths.map((path) => (
+          <motion.path
+            key={path.id}
+            d={path.d}
+            stroke={path.stroke}
+            strokeWidth={path.width}
+            initial={{ pathLength: 0.3, opacity: 0.6 }}
+            animate={{
+              pathLength: 1,
+              opacity: [0.3, 0.6, 0.3],
+              pathOffset: [0, 1, 0],
+            }}
+            transition={{
+              duration: path.duration,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+          />
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 function FloatingOrb({ style, delay }: { style: React.CSSProperties; delay: number }) {
   return (
     <motion.div
@@ -124,10 +174,18 @@ export function HeroWeb3() {
   return (
     <section style={{ position: 'relative', width: '100%', minHeight: '100vh', background: 'transparent', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
-      <FloatingOrb delay={0} style={{ width: 600, height: 600, background: 'radial-gradient(circle, rgba(0,255,136,0.12), transparent 70%)', top: '10%', left: '60%' }} />
-      <FloatingOrb delay={3} style={{ width: 400, height: 400, background: 'radial-gradient(circle, rgba(255,51,102,0.08), transparent 70%)', top: '40%', left: '10%' }} />
-      <FloatingOrb delay={1.5} style={{ width: 300, height: 300, background: 'radial-gradient(circle, rgba(0,153,255,0.08), transparent 70%)', top: '70%', left: '75%' }} />
+      {/* Layer 1: Animated circuit-line paths (Background Paths by Kokonut UI / 21st.dev) */}
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0 }}>
+        <FloatingPaths position={1} />
+        <FloatingPaths position={-1} />
+      </div>
 
+      {/* Layer 2: Soft glowing orbs */}
+      <FloatingOrb delay={0} style={{ width: 600, height: 600, background: 'radial-gradient(circle, rgba(0,255,136,0.12), transparent 70%)', top: '10%', left: '60%', zIndex: 1 }} />
+      <FloatingOrb delay={3} style={{ width: 400, height: 400, background: 'radial-gradient(circle, rgba(255,51,102,0.08), transparent 70%)', top: '40%', left: '10%', zIndex: 1 }} />
+      <FloatingOrb delay={1.5} style={{ width: 300, height: 300, background: 'radial-gradient(circle, rgba(0,153,255,0.08), transparent 70%)', top: '70%', left: '75%', zIndex: 1 }} />
+
+      {/* Layer 3: Hero content */}
       <motion.div
         className="hero-web3-content"
         variants={stagger} initial="hidden" animate="show"
