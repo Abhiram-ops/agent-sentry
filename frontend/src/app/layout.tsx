@@ -3,20 +3,12 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ClientOnlyOverlays } from "@/components/ui/ClientOnlyOverlays";
+import { Scene3D } from "@/components/ui/Scene3D";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
+  variable: "--font-mono", subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
@@ -38,11 +30,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${jetbrainsMono.variable} dark`}>
       <head>
@@ -52,21 +40,13 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full antialiased text-white overflow-x-hidden" style={{ background: "transparent" }}>
-        {/* ── Global video background ─────────────────────────── */}
-        <video
-          autoPlay muted loop playsInline
-          style={{
-            position: "fixed", inset: 0, width: "100%", height: "100%",
-            objectFit: "cover", zIndex: -2, pointerEvents: "none",
-          }}
-        >
-          <source src="/hero-bg.mp4" type="video/mp4" />
-        </video>
-        {/* Dark overlay — keeps all section text readable */}
+      <body className="min-h-full antialiased text-white overflow-x-hidden" style={{ background: "#04040e" }}>
+        {/* ── 3D cyber environment ─────────────────────────── */}
+        <Scene3D />
+        {/* ── Readability overlay ──────────────────────────── */}
         <div style={{
           position: "fixed", inset: 0,
-          background: "rgba(0,0,0,0.78)",
+          background: "rgba(4,4,14,0.55)",
           zIndex: -1, pointerEvents: "none",
         }} />
         {children}
