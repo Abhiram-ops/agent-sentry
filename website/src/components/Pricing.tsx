@@ -4,7 +4,6 @@ import React from "react";
 import { useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Check, Lock } from "lucide-react";
-import Link from "next/link";
 import Container from "./Container";
 
 const FREE = [
@@ -102,6 +101,33 @@ function PricingCard({
 // ─── Section ───────────────────────────────────────────────────────────────
 
 export default function Pricing() {
+  const [email, setEmail] = useState("");
+  const [claimStatus, setClaimStatus] = useState<"idle"|"loading"|"ok"|"err">("idle");
+  const [claimErr, setClaimErr] = useState("");
+
+  async function handleClaim(e: React.FormEvent) {
+    e.preventDefault();
+    setClaimStatus("loading");
+    try {
+      const r = await fetch("/api/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, plan: "community" }),
+      });
+      const d = await r.json();
+      if (d.ok || d.success) {
+        setClaimStatus("ok");
+        setEmail("");
+      } else {
+        setClaimErr(d.error || "Something went wrong.");
+        setClaimStatus("err");
+      }
+    } catch {
+      setClaimErr("Connection failed. Try again.");
+      setClaimStatus("err");
+    }
+  }
+
   return (
     <section id="pricing" style={{ padding: "120px 0", position: "relative", overflow: "hidden" }}>
       {/* Background glow */}
@@ -145,16 +171,39 @@ export default function Pricing() {
               <div style={{ fontSize:13, color:"#2a2a2a", fontFamily:"monospace" }}>Open source · MIT license</div>
             </div>
 
-            <Link href="https://github.com/Abhiram-ops/agent-sentry" target="_blank"
-              style={{ display:"block", width:"100%", padding:"14px 20px",
-                border:"1px solid rgba(255,255,255,0.09)", color:"#fff", fontSize:14,
-                fontWeight:600, borderRadius:12, textAlign:"center",
-                textDecoration:"none", marginBottom:32,
-                transition:"all 0.2s ease", background:"transparent" }}
-              onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.04)";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.16)";}}
-              onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="transparent";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.09)";}}>
-              Clone on GitHub
-            </Link>
+            {claimStatus === "ok" ? (
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
+                gap:8, padding:"14px 20px", marginBottom:32,
+                background:"rgba(0,255,136,0.06)", border:"1px solid rgba(0,255,136,0.18)",
+                borderRadius:12, color:"#00ff88", fontSize:14, fontWeight:600 }}>
+                ✓ Check your inbox — installer + key sent
+              </div>
+            ) : (
+              <form onSubmit={handleClaim} style={{ width:"100%", marginBottom:32 }}>
+                <input
+                  type="email" value={email} onChange={e=>setEmail(e.target.value)}
+                  placeholder="you@company.com" required
+                  style={{ display:"block", width:"100%", padding:"12px 16px",
+                    background:"rgba(255,255,255,0.02)",
+                    border:"1px solid rgba(255,255,255,0.08)", borderRadius:10,
+                    color:"#fff", fontSize:13, fontFamily:"inherit", marginBottom:10,
+                    outline:"none", boxSizing:"border-box", transition:"border-color 0.15s" }}
+                  onFocus={e=>{(e.target as HTMLInputElement).style.borderColor="rgba(0,255,136,0.4)";}}
+                  onBlur={e=>{(e.target as HTMLInputElement).style.borderColor="rgba(255,255,255,0.08)";}}
+                />
+                <button type="submit" disabled={claimStatus==="loading"}
+                  style={{ display:"block", width:"100%", padding:"13px 20px",
+                    background:"rgba(0,255,136,0.08)", border:"1px solid rgba(0,255,136,0.18)",
+                    color:"#00ff88", fontSize:14, fontWeight:600, borderRadius:12,
+                    cursor: claimStatus==="loading" ? "not-allowed" : "pointer",
+                    opacity: claimStatus==="loading" ? 0.7 : 1, transition:"all 0.15s" }}>
+                  {claimStatus==="loading" ? "Sending…" : "Get free access →"}
+                </button>
+                {claimStatus==="err" && (
+                  <p style={{ color:"#ff3366", fontSize:12, margin:"8px 0 0", textAlign:"center" }}>{claimErr}</p>
+                )}
+              </form>
+            )}
 
             <ul style={{ listStyle:"none", display:"flex", flexDirection:"column", gap:16 }}>
               {FREE.map((f, i) => (
