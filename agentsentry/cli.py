@@ -61,6 +61,42 @@ def main():
     pass
 
 
+# ── activate ──────────────────────────────────────────────────────────────────
+
+@main.command("activate")
+@click.argument("key")
+def cmd_activate(key: str):
+    """Activate AgentSentry with a license key."""
+    from agentsentry.license import activate as do_activate, CLAIM_URL
+    _print_banner()
+    success, tier = do_activate(key)
+    if success:
+        tier_label = "[bold #00ff88]Pro[/bold #00ff88]" if tier == "pro" else "[bold green]Community[/bold green]"
+        console.print(Panel(
+            f"  [bold #00ff88]✓[/bold #00ff88]  License activated successfully!\n\n"
+            f"  Plan:   {tier_label}\n"
+            f"  Key:    [dim]{key.upper()}[/dim]\n\n"
+            f"  [dim]Run your first scan:[/dim]\n"
+            f"  [bold]agentsentry scan local[/bold]\n"
+            f"  [bold]agentsentry scan aws[/bold]",
+            title="[bold #00ff88]AgentSentry Activated[/bold #00ff88]",
+            border_style="#00ff88",
+            padding=(1, 2),
+        ))
+        console.print()
+    else:
+        console.print(Panel(
+            f"  [red]✗[/red]  Invalid license key: [bold]{key}[/bold]\n\n"
+            f"  [dim]Get a free key at:[/dim]\n"
+            f"  [bold #00ff88]{CLAIM_URL}[/bold #00ff88]",
+            title="[bold red]Activation Failed[/bold red]",
+            border_style="red",
+            padding=(1, 2),
+        ))
+        console.print()
+        sys.exit(1)
+
+
 # ── providers ────────────────────────────────────────────────────────────────
 
 @main.command("providers")
@@ -362,7 +398,6 @@ def _finalise_and_print(result, scanners, *, enrich, visualize, output, output_j
         graph.add_nhi(nhi)
     for resource in result.resources:
         graph.add_resource(resource)
-    # Collect edges from ALL scanners — not just the first
     for sc in scanners:
         if sc and hasattr(sc, "build_access_edges"):
             for from_id, to_id, perm, weight in sc.build_access_edges():
@@ -597,9 +632,8 @@ def cmd_interactive(visualize: bool, enrich: bool):
         console.print("  [red]✗[/red]  No valid selections.\n")
         return
 
-    # ── Auto-fix missing SDKs ─────────────────────────────────────────
     console.print()
-    for target in list(chosen):  # iterate a copy — we may remove from chosen mid-loop
+    for target in list(chosen):
         s = detected.get(target)
         if s and not s.sdk_available and target in SDK_INSTALL:
             console.print(f"  [yellow]⚠[/yellow]  [bold]{target}[/bold] SDK not installed")
@@ -635,7 +669,6 @@ def cmd_interactive(visualize: bool, enrich: bool):
     if "agents" in chosen or "local" in chosen:
         path = Prompt.ask("  [bold]Directory to scan[/bold]", default=".")
 
-    # ── Run each chosen provider ──────────────────────────────────────
     combined_nhis, combined_resources, all_scanners = [], [], []
 
     for target in chosen:
@@ -683,4 +716,3 @@ def cmd_interactive(visualize: bool, enrich: bool):
         enrich=enrich, visualize=visualize,
         output="agentsentry_graph.html", output_json=False,
     )
-

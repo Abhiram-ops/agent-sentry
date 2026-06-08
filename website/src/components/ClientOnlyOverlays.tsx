@@ -5,13 +5,11 @@ import dynamic from "next/dynamic";
 const ChatBot           = dynamic(() => import("@/components/ChatBot"),           { ssr: false });
 const CursorTrail       = dynamic(() => import("@/components/CursorTrail"),       { ssr: false });
 const ParticleBackground= dynamic(() => import("@/components/ParticleBackground"),{ ssr: false });
-const ScrollTopBtn      = dynamic(() => import("@/components/ScrollTopBtn"),      { ssr: false });
 
 export function ClientOnlyOverlays() {
   return (
     <>
       <ParticleBackground />
-      <ScrollTopBtn />
       <ChatBot />
       <CursorTrail />
     </>

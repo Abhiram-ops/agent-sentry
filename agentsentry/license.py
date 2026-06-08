@@ -2,10 +2,11 @@
 AgentSentry license management.
 
 Key formats:
-  Free:  AF-XXXX-XXXX-XXXX-XXXX  (X = base32 A-Z2-7)
-  Pro:   AS-XXXX-XXXX-XXXX-XXXX
+  Free (HMAC):  AF-XXXX-XXXX-XXXX-XXXX  (X = base32 A-Z2-7)
+  Free (web):   AS-FREE-XXXX-XXXX        (X = hex, issued by agentsentry.tool)
+  Pro:          AS-XXXX-XXXX-XXXX-XXXX
 
-Both use HMAC-SHA256 offline validation. No server call after activation.
+Both HMAC variants use HMAC-SHA256 offline validation. No server call after activation.
 """
 from __future__ import annotations
 
@@ -26,8 +27,10 @@ _LICENSE_DIR  = Path.home() / ".agentsentry"
 _LICENSE_FILE = _LICENSE_DIR / "license.json"
 
 # ── Key regexes ───────────────────────────────────────────────────────────────
-_FREE_RE = re.compile(r"^AF-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
-_PRO_RE  = re.compile(r"^AS-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
+_FREE_RE        = re.compile(r"^AF-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
+_PRO_RE         = re.compile(r"^AS-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
+# Simple format issued by the website claim API: AS-FREE-XXXX-XXXX (hex)
+_SIMPLE_FREE_RE = re.compile(r"^AS-FREE-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}$", re.IGNORECASE)
 
 CLAIM_URL = "https://agent-sentry-beta.vercel.app/claim"
 
@@ -55,8 +58,13 @@ def _validate_key(key: str) -> str | None:
     Validate a key and return its tier: 'free', 'pro', or None if invalid.
     """
     key = key.strip().upper()
+    # Simple website-issued free key: AS-FREE-XXXX-XXXX
+    if _SIMPLE_FREE_RE.match(key):
+        return "free"
+    # HMAC-validated free key: AF-XXXX-XXXX-XXXX-XXXX
     if _FREE_RE.match(key) and _decode_key(key, _FREE_SECRET):
         return "free"
+    # HMAC-validated pro key: AS-XXXX-XXXX-XXXX-XXXX
     if _PRO_RE.match(key) and _decode_key(key, _PRO_SECRET):
         return "pro"
     return None

@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useToast } from "@/components/Toast";
+
+const FU = { hidden: { opacity: 0, y: 22 }, visible: { opacity: 1, y: 0 } };
+const TR = { duration: 0.55, ease: [0.4, 0, 0.2, 1] };
+const VP = { once: true, margin: "0px 0px -6% 0px" };
 
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/></svg>
@@ -10,7 +15,6 @@ const CheckIcon = () => (
 export default function Pricing() {
   const { show } = useToast();
 
-  // Free form
   const [freeEmail, setFreeEmail] = useState("");
   const [freeStatus, setFreeStatus] = useState<"idle"|"loading"|"ok"|"err">("idle");
   const [freeErr, setFreeErr] = useState("");
@@ -39,7 +43,6 @@ export default function Pricing() {
     }
   }
 
-  // Pro waitlist
   const [proEmail, setProEmail] = useState("");
   const [proSent, setProSent] = useState(false);
 
@@ -71,18 +74,25 @@ export default function Pricing() {
     <section className="sec" id="pricing">
       <hr className="hairline"/>
       <div className="w">
-        <div className="sec-head ctr reveal">
+        <motion.div
+          className="sec-head ctr"
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={VP} transition={TR}
+        >
           <div className="kicker">Pricing</div>
           <h2 className="sec-h">Free forever. Pay once for Pro.</h2>
           <p className="sec-sub" style={{ margin: "0 auto" }}>
             The scanner is open source and always will be. Pro unlocks reports, enrichment, and
             exact remediation commands.
           </p>
-        </div>
+        </motion.div>
 
         <div className="pricing-grid">
-          {/* Community — Free */}
-          <div className="price-card reveal">
+          <motion.div
+            className="price-card"
+            variants={FU} initial="hidden" whileInView="visible"
+            viewport={VP} transition={TR}
+          >
             <span className="price-tier">Community</span>
             <h3 className="price-h">Free</h3>
             <div className="price-amt"><span className="amt">$0</span></div>
@@ -121,10 +131,13 @@ export default function Pricing() {
             <div className="price-foot">
               Available now &nbsp;<span className="ac">pip install agentsentry</span>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Pro */}
-          <div className="price-card pro reveal" style={{ transitionDelay: ".08s" }}>
+          <motion.div
+            className="price-card pro"
+            variants={FU} initial="hidden" whileInView="visible"
+            viewport={VP} transition={{ ...TR, delay: 0.08 }}
+          >
             <div className="price-topline"/>
             <span className="price-tier">Pro</span>
             <h3 className="price-h">Pro</h3>
@@ -170,7 +183,7 @@ export default function Pricing() {
               After purchase: <span className="ac">agentsentry activate AS-XXXX-XXXX</span><br/>
               Key delivered by email instantly. Works offline. No account required.
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>
