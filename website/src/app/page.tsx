@@ -1,33 +1,29 @@
-import Navbar from "@/components/Navbar";
-import Hero from "@/components/Hero";
-import Stats from "@/components/Stats";
-import HowItWorks from "@/components/HowItWorks";
-import Providers from "@/components/Providers";
-import InteractiveGraph from "@/components/InteractiveGraph";
-import Features from "@/components/Features";
-import RiskCalculator from "@/components/RiskCalculator";
-import Research from "@/components/Research";
-import Pricing from "@/components/Pricing";
-import { NewsletterSignup } from "@/components/NewsletterSignup";
-import Contact from "@/components/Contact";
-import Footer from "@/components/Footer";
+import Navbar       from "@/components/Navbar";
+import Hero         from "@/components/Hero";
+import Stats        from "@/components/Stats";
+import Problem      from "@/components/Problem";
+import HowItWorks   from "@/components/HowItWorks";
+import Providers    from "@/components/Providers";
+import Pricing      from "@/components/Pricing";
+import Testimonials from "@/components/Testimonials";
+import Research     from "@/components/Research";
+import Footer       from "@/components/Footer";
 
 export default function Home() {
   return (
-    <main style={{ background: "#000", minHeight: "100vh" }}>
+    <>
       <Navbar />
-      <Hero />
-      <Stats />
-      <HowItWorks />
-      <Providers />
-      <InteractiveGraph />
-      <Features />
-      <RiskCalculator />
-      <Research />
-      <Pricing />
-      <NewsletterSignup />
-      <Contact />
+      <main style={{ position: "relative", zIndex: 1 }}>
+        <Hero />
+        <Stats />
+        <Problem />
+        <HowItWorks />
+        <Providers />
+        <Pricing />
+        <Testimonials />
+        <Research />
+      </main>
       <Footer />
-    </main>
+    </>
   );
 }

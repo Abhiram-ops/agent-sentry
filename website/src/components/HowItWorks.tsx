@@ -1,125 +1,102 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { Search, BarChart2, Map } from "lucide-react";
-import Container from "./Container";
-
 const STEPS = [
   {
-    n: "01",
-    icon: Search,
-    title: "Discover",
-    color: "#00ff88",
-    desc: "Point AgentSentry at your AWS account. It enumerates every IAM role, access key, service account, OAuth token, and AI agent in minutes — including ones you forgot existed.",
+    num: "01",
+    title: "Install",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="4" width="20" height="14" rx="2"/>
+        <path d="m6 8 3 3-3 3M12 14h5"/>
+      </svg>
+    ),
+    body: "One pip install. Point it at your cloud account. AgentSentry enumerates every machine identity across every configured provider in minutes, including ones you forgot existed.",
+    code: [
+      { prefix: "$", val: "pip install agentsentry", cls: "" },
+      { prefix: "$", val: "agentsentry scan --all",  cls: "" },
+      { prefix: "",  val: "→ Scanning 6 providers. Found 47 identities in 2m 14s.", cls: "out-ac" },
+    ],
   },
   {
-    n: "02",
-    icon: BarChart2,
+    num: "02",
     title: "Score",
-    color: "#0099ff",
-    desc: "Each identity gets a P×R×E×A risk score: Privilege × Reachability × Exposure × AI-Amplification. Critical identities surface immediately. CISA KEV enrichment flags active CVEs.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+      </svg>
+    ),
+    body: "Every identity gets a P×R×E×A risk score: Privilege × Reachability × Exposure × AI-Amplification Factor. Critical identities surface first. CISA KEV enrichment flags active CVEs in real time.",
+    code: [
+      { prefix: "", val: "CRITICAL  aws/iam-role       AdministratorAccess policy      216", cls: "out-cr" },
+      { prefix: "", val: "CRITICAL  local/.env         OPENAI_API_KEY in plaintext     198", cls: "out-cr" },
+      { prefix: "", val: "HIGH      k8s/sa/ci-runner   cluster-admin binding            162", cls: "out-hi" },
+    ],
   },
   {
-    n: "03",
-    icon: Map,
-    title: "Visualize",
-    color: "#ff3366",
-    desc: "An interactive attack graph shows every identity and the access paths between them. See exactly what an attacker could reach if any given identity is compromised.",
+    num: "03",
+    title: "Fix",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="m8.5 12 2.2 2.2 4.8-4.8"/>
+      </svg>
+    ),
+    body: (
+      <>
+        The <span className="mono" style={{ fontSize: 13, color: "var(--ac)" }}>--pro</span> flag
+        generates the exact CLI command that fixes each specific finding. Not generic advice. The
+        specific call for the specific problem.
+      </>
+    ),
+    code: [
+      { prefix: "$", val: "agentsentry fix --pro --id aws/iam-role",  cls: "" },
+      { prefix: "", val: "→ aws iam detach-role-policy --role-name ml-pipeline \\", cls: "out-ac" },
+      { prefix: "", val: "   --policy-arn arn:aws:iam::aws:policy/AdministratorAccess", cls: "out-ac" },
+    ],
   },
 ];
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" style={{ padding: "120px 0", position: "relative", overflow: "hidden" }}>
-      {/* Subtle grid bg */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: "linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)",
-        backgroundSize: "72px 72px",
-      }} />
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
-
-      <Container className="relative">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.5 }}
-          style={{ textAlign: "center", marginBottom: 80 }}>
-          <div style={{ fontFamily:"monospace", fontSize:11, color:"#00ff88",
-            marginBottom:20, letterSpacing:"0.2em", textTransform:"uppercase" }}>How it works</div>
-          <h2 style={{ fontSize:"clamp(2rem, 3.5vw, 3rem)", fontWeight:700, color:"#fff",
-            marginBottom:20, lineHeight:1.1, letterSpacing:"-0.02em" }}>
-            From zero to attack graph<br />in under three minutes.
-          </h2>
-          <p style={{ color:"#4a4a4a", maxWidth:440, margin:"0 auto",
-            fontSize:"clamp(0.95rem, 1.4vw, 1.05rem)", lineHeight:1.75 }}>
-            No agents to deploy. No SaaS data upload. Runs entirely local — your cloud
-            credentials never leave your machine.
+    <section className="sec" id="how-it-works">
+      <hr className="hairline"/>
+      <div className="w">
+        <div className="sec-head reveal">
+          <div className="kicker">How it works</div>
+          <h2 className="sec-h">From zero to attack graph in under three minutes.</h2>
+          <p className="sec-sub">
+            No agents to deploy. No SaaS data upload. Runs entirely local. Your cloud credentials
+            never leave your machine.
           </p>
-        </motion.div>
-
-        {/* Steps */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:24, position:"relative" }} className="steps-grid">
-          {/* Connecting line (desktop only) */}
-          <div className="steps-line" style={{
-            position:"absolute", top:36, left:"16.5%", right:"16.5%", height:1,
-            background:"linear-gradient(90deg, #00ff88, #0099ff, #ff3366)",
-            opacity:0.12, pointerEvents:"none",
-          }} />
-
-          {STEPS.map((step, i) => {
-            const Icon = step.icon;
-            return (
-              <motion.div key={i}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.5, delay: i * 0.12 }}
-                style={{ display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", gap:24 }}>
-                {/* Circle number */}
-                <div style={{ position:"relative" }}>
-                  <div style={{
-                    width:72, height:72, borderRadius:"50%",
-                    border:`1px solid ${step.color}28`,
-                    background:`${step.color}08`,
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    boxShadow:`0 0 32px ${step.color}14`,
-                    position:"relative", zIndex:1,
-                  }}>
-                    <Icon style={{ width:24, height:24, color:step.color }} />
-                  </div>
-                  {/* Step number */}
-                  <div style={{
-                    position:"absolute", top:-8, right:-8,
-                    width:22, height:22, borderRadius:"50%",
-                    background:"#000", border:`1px solid ${step.color}40`,
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:10, fontFamily:"monospace", color:step.color, fontWeight:700,
-                  }}>
-                    {step.n}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 style={{ color:"#fff", fontWeight:600, fontSize:18, marginBottom:12, letterSpacing:"-0.01em" }}>
-                    {step.title}
-                  </h3>
-                  <p style={{ color:"#4a4a4a", fontSize:14, lineHeight:1.75, maxWidth:280, margin:"0 auto" }}>
-                    {step.desc}
-                  </p>
-                </div>
-              </motion.div>
-            );
-          })}
         </div>
-      </Container>
 
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
-
-      <style>{`
-        @media (max-width: 720px) {
-          .steps-grid { grid-template-columns: 1fr !important; }
-          .steps-line { display: none !important; }
-        }
-      `}</style>
+        <div className="steps-wrap">
+          <div className="steps-vline" aria-hidden="true"/>
+          <div className="steps-list">
+            {STEPS.map((s, i) => (
+              <div key={s.num} className="step-card reveal" style={{ transitionDelay: `${i * 0.08}s` }}>
+                <div className="step-ico-col">
+                  <div className="step-ico">{s.icon}</div>
+                </div>
+                <div className="step-body">
+                  <h3>
+                    <span className="sn mono">{s.num}</span>
+                    <span className="sd">&nbsp;—&nbsp;</span>
+                    {s.title}
+                  </h3>
+                  <p>{s.body}</p>
+                  <div className="step-code">
+                    {s.code.map((ln, j) => (
+                      <div key={j} className={`ln${ln.cls ? " " + ln.cls : ""}`}>
+                        {ln.prefix && <span className="pr">{ln.prefix}&nbsp;</span>}
+                        <span className="val">{ln.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

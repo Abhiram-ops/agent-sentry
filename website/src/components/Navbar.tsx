@@ -1,125 +1,115 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import { Shield, Menu, X } from "lucide-react";
-import GithubIcon from "./GithubIcon";
+import { useEffect, useRef, useState } from "react";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [stars, setStars] = useState<string>("GitHub");
+  const [activeSection, setActiveSection] = useState<string>("");
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 80);
+      if (window.scrollY > 400 && mobileOpen) setMobileOpen(false);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    fetch("https://api.github.com/repos/Abhiram-ops/agent-sentry")
+      .then(r => r.json())
+      .then(d => {
+        if (d.stargazers_count !== undefined)
+          setStars("★ " + d.stargazers_count.toLocaleString());
+      })
+      .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const secs = ["how-it-works", "providers", "pricing", "research"];
+    const els = secs.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) setActiveSection(e.target.id);
+      });
+    }, { rootMargin: "-20% 0px -60% 0px" });
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
+  const closeMobile = () => {
+    setMobileOpen(false);
+    document.body.style.overflow = "";
+  };
+  const toggleMobile = () => {
+    const next = !mobileOpen;
+    setMobileOpen(next);
+    document.body.style.overflow = next ? "hidden" : "";
+  };
+
   const links = [
-    { label: "How it works", href: "#how-it-works" },
-    { label: "Providers",    href: "#providers" },
-    { label: "Features",     href: "#features" },
-    { label: "Research",     href: "#research" },
-    { label: "Pricing",      href: "#pricing" },
-    { label: "Docs",         href: "/docs" },
-    { label: "Contact",      href: "/contact" },
+    { href: "#how-it-works", label: "How it works", id: "how-it-works" },
+    { href: "#providers",    label: "Providers",    id: "providers" },
+    { href: "#pricing",      label: "Pricing",      id: "pricing" },
+    { href: "#research",     label: "Research",     id: "research" },
   ];
 
   return (
     <>
-      <motion.nav
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: [0.21, 0.47, 0.32, 0.98] }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "bg-black/70 backdrop-blur-2xl border-b border-white/[0.05]"
-            : "bg-transparent"
-        }`}
-      >
-        <div style={{ maxWidth: 1100, margin: "0 auto", paddingLeft: 56, paddingRight: 56 }} className="h-16 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center group-hover:bg-[#00ff88]/15 transition-colors">
-              <Shield className="w-4 h-4 text-[#00ff88]" />
-            </div>
-            <span className="font-semibold text-white tracking-tight">
-              Agent<span className="text-[#00ff88]">Sentry</span>
+      <nav className={`nav${scrolled ? " scrolled" : ""}`}>
+        <div className="nav-inner">
+          <a href="#top" className="nav-logo">
+            <span className="mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#00ff88" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
             </span>
-          </Link>
+            Agent<span className="ac">Sentry</span>
+          </a>
 
-          {/* Desktop links */}
-          <div className="hidden md:flex items-center gap-8">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-sm text-[#444] hover:text-white transition-colors duration-150"
-              >
-                {link.label}
-              </Link>
+          <ul className="nav-links">
+            {links.map(l => (
+              <li key={l.id}>
+                <a href={l.href} className={activeSection === l.id ? "active" : ""}>{l.label}</a>
+              </li>
             ))}
+          </ul>
+
+          <div className="nav-right">
+            <a className="gh-badge" href="https://github.com/Abhiram-ops/agent-sentry"
+               target="_blank" rel="noopener" aria-label="GitHub stars">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                <path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5A11.5 11.5 0 0 0 23.5 12C23.5 5.7 18.3.5 12 .5z"/>
+              </svg>
+              <span>{stars}</span>
+            </a>
+            <a className="btn-ghost" href="https://github.com/Abhiram-ops/agent-sentry"
+               target="_blank" rel="noopener">
+              GitHub
+            </a>
+            <a className="btn-green" href="#pricing">Get free key</a>
           </div>
 
-          {/* CTAs */}
-          <div className="hidden md:flex items-center gap-4">
-            <Link
-              href="https://github.com/Abhiram-ops/agent-sentry"
-              target="_blank"
-              className="flex items-center gap-2 text-sm text-[#444] hover:text-white transition-colors"
-            >
-              <GithubIcon className="w-4 h-4" />
-              <span>GitHub</span>
-            </Link>
-            <Link
-              href="#pricing"
-              className="px-4 py-2 text-sm font-semibold bg-[#00ff88] text-black rounded-lg hover:bg-[#00cc6a] transition-colors"
-            >
-              Get started free
-            </Link>
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden text-[#444] hover:text-white transition-colors"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          <button className={`nav-tog${mobileOpen ? " open" : ""}`} onClick={toggleMobile}
+            aria-label="Toggle menu" aria-expanded={mobileOpen}>
+            <span/><span/><span/>
           </button>
         </div>
-      </motion.nav>
+      </nav>
 
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="fixed top-16 left-0 right-0 z-40 bg-black/95 backdrop-blur-2xl border-b border-white/[0.05] p-6 flex flex-col gap-5 md:hidden"
-          >
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className="text-[#555] hover:text-white transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
-            <Link
-              href="#pricing"
-              onClick={() => setMenuOpen(false)}
-              className="mt-2 px-4 py-3 text-sm font-semibold bg-[#00ff88] text-black rounded-xl text-center"
-            >
-              Get started free
-            </Link>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className={`nav-mob${mobileOpen ? " open" : ""}`} id="nav-mob">
+        {links.map(l => (
+          <a key={l.id} href={l.href} onClick={closeMobile}>{l.label}</a>
+        ))}
+        <div className="ctas">
+          <a className="btn-ghost" href="https://github.com/Abhiram-ops/agent-sentry"
+             target="_blank" rel="noopener" onClick={closeMobile}>GitHub</a>
+          <a className="btn-green" href="#pricing" onClick={closeMobile}>Get free key</a>
+        </div>
+      </div>
     </>
   );
 }
