@@ -34,7 +34,7 @@ from agentsentry.core.models import (
     NonHumanIdentity, NHIType, RiskLevel, CloudProvider, AutonomyLevel,
 )
 
-console = Console()
+console = Console(legacy_windows=False)
 
 # ── MITRE technique catalogue ─────────────────────────────────────────────────
 

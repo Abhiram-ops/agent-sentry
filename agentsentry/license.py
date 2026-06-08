@@ -137,7 +137,7 @@ def require_free(feature: str) -> None:
         return
     from rich.console import Console
     from rich.panel import Panel
-    Console().print(
+    Console(legacy_windows=False).print(
         Panel(
             f"[bold cyan]{feature}[/bold cyan] requires a [bold]free AgentSentry account[/bold].\n\n"
             f"[dim]Claim your free key in 30 seconds — no credit card:[/dim]\n"
@@ -160,7 +160,7 @@ def require_pro(feature: str) -> None:
         return
     from rich.console import Console
     from rich.panel import Panel
-    Console().print(
+    Console(legacy_windows=False).print(
         Panel(
             f"[bold yellow]⚡ {feature}[/bold yellow] is an [bold]AgentSentry Pro[/bold] feature.\n\n"
             "[dim]Unlock with a one-time $49 license:[/dim]\n"

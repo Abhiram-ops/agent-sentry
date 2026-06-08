@@ -5,6 +5,20 @@ import sys
 import time
 from typing import Sequence
 
+# On legacy Windows consoles (cmd.exe with the cp1252 codepage), Rich's
+# Win32 writer encodes output using the console's codepage and crashes with
+# UnicodeEncodeError as soon as it hits one of the glyphs we use throughout
+# the CLI (✓, ✗, →, ⚡, …). Reconfiguring the streams to UTF-8 — with a
+# replacement fallback so we never crash even on truly exotic terminals —
+# fixes this for every command, not just the ones that happen to avoid
+# those characters. Must run before Console() is constructed below.
+if sys.platform == "win32":
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
 import click
 from rich.console import Console
 from rich.panel import Panel
@@ -21,7 +35,7 @@ from agentsentry.core.graph import NHIAttackGraph
 from agentsentry.core.models import RiskLevel, ScanResult
 from agentsentry.core.scorer import NHIScorer
 
-console = Console()
+console = Console(legacy_windows=False)
 
 # ── Design tokens ─────────────────────────────────────────────────────────────
 
