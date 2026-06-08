@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+
+const FU = { hidden: { opacity: 0, y: 22 }, visible: { opacity: 1, y: 0 } };
+const TR = { duration: 0.55, ease: [0.4, 0, 0.2, 1] };
+const VP = { once: true, margin: "0px 0px -6% 0px" };
 
 const PROVIDERS = [
   {
@@ -63,7 +68,7 @@ const PROVIDERS = [
   },
 ];
 
-function ProviderCard({ p, delay }: { p: typeof PROVIDERS[0]; delay: string }) {
+function ProviderCard({ p, delay }: { p: typeof PROVIDERS[0]; delay: number }) {
   const barRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = barRef.current;
@@ -79,7 +84,11 @@ function ProviderCard({ p, delay }: { p: typeof PROVIDERS[0]; delay: string }) {
   }, [p.coverage]);
 
   return (
-    <div className={`prov-card reveal${p.featured ? " featured" : ""}`} style={{ transitionDelay: delay }}>
+    <motion.div
+      className={`prov-card${p.featured ? " featured" : ""}`}
+      variants={FU} initial="hidden" whileInView="visible"
+      viewport={VP} transition={{ ...TR, delay }}
+    >
       {p.featured && <span className="prov-tag">No credentials needed</span>}
       <div className="prov-head" style={p.featured ? { marginTop: "var(--u1)" } : undefined}>
         <span className="prov-ico" style={p.featured ? { background: "rgba(0,255,136,.1)", borderColor: "rgba(0,255,136,.25)" } : undefined}>
@@ -99,7 +108,7 @@ function ProviderCard({ p, delay }: { p: typeof PROVIDERS[0]; delay: string }) {
         </div>
         <span className="prov-bar-lbl mono">{p.coverage}% coverage</span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -108,22 +117,30 @@ export default function Providers() {
     <section className="sec" id="providers" style={{ paddingTop: 0 }}>
       <hr className="hairline"/>
       <div className="w" style={{ paddingTop: "var(--u16)" }}>
-        <div className="sec-head reveal">
+        <motion.div
+          className="sec-head"
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={VP} transition={TR}
+        >
           <div className="kicker">Providers</div>
           <h2 className="sec-h">Not just AWS. Everywhere you deploy.</h2>
           <p className="sec-sub">
             Six independent providers, each checking its own permissions before touching a single API.
             Install only what you need.
           </p>
-        </div>
+        </motion.div>
 
         <div className="prov-grid">
           {PROVIDERS.map((p, i) => (
-            <ProviderCard key={p.name} p={p} delay={`${i * 0.05}s`}/>
+            <ProviderCard key={p.name} p={p} delay={i * 0.05}/>
           ))}
         </div>
 
-        <div className="prov-ai-card reveal" style={{ transitionDelay: ".1s" }}>
+        <motion.div
+          className="prov-ai-card"
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={VP} transition={{ ...TR, delay: 0.1 }}
+        >
           <div className="prov-ai-ico">
             <svg viewBox="0 0 24 24" fill="none" stroke="#00ff88" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
               <rect x="4" y="4" width="16" height="16" rx="2"/>
@@ -143,7 +160,7 @@ export default function Providers() {
             <span className="agent-badge">AutoGen</span>
           </div>
           <div className="prov-ai-note">Static analysis &nbsp;·&nbsp; no runtime needed</div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

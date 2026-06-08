@@ -1,3 +1,11 @@
+"use client";
+
+import { motion } from "framer-motion";
+
+const FU = { hidden: { opacity: 0, y: 22 }, visible: { opacity: 1, y: 0 } };
+const TR = { duration: 0.55, ease: [0.4, 0, 0.2, 1] };
+const VP = { once: true, margin: "0px 0px -6% 0px" };
+
 const TESTIMONIALS = [
   {
     quote: "Ran it on our staging AWS account. Found 3 IAM roles with AdministratorAccess we didn't know existed. Took 4 minutes. One of those roles was attached to a Lambda that processed user data.",
@@ -20,13 +28,22 @@ export default function Testimonials() {
   return (
     <section className="sec" id="testimonials" style={{ paddingTop: 0 }}>
       <div className="w">
-        <div className="sec-head ctr reveal">
+        <motion.div
+          className="sec-head ctr"
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={VP} transition={TR}
+        >
           <div className="kicker">From the field</div>
           <h2 className="sec-h">What people found.</h2>
-        </div>
+        </motion.div>
         <div className="testi-grid">
           {TESTIMONIALS.map((t, i) => (
-            <div key={i} className="testi-card reveal" style={{ transitionDelay: `${i * 0.08}s` }}>
+            <motion.div
+              key={i}
+              className="testi-card"
+              variants={FU} initial="hidden" whileInView="visible"
+              viewport={VP} transition={{ ...TR, delay: i * 0.08 }}
+            >
               <p className="testi-q">{t.quote}</p>
               <div className="testi-meta">
                 <div className="testi-who">
@@ -34,7 +51,7 @@ export default function Testimonials() {
                   <span className="role">{t.role}</span>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

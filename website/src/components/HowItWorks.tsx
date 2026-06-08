@@ -1,3 +1,11 @@
+"use client";
+
+import { motion } from "framer-motion";
+
+const FU = { hidden: { opacity: 0, y: 22 }, visible: { opacity: 1, y: 0 } };
+const TR = { duration: 0.55, ease: [0.4, 0, 0.2, 1] };
+const VP = { once: true, margin: "0px 0px -6% 0px" };
+
 const STEPS = [
   {
     num: "01",
@@ -59,20 +67,29 @@ export default function HowItWorks() {
     <section className="sec" id="how-it-works">
       <hr className="hairline"/>
       <div className="w">
-        <div className="sec-head reveal">
+        <motion.div
+          className="sec-head"
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={VP} transition={TR}
+        >
           <div className="kicker">How it works</div>
           <h2 className="sec-h">From zero to attack graph in under three minutes.</h2>
           <p className="sec-sub">
             No agents to deploy. No SaaS data upload. Runs entirely local. Your cloud credentials
             never leave your machine.
           </p>
-        </div>
+        </motion.div>
 
         <div className="steps-wrap">
           <div className="steps-vline" aria-hidden="true"/>
           <div className="steps-list">
             {STEPS.map((s, i) => (
-              <div key={s.num} className="step-card reveal" style={{ transitionDelay: `${i * 0.08}s` }}>
+              <motion.div
+                key={s.num}
+                className="step-card"
+                variants={FU} initial="hidden" whileInView="visible"
+                viewport={VP} transition={{ ...TR, delay: i * 0.08 }}
+              >
                 <div className="step-ico-col">
                   <div className="step-ico">{s.icon}</div>
                 </div>
@@ -92,7 +109,7 @@ export default function HowItWorks() {
                     ))}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>

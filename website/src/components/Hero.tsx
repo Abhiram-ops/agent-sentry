@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 
 const CMD = "agentsentry scan local --pro --enrich";
 const FINDINGS = [
@@ -23,23 +24,16 @@ function lpad(s: string | number, n: number) {
   return str;
 }
 
+const FU = { hidden: { opacity: 0, y: 22 }, visible: { opacity: 1, y: 0 } };
+const TR = { duration: 0.55, ease: [0.4, 0, 0.2, 1] };
+const VP = { once: true, margin: "0px 0px -6% 0px" };
+
 export default function Hero() {
   const termInputRef = useRef<HTMLSpanElement>(null);
   const termOutRef   = useRef<HTMLDivElement>(null);
   const termCurRef   = useRef<HTMLSpanElement>(null);
   const termRef      = useRef<HTMLDivElement>(null);
   const tids = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  useEffect(() => {
-    // Scroll reveal
-    const ro = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (e.isIntersecting) { e.target.classList.add("in"); ro.unobserve(e.target); }
-      });
-    }, { threshold: 0.1, rootMargin: "0px 0px -6% 0px" });
-    document.querySelectorAll(".reveal").forEach(el => ro.observe(el));
-    return () => ro.disconnect();
-  }, []);
 
   useEffect(() => {
     let charIdx = 0, findIdx = 0;
@@ -53,7 +47,6 @@ export default function Hero() {
       const t = setTimeout(fn, ms);
       tids.current.push(t);
     }
-    // After the early return guard above, these are guaranteed non-null
     const safeInp = inp!;
     const safeOut = out!;
     const safeCur = cur!;
@@ -126,29 +119,39 @@ export default function Hero() {
       <div className="hero-orb hero-orb-1" aria-hidden="true"/>
       <div className="hero-orb hero-orb-2" aria-hidden="true"/>
       <div className="w">
-        <div className="hero-pills reveal">
+        <motion.div className="hero-pills"
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={VP} transition={TR}>
           <span className="pill pill-live"><span className="dot" aria-hidden="true"/>Live</span>
           <span className="pill">v0.1.4</span>
           <span className="pill">MIT License</span>
-        </div>
+        </motion.div>
 
-        <h1 className="reveal" style={{ transitionDelay: ".05s" }}>
+        <motion.h1
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={VP} transition={{ ...TR, delay: 0.05 }}>
           Your cloud has hundreds of<br/>machine identities.<br/>
           <span className="gradient-text">Most are ungoverned.</span>
-        </h1>
+        </motion.h1>
 
-        <p className="hero-sub reveal" style={{ transitionDelay: ".1s" }}>
+        <motion.p className="hero-sub"
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={VP} transition={{ ...TR, delay: 0.1 }}>
           Every cloud accumulates <strong>IAM roles</strong>, <strong>API keys</strong>, and{" "}
           <strong>AI agents</strong> that outnumber human users 45&nbsp;to&nbsp;1. They rotate less
           often. They have no MFA. Most have never been audited.
-        </p>
+        </motion.p>
 
-        <div className="hero-ctas reveal" style={{ transitionDelay: ".15s" }}>
+        <motion.div className="hero-ctas"
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={VP} transition={{ ...TR, delay: 0.15 }}>
           <a className="btn-green" href="#pricing">Get free key &nbsp;→</a>
           <span className="code-pill">pip install agentsentry</span>
-        </div>
+        </motion.div>
 
-        <div className="trusted reveal" style={{ transitionDelay: ".2s" }}>
+        <motion.div className="trusted"
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={VP} transition={{ ...TR, delay: 0.2 }}>
           <span>Scanned environments at</span>
           <span className="trusted-arrow">→</span>
           <div className="trusted-orgs">
@@ -157,9 +160,11 @@ export default function Hero() {
             <span className="org-tag">security engineers</span>
             <span className="org-tag">enterprise DevSecOps</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="terminal reveal" id="terminal" ref={termRef} style={{ transitionDelay: ".25s" }}>
+        <motion.div className="terminal" id="terminal" ref={termRef}
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={VP} transition={{ ...TR, delay: 0.25 }}>
           <div className="term-bar">
             <span className="term-dots" aria-hidden="true"><i/><i/><i/></span>
             <span className="term-title">terminal</span>
@@ -171,7 +176,7 @@ export default function Hero() {
             <span className="term-cursor" ref={termCurRef} aria-hidden="true"/>
             <div ref={termOutRef}/>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

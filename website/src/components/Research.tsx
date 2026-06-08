@@ -1,17 +1,34 @@
+"use client";
+
+import { motion } from "framer-motion";
+
+const FU = { hidden: { opacity: 0, y: 22 }, visible: { opacity: 1, y: 0 } };
+const TR = { duration: 0.55, ease: [0.4, 0, 0.2, 1] };
+
 export default function Research() {
   return (
     <section className="sec" id="research" style={{ paddingTop: 0 }}>
       <hr className="hairline"/>
       <div className="w" style={{ paddingTop: "var(--u16)" }}>
-        <div className="sec-head ctr reveal">
+        <motion.div
+          className="sec-head ctr"
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={{ once: true, margin: "0px 0px -6% 0px" }}
+          transition={TR}
+        >
           <div className="kicker">Research</div>
           <h2 className="sec-h">The math behind the score.</h2>
           <p className="sec-sub" style={{ margin: "0 auto" }}>
             The P×R×E×A model is published as a research paper. Real scan results, novel metric, IEEE format.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="research-card reveal" style={{ transitionDelay: ".08s" }}>
+        <motion.div
+          className="research-card"
+          variants={FU} initial="hidden" whileInView="visible"
+          viewport={{ once: true, margin: "0px 0px -6% 0px" }}
+          transition={{ ...TR, delay: 0.08 }}
+        >
           <div className="mono" style={{ fontSize: 10, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--tf)" }}>
             IEEE Format &nbsp;·&nbsp; 2026 &nbsp;·&nbsp; Research Preview
           </div>
@@ -35,7 +52,7 @@ export default function Research() {
             </a>
             <span className="mono" style={{ fontSize: 11, color: "var(--tf)" }}>arXiv submission coming soon</span>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

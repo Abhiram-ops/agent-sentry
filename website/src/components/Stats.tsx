@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+
+const FU = { hidden: { opacity: 0, y: 22 }, visible: { opacity: 1, y: 0 } };
+const TR = { duration: 0.55, ease: [0.4, 0, 0.2, 1] };
+const VP = { once: true, margin: "0px 0px -6% 0px" };
 
 const STATS = [
   { micro: "NHI Ratio",     count: 45,   suffix: ":1",  label: "Machine to human identities in the average cloud environment" },
@@ -38,14 +43,19 @@ export default function Stats() {
     <div className="stats">
       <div className="stats-inner">
         {STATS.map((s, i) => (
-          <div key={i} className="stat reveal" style={{ transitionDelay: `${i * 0.07}s` }}>
+          <motion.div
+            key={i}
+            className="stat"
+            variants={FU} initial="hidden" whileInView="visible"
+            viewport={VP} transition={{ ...TR, delay: i * 0.07 }}
+          >
             <span className="stat-micro mono">{s.micro}</span>
             {s.count !== null
               ? <CountUp end={s.count!} suffix={s.suffix!} />
               : <span className="stat-num mono">{s.display}</span>
             }
             <span className="stat-lbl">{s.label}</span>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
