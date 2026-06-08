@@ -1023,3 +1023,128 @@ footer {
   .foot-grid { grid-template-columns: 1fr; }
   .foot-bottom { flex-direction: column; gap: 8px; text-align: center; }
 }
+
+/* Hide native cursor — replaced by custom dot + ring */
+* { cursor: none !important; }
+
+
+/* ══════════════════════════════════
+   ENHANCED HOVER ANIMATIONS
+   ══════════════════════════════════ */
+
+/* Buttons */
+.btn-green {
+  transition: opacity .15s var(--ease), transform .2s var(--ease), box-shadow .2s var(--ease);
+}
+.btn-green:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,255,136,.28);
+}
+
+/* Provider cards */
+.prov-card {
+  transition: border-color .25s var(--ease), box-shadow .25s, transform .25s var(--ease);
+}
+.prov-card:hover {
+  border-color: rgba(255,255,255,.18);
+  box-shadow: 0 14px 44px rgba(0,0,0,.45);
+  transform: translateY(-5px);
+}
+.prov-card.featured:hover {
+  border-color: rgba(0,255,136,.42);
+  box-shadow: 0 14px 44px rgba(0,0,0,.45), 0 0 32px rgba(0,255,136,.1);
+  transform: translateY(-5px);
+}
+
+/* Provider AI card */
+.prov-ai-card {
+  transition: border-color .25s, box-shadow .25s;
+}
+.prov-ai-card:hover {
+  border-color: rgba(0,255,136,.3);
+  box-shadow: 0 0 40px rgba(0,255,136,.07);
+}
+
+/* Agent badges */
+.agent-badge {
+  transition: transform .15s var(--ease), border-color .15s, background .15s;
+  cursor: none;
+}
+.agent-badge:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0,255,136,.35);
+  background: rgba(0,255,136,.1);
+}
+
+/* Step card icon glow on hover */
+.step-card {
+  transition: background .2s;
+}
+.step-card:hover .step-ico {
+  border-color: rgba(0,255,136,.35);
+  background: rgba(0,255,136,.07);
+  box-shadow: 0 0 16px rgba(0,255,136,.12);
+}
+.step-ico {
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+
+/* Testimonial cards */
+.testi-card {
+  transition: border-color .25s var(--ease), box-shadow .25s, transform .25s var(--ease);
+}
+.testi-card:hover {
+  border-color: rgba(255,255,255,.18);
+  box-shadow: 0 10px 36px rgba(0,0,0,.38);
+  transform: translateY(-4px);
+}
+
+/* Pricing cards */
+.price-card {
+  transition: border-color .25s var(--ease), box-shadow .25s, transform .25s var(--ease);
+}
+.price-card:hover {
+  box-shadow: 0 18px 60px rgba(0,0,0,.45);
+  transform: translateY(-4px);
+}
+.price-card.pro:hover {
+  border-color: rgba(0,255,136,.38);
+  box-shadow: 0 18px 60px rgba(0,0,0,.45), 0 0 40px rgba(0,255,136,.12);
+}
+
+/* Pills & org tags */
+.pill {
+  transition: transform .15s var(--ease), box-shadow .15s;
+}
+.pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.25);
+}
+.org-tag {
+  transition: border-color .15s, color .15s, transform .15s var(--ease);
+}
+.org-tag:hover {
+  border-color: rgba(0,255,136,.3);
+  color: var(--ac);
+  transform: translateY(-1px);
+}
+
+/* Footer social icons */
+.foot-soc {
+  transition: border-color .15s, color .15s, transform .15s var(--ease);
+}
+.foot-soc:hover {
+  border-color: rgba(255,255,255,.22);
+  color: var(--tx);
+  transform: translateY(-2px);
+}
+
+/* Research card */
+.research-card {
+  transition: border-color .25s, box-shadow .25s;
+}
+.research-card:hover {
+  border-color: rgba(0,255,136,.18);
+  box-shadow: 0 0 40px rgba(0,255,136,.05);
+}
