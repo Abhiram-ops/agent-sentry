@@ -1,7 +1,6 @@
-"""
-AgentSentry — Non-Human Identity & AI Agent Risk Auditor
-Open-source. Zero cost. Built for the 2026 threat landscape.
-"""
+"""AgentSentry — NHI & AI Agent Risk Scanner"""
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 __author__ = "Abhiram Lanka"
+__email__ = "lankaabhiram16@gmail.com"
+__license__ = "MIT"

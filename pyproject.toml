@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nhi-audit"
-version = "0.1.4"
+version = "0.1.5"
 description = "Open-source auditor for Non-Human Identities and AI Agent attack surfaces in cloud environments"
 authors = [{ name = "Abhiram Lanka", email = "lankaabhiram16@gmail.com" }]
 license = { text = "MIT" }
