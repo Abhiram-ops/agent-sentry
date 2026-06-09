@@ -343,7 +343,7 @@ def _build_provider(target, *, path=".", profile=None, region="us-east-1",
     if target == "local":
         from agentsentry.providers.local import LocalProvider
         console.print(f"  [dim]scanning local machine → {path}[/dim]\n")
-        return None, LocalProvider(scan_path=path)
+        return None, LocalProvider(path=path)
     console.print(f"  [red]unknown target: {target}[/red]")
     sys.exit(1)
 
