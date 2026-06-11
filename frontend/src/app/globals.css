@@ -2,7 +2,7 @@
 
 /* ── Design Tokens ─────────────────────────────────────── */
 :root {
-  --bg:          #000000;
+  --bg:          #0a0a0a;
   --bg-surface:  #080808;
   --bg-raised:   #101010;
 
@@ -36,11 +36,11 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: transparent;
+  background: var(--bg);
 }
 
 body {
-  background: transparent;
+  background: var(--bg);
   color: var(--text-1);
   font-family: var(--font-geist-sans), 'Inter', system-ui, sans-serif;
   line-height: 1.6;
