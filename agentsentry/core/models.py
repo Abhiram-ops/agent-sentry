@@ -23,6 +23,11 @@ from pydantic import BaseModel, Field
 # zombie finding. Documented threshold: 180 days.
 ZOMBIE_CREDENTIAL_THRESHOLD_DAYS = 180
 
+# attached_policies marker for local findings that have no rotation
+# mechanism whatsoever (unencrypted SSH keys, plaintext .env secrets).
+# The scorer treats this as an automatic exposure-score ceiling.
+NO_ROTATION_GOVERNANCE_POLICY = "local:no-rotation-governance"
+
 
 # ---------------------------------------------------------------------------
 # Enumerations

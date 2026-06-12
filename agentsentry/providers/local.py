@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from agentsentry.core.models import (
+    NO_ROTATION_GOVERNANCE_POLICY,
     CloudProvider,
     NHIType,
     NonHumanIdentity,
@@ -223,6 +224,7 @@ class LocalProvider(BaseProvider):
                                 type=NHIType.API_KEY,
                                 provider=CloudProvider.LOCAL,
                                 source_file=str(env_file),
+                                attached_policies=[NO_ROTATION_GOVERNANCE_POLICY],
                                 findings=[
                                     Finding(
                                         finding_id=f"local-dotenv-{_sid}",
@@ -317,6 +319,9 @@ class LocalProvider(BaseProvider):
                         type=NHIType.SSH_KEY,
                         provider=CloudProvider.LOCAL,
                         source_file=str(key_file),
+                        attached_policies=(
+                            [NO_ROTATION_GOVERNANCE_POLICY] if unencrypted else []
+                        ),
                         findings=findings,
                         mitre_techniques=["T1552.004"],
                     )
@@ -390,6 +395,7 @@ class LocalProvider(BaseProvider):
                     type=NHIType.SERVICE_ACCOUNT,
                     provider=CloudProvider.LOCAL,
                     is_internet_facing=False,
+                    attached_policies=["docker:root_equivalent"],
                     findings=[
                         Finding(
                             finding_id="local-docker-socket-access",

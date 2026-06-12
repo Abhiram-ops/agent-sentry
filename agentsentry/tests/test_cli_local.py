@@ -43,7 +43,7 @@ class TestScanLocal:
                 "--path",
                 str(tmp_path),
                 "--force",
-                "--output-json",
+                "--json",
                 str(out_file),
             ]
         )
@@ -61,10 +61,14 @@ class TestScanLocal:
     def test_scan_local_output_json_to_stdout(self, tmp_path):
         result = _run(["scan", "local", "--path", str(tmp_path), "--force", "--json"])
         assert result.exit_code == 0, result.output
-        # --json prints a JSON array of NHIs to stdout, after the scanner's
-        # own "[AgentSentry/Local] ..." progress lines.
+        # bare --json prints the full ScanResult as a JSON object to stdout,
+        # after the scanner's own "[AgentSentry/Local] ..." progress lines.
         lines = [
-            l for l in result.output.splitlines() if not l.startswith("[AgentSentry")
+            line
+            for line in result.output.splitlines()
+            if not line.startswith("[AgentSentry")
         ]
-        start = next(i for i, l in enumerate(lines) if l.strip().startswith("["))
-        json.loads("\n".join(lines[start:]))
+        start = next(i for i, line in enumerate(lines) if line.strip().startswith("{"))
+        data = json.loads("\n".join(lines[start:]))
+        assert data["provider"] == "local"
+        assert "nhis" in data and "resources" in data

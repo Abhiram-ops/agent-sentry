@@ -254,13 +254,18 @@ def cmd_permissions(provider_name: str):
 @click.option("--output", default="agentsentry_graph.html", show_default=True)
 @click.option("--path", default=".", show_default=True, help="Directory to scan")
 @click.option("--enrich", is_flag=True, help="Enrich with CISA KEV threat intel")
-@click.option("--json", "output_json", is_flag=True, help="Output as JSON")
 @click.option(
-    "--output-json",
-    "output_json_file",
+    "--json",
+    "json_output",
+    is_flag=False,
+    flag_value="-",
     default=None,
-    type=click.Path(dir_okay=False, writable=True),
-    help="Write the full ScanResult as JSON to FILEPATH (for SIEM/SOAR ingestion)",
+    metavar="[PATH]",
+    help=(
+        "Dump the full ScanResult as JSON. With no PATH, prints to stdout "
+        "(in place of the normal report); with PATH, writes to that file "
+        "as well as printing the normal report. Replaces --output-json."
+    ),
 )
 @click.option("--profile", default=None, help="AWS credential profile")
 @click.option("--region", default="us-east-1", show_default=True)
@@ -279,8 +284,7 @@ def scan(
     output,
     path,
     enrich,
-    output_json,
-    output_json_file,
+    json_output,
     profile,
     region,
     org,
@@ -297,8 +301,7 @@ def scan(
             enrich=enrich,
             visualize=visualize,
             output=output,
-            output_json=output_json,
-            output_json_file=output_json_file,
+            json_output=json_output,
             force=force,
             pro=pro,
         )
@@ -350,8 +353,7 @@ def scan(
         enrich=enrich,
         visualize=visualize,
         output=output,
-        output_json=output_json,
-        output_json_file=output_json_file,
+        json_output=json_output,
         pro=pro,
     )
 
@@ -492,9 +494,7 @@ def _write_scan_result_json(result: ScanResult, filepath: str):
     )
 
 
-def _scan_all(
-    *, enrich, visualize, output, output_json, output_json_file=None, force, pro=False
-):
+def _scan_all(*, enrich, visualize, output, json_output=None, force, pro=False):
     from agentsentry.providers import registry
 
     ready = registry.detect_ready()
@@ -547,8 +547,7 @@ def _scan_all(
         enrich=enrich,
         visualize=visualize,
         output=output,
-        output_json=output_json,
-        output_json_file=output_json_file,
+        json_output=json_output,
         pro=pro,
     )
 
@@ -560,8 +559,7 @@ def _finalise_and_print(
     enrich,
     visualize,
     output,
-    output_json,
-    output_json_file=None,
+    json_output=None,
     pro=False,
 ):
     """*scanners* may be a single scanner object or a list of scanners."""
@@ -609,16 +607,14 @@ def _finalise_and_print(
             f"(sts:AssumeRole chains) added to attack graph[/dim]\n"
         )
 
-    if output_json_file:
-        _write_scan_result_json(result, output_json_file)
-
-    if output_json:
+    if json_output == "-":
         import json
 
-        console.print_json(
-            json.dumps([n.model_dump(mode="json") for n in result.nhis], default=str)
-        )
+        console.print_json(json.dumps(result.model_dump(mode="json"), default=str))
     else:
+        if json_output:
+            _write_scan_result_json(result, json_output)
+
         _print_summary(result)
         _print_nhi_table(result)
         _print_findings(result)
@@ -740,15 +736,22 @@ def _print_findings(result: ScanResult):
     console.print()
 
 
+BLAST_RADIUS_RISK_LEVELS = {RiskLevel.CRITICAL, RiskLevel.HIGH, RiskLevel.MEDIUM}
+
+
 def _print_blast_top(result: ScanResult, graph: NHIAttackGraph):
-    top_ids = graph.top_risk_nhis(n=3)
-    if not top_ids:
+    candidates = sorted(
+        (n for n in result.nhis if n.risk_level in BLAST_RADIUS_RISK_LEVELS),
+        key=lambda n: n.risk_score,
+        reverse=True,
+    )
+    if not candidates:
         return
 
     console.rule("[dim]  blast radius  [/dim]", style="dim")
     console.print()
-    for nhi_id in top_ids:
-        br = graph.blast_radius(nhi_id)
+    for nhi in candidates:
+        br = graph.blast_radius(nhi.id)
         if not br.get("reachable_count"):
             continue
         cj = br.get("crown_jewels_at_risk", [])
@@ -966,5 +969,4 @@ def cmd_interactive(visualize: bool, enrich: bool):
         enrich=enrich,
         visualize=visualize,
         output="agentsentry_graph.html",
-        output_json=False,
     )

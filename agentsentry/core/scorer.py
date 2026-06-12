@@ -15,6 +15,7 @@ from __future__ import annotations
 
 
 from agentsentry.core.models import (
+    NO_ROTATION_GOVERNANCE_POLICY,
     ZOMBIE_CREDENTIAL_THRESHOLD_DAYS,
     AutonomyLevel,
     Finding,
@@ -77,6 +78,26 @@ PERMISSION_WEIGHTS: dict[str, float] = {
     "roles/bigquery.dataViewer": 1.5,
     "roles/storage.objectViewer": 1.5,
     "roles/viewer": 1.5,
+    # ── Local-machine privilege markers ───────────────────────────────
+    "docker:root_equivalent": 10.0,
+}
+
+
+# ---------------------------------------------------------------------------
+# GitHub PAT/OAuth scope → privilege weight
+# Used to compute the Privilege Score (P) for GitHub token NHIs
+# ---------------------------------------------------------------------------
+
+GITHUB_SCOPE_WEIGHTS: dict[str, float] = {
+    "admin:enterprise": 10.0,
+    "admin:org": 9.0,
+    "delete_repo": 8.5,
+    "admin:repo_hook": 8.5,
+    "workflow": 8.0,
+    "repo": 7.0,
+    "write:packages": 6.0,
+    "user": 4.0,
+    "read:org": 4.0,
 }
 
 
@@ -189,7 +210,11 @@ class NHIScorer:
         for policy in nhi.attached_policies:
             if policy in self.ALWAYS_CRITICAL_POLICIES:
                 return 10.0  # Maximum privilege — short circuit
-            score = max(score, PERMISSION_WEIGHTS.get(policy, 1.0))
+            score = max(
+                score,
+                PERMISSION_WEIGHTS.get(policy, 1.0),
+                GITHUB_SCOPE_WEIGHTS.get(policy, 1.0),
+            )
 
         # Scan inline policy statements
         for policy_doc in nhi.inline_policies:
@@ -243,6 +268,11 @@ class NHIScorer:
         How poorly managed is this identity's lifecycle?
         Stale, unrotated credentials are the most exposed.
         """
+        # Local findings with zero rotation mechanism (unencrypted SSH keys,
+        # plaintext .env secrets) are maximally exposed by definition.
+        if NO_ROTATION_GOVERNANCE_POLICY in nhi.attached_policies:
+            return 5.0
+
         score = 1.0
 
         days_since_rotation = nhi.days_since_last_rotation()
