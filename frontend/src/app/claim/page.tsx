@@ -53,7 +53,7 @@ export default function ClaimPage() {
           </Link>
           <h1 className="text-3xl font-bold text-white mb-2">Claim your free key</h1>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            One key. All cloud scanners. No credit card.
+            Scan your local machine free. No credit card.
           </p>
           <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Already registered?{' '}
@@ -97,11 +97,11 @@ export default function ClaimPage() {
             }}>
               <p className="font-semibold mb-2" style={{ color: '#00ff88' }}>Free key unlocks:</p>
               <ul className="space-y-1" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                <li>✓ AWS / Azure / GCP / GitHub / K8s scanners</li>
-                <li>✓ AI agent analyzer (LangChain, CrewAI, AutoGen)</li>
+                <li>✓ Local machine scan — env vars, SSH keys, .env, credentials</li>
+                <li>✓ Demo scan with realistic mock data</li>
                 <li>✓ P×R×E×A risk scoring + MITRE mapping</li>
-                <li>✓ Blast radius analysis</li>
-                <li style={{ color: 'rgba(255,255,255,0.35)' }}>— --visualize, --enrich, --json → Pro</li>
+                <li style={{ color: 'rgba(255,255,255,0.35)' }}>— AWS / Azure / GCP / GitHub / K8s scanners → Pro</li>
+                <li style={{ color: 'rgba(255,255,255,0.35)' }}>— Blast radius, --visualize, --enrich, --json → Pro</li>
               </ul>
             </div>
 

@@ -2,6 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,6 +13,7 @@
     "@radix-ui/react-slot": "^1.2.5",
     "@types/three": "^0.184.1",
     "@vercel/kv": "^2.0.0",
+    "@vercel/postgres": "^0.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.40.0",
@@ -22,6 +24,7 @@
     "react-dom": "19.2.4",
     "react-use-measure": "^2.1.7",
     "resend": "^4.6.0",
+    "stripe": "^22.2.0",
     "tailwind-merge": "^3.6.0",
     "three": "^0.184.0"
   },

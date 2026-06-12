@@ -8,6 +8,27 @@ async function getKV() {
   return kv;
 }
 
+// ── Rate limiting ────────────────────────────────────────────────────────────
+// Fixed-window limiter keyed by client IP, backed by Vercel KV. Prevents
+// automated key-farming via /api/claim.
+const RATE_LIMIT_MAX    = 5;          // requests per window
+const RATE_LIMIT_WINDOW = 60 * 60;    // seconds (1 hour)
+
+function getClientIp(req: NextRequest): string {
+  const fwd = req.headers.get('x-forwarded-for');
+  if (fwd) return fwd.split(',')[0].trim();
+  return req.headers.get('x-real-ip') ?? 'unknown';
+}
+
+async function isRateLimited(kv: Awaited<ReturnType<typeof getKV>>, ip: string): Promise<boolean> {
+  const key = `ratelimit:claim:${ip}`;
+  const count = await kv.incr(key);
+  if (count === 1) {
+    await kv.expire(key, RATE_LIMIT_WINDOW);
+  }
+  return count > RATE_LIMIT_MAX;
+}
+
 // ── Key generation (mirrors Python HMAC logic) ───────────────────────────────
 const FREE_SECRET = process.env.FREE_LICENSE_SECRET!;
 
@@ -83,6 +104,15 @@ function emailHtml(name: string, key: string): string {
 // ── Route handler ─────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
+    const kv = await getKV();
+    const ip = getClientIp(req);
+    if (await isRateLimited(kv, ip)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const { name, email, password } = await req.json();
 
     if (!name || !email || !password) {
@@ -95,7 +125,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
     }
 
-    const kv       = await getKV();
     const kvKey    = `user:${email.toLowerCase()}`;
     const existing = await kv.get<{ key: string; name: string }>(kvKey);
 
