@@ -145,7 +145,7 @@ export default function Pricing() {
               <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>Open source · MIT · free forever</div>
             </div>
 
-            <Link href="https://github.com/Abhiram-ops/agent-sentry" target="_blank"
+            <Link href="/signup"
               style={{ display:"block", width:"100%", padding:"14px 20px",
                 border:"1px solid rgba(255,255,255,0.09)", color:"#fff", fontSize:14,
                 fontWeight:600, borderRadius:12, textAlign:"center",
@@ -153,7 +153,7 @@ export default function Pricing() {
                 transition:"all 0.2s ease", background:"transparent" }}
               onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.04)";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.16)";}}
               onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="transparent";(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.09)";}}>
-              Clone on GitHub
+              Get started free
             </Link>
 
             <ul style={{ listStyle:"none", display:"flex", flexDirection:"column", gap:16 }}>
@@ -187,10 +187,8 @@ export default function Pricing() {
               <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>One-time · license key · no subscription</div>
             </div>
 
-            {/* Gumroad buy button — replace YOUR_GUMROAD_PRODUCT_ID with your actual Gumroad product URL */}
             <Link
-              href="https://sentryagent.gumroad.com/l/eawugx"
-              target="_blank"
+              href="/signup"
               style={{ display:"block", width:"100%", padding:"14px 20px",
                 background:"linear-gradient(135deg, #00ff88, #00cc6a)",
                 color:"#000", fontSize:14, fontWeight:700, borderRadius:12,
@@ -199,7 +197,7 @@ export default function Pricing() {
                 boxShadow:"0 0 32px rgba(0,255,136,0.25)" }}
               onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.boxShadow="0 0 48px rgba(0,255,136,0.4)";(e.currentTarget as HTMLElement).style.transform="translateY(-1px)";}}
               onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.boxShadow="0 0 32px rgba(0,255,136,0.25)";(e.currentTarget as HTMLElement).style.transform="translateY(0)";}}>
-              Buy Pro — $49
+              Sign up to upgrade
             </Link>
 
             <ul style={{ listStyle:"none", display:"flex", flexDirection:"column", gap:16 }}>
@@ -212,12 +210,13 @@ export default function Pricing() {
               ))}
             </ul>
 
-            {/* Activate hint */}
+            {/* How it works */}
             <div style={{ marginTop:28, padding:"12px 16px", borderRadius:10,
               background:"rgba(0,255,136,0.04)", border:"1px solid rgba(0,255,136,0.08)" }}>
-              <div style={{ fontFamily:"monospace", fontSize:12, color:"#555", marginBottom:4 }}>After purchase:</div>
-              <div style={{ fontFamily:"monospace", fontSize:12, color:"#00ff88" }}>
-                agentsentry activate AS-XXXX-XXXX-XXXX-XXXX
+              <div style={{ fontFamily:"monospace", fontSize:12, color:"#555", marginBottom:4 }}>How it works:</div>
+              <div style={{ fontFamily:"monospace", fontSize:12, color:"#00ff88", lineHeight:1.7 }}>
+                1. Sign up free → activate with AS-FREE-XXXX<br />
+                2. Upgrade from your dashboard → AS-PRO-XXXX
               </div>
             </div>
           </PricingCard>
@@ -227,7 +226,7 @@ export default function Pricing() {
         <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
           viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.3 }}
           style={{ textAlign:"center", marginTop:48, fontSize:13, color:"#555", fontFamily:"monospace" }}>
-          Key delivered instantly by email · Works offline · No account required
+          API key &amp; activation code delivered instantly by email · CLI works offline
         </motion.p>
       </Container>
 

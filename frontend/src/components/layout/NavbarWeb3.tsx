@@ -46,9 +46,7 @@ function CloseIcon() {
 function GetStartedPill() {
   return (
     <Link
-      href={GITHUB_URL}
-      target="_blank"
-      rel="noopener noreferrer"
+      href="/signup"
       style={{ textDecoration: 'none', display: 'inline-block', position: 'relative', borderRadius: '999px', border: '0.6px solid rgba(0,255,136,0.6)', padding: '1.5px' }}
     >
       <span aria-hidden="true" style={{ position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', width: '55%', height: '10px', background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.6) 0%, transparent 75%)', filter: 'blur(3px)', borderRadius: '50%', pointerEvents: 'none', zIndex: 2, display: 'block' }} />
@@ -143,7 +141,7 @@ export function NavbarWeb3() {
               GitHub
             </Link>
             <div style={{ paddingTop: '8px' }}>
-              <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)}
+              <Link href="/signup" onClick={() => setMenuOpen(false)}
                 style={{ display: 'block', textAlign: 'center', borderRadius: '999px', border: '0.6px solid rgba(255,255,255,1)', color: '#fff', fontSize: '14px', fontWeight: 500, padding: '12px 29px', textDecoration: 'none', fontFamily: "'General Sans', sans-serif" }}>
                 Get Started Free
               </Link>

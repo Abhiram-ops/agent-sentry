@@ -64,7 +64,7 @@ export function HeroSection4() {
         {/* CTA */}
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg" className="px-7">
-            <Link href="/claim"><span>Run Free Audit</span></Link>
+            <Link href="/signup"><span>Run Free Audit</span></Link>
           </Button>
           <Button asChild size="lg" variant="outline" className="px-7">
             <Link href="/docs"><span>View Docs</span></Link>
