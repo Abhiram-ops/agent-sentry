@@ -8,6 +8,7 @@ To add a new environment, subclass BaseProvider and implement:
 
 AgentSentry will auto-discover providers registered in the registry.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -23,6 +24,7 @@ class PermissionStatus:
     Result of a pre-scan permission check.
     The CLI displays this before ever touching a real API.
     """
+
     ok: bool
     provider_name: str
     sdk_available: bool = True

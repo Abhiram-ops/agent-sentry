@@ -22,7 +22,6 @@ from pathlib import Path
 
 from agentsentry.core.models import Finding, NonHumanIdentity, RiskLevel
 
-
 KEV_URL = (
     "https://www.cisa.gov/sites/default/files/feeds/"
     "known_exploited_vulnerabilities.json"
@@ -64,10 +63,10 @@ class CISAKEVEnricher:
     # MITRE technique → KEV product keywords that commonly exploit it
     TECHNIQUE_PRODUCT_MAP: dict[str, list[str]] = {
         "T1078.004": ["iam", "okta", "azure ad", "active directory", "identity"],
-        "T1528":     ["oauth", "token", "api key", "access key"],
-        "T1651":     ["lambda", "cloudshell", "systems manager"],
-        "T1199":     ["vpn", "citrix", "ivanti", "fortinet", "pulse"],
-        "T1059":     ["python", "powershell", "bash", "javascript"],
+        "T1528": ["oauth", "token", "api key", "access key"],
+        "T1651": ["lambda", "cloudshell", "systems manager"],
+        "T1199": ["vpn", "citrix", "ivanti", "fortinet", "pulse"],
+        "T1059": ["python", "powershell", "bash", "javascript"],
     }
 
     def __init__(self):
@@ -140,7 +139,8 @@ class CISAKEVEnricher:
 
         # Find KEV entries whose product matches relevant keywords
         matched_kevs = [
-            entry for entry in self._kev
+            entry
+            for entry in self._kev
             if any(
                 kw in entry.product.lower() or kw in entry.vendor_project.lower()
                 for kw in relevant_products
@@ -155,28 +155,32 @@ class CISAKEVEnricher:
         top_kevs = (ransomware_kevs or matched_kevs)[:3]
 
         for kev in top_kevs:
-            findings.append(Finding(
-                finding_id=f"KEV-{kev.cve_id}",
-                title=f"Actively Exploited CVE in Related Technology: {kev.cve_id}",
-                description=(
-                    f"{kev.vulnerability_name} in {kev.vendor_project} {kev.product}. "
-                    f"{kev.short_description} "
-                    f"{'⚠ Used in ransomware campaigns.' if kev.is_ransomware else ''}"
-                ),
-                risk_level=RiskLevel.CRITICAL if kev.is_ransomware else RiskLevel.HIGH,
-                mitre_techniques=nhi.mitre_techniques,
-                remediation=(
-                    f"CISA required action: {kev.required_action} "
-                    f"(Due: {kev.due_date})"
-                ),
-                evidence={
-                    "cve_id": kev.cve_id,
-                    "product": kev.product,
-                    "vendor": kev.vendor_project,
-                    "date_added_to_kev": kev.date_added,
-                    "ransomware": kev.is_ransomware,
-                },
-            ))
+            findings.append(
+                Finding(
+                    finding_id=f"KEV-{kev.cve_id}",
+                    title=f"Actively Exploited CVE in Related Technology: {kev.cve_id}",
+                    description=(
+                        f"{kev.vulnerability_name} in {kev.vendor_project} {kev.product}. "
+                        f"{kev.short_description} "
+                        f"{'⚠ Used in ransomware campaigns.' if kev.is_ransomware else ''}"
+                    ),
+                    risk_level=(
+                        RiskLevel.CRITICAL if kev.is_ransomware else RiskLevel.HIGH
+                    ),
+                    mitre_techniques=nhi.mitre_techniques,
+                    remediation=(
+                        f"CISA required action: {kev.required_action} "
+                        f"(Due: {kev.due_date})"
+                    ),
+                    evidence={
+                        "cve_id": kev.cve_id,
+                        "product": kev.product,
+                        "vendor": kev.vendor_project,
+                        "date_added_to_kev": kev.date_added,
+                        "ransomware": kev.is_ransomware,
+                    },
+                )
+            )
 
         return findings
 
@@ -213,8 +217,10 @@ class CISAKEVEnricher:
         CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
         with open(CACHE_PATH, "w") as f:
             json.dump(
-                {"fetched_at": datetime.now(timezone.utc).isoformat(),
-                 "entries": [e.__dict__ for e in entries]},
+                {
+                    "fetched_at": datetime.now(timezone.utc).isoformat(),
+                    "entries": [e.__dict__ for e in entries],
+                },
                 f,
             )
 

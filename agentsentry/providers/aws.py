@@ -11,6 +11,7 @@ Required permissions (read-only):
   s3:ListAllMyBuckets, lambda:ListFunctions,
   secretsmanager:ListSecrets
 """
+
 from __future__ import annotations
 
 import os
@@ -22,21 +23,48 @@ from agentsentry.providers.base import BaseProvider, PermissionStatus
 class AWSProvider(BaseProvider):
 
     def __init__(self, profile: str | None = None, region: str = "us-east-1"):
-        self.profile = profile or os.environ.get("AWS_PROFILE")
-        self.region  = os.environ.get("AWS_DEFAULT_REGION", region)
+        self.profile = (
+            profile or os.environ.get("AWS_PROFILE") or self._default_profile()
+        )
+        self.region = os.environ.get("AWS_DEFAULT_REGION", region)
+
+    @staticmethod
+    def _default_profile() -> str | None:
+        """
+        If neither --profile nor AWS_PROFILE is set, fall back to a
+        configured "default" profile when one exists. Otherwise leave
+        profile unset so boto3's standard credential chain (env vars,
+        instance/container role, SSO cache, etc.) applies.
+        """
+        try:
+            import boto3
+
+            if "default" in boto3.Session().available_profiles:
+                return "default"
+        except Exception:
+            pass
+        return None
 
     @property
-    def name(self) -> str:        return "aws"
+    def name(self) -> str:
+        return "aws"
+
     @property
-    def display_name(self) -> str: return "Amazon Web Services"
+    def display_name(self) -> str:
+        return "Amazon Web Services"
+
     @property
-    def cloud_provider(self) -> CloudProvider: return CloudProvider.AWS
+    def cloud_provider(self) -> CloudProvider:
+        return CloudProvider.AWS
 
     @property
     def required_permissions(self) -> list[str]:
         return [
-            "iam:ListRoles", "iam:ListUsers", "iam:ListAccessKeys",
-            "iam:ListAttachedRolePolicies", "iam:GetRole",
+            "iam:ListRoles",
+            "iam:ListUsers",
+            "iam:ListAccessKeys",
+            "iam:ListAttachedRolePolicies",
+            "iam:GetRole",
             "sts:GetCallerIdentity",
             "s3:ListAllMyBuckets",
             "lambda:ListFunctions",
@@ -52,27 +80,33 @@ class AWSProvider(BaseProvider):
             import boto3  # noqa: F401
         except ImportError:
             return PermissionStatus(
-                ok=False, provider_name=self.name, sdk_available=False,
+                ok=False,
+                provider_name=self.name,
+                sdk_available=False,
                 message="boto3 not installed — run: pip install agentsentry[aws]",
             )
         try:
             import boto3
+
             session = boto3.Session(profile_name=self.profile, region_name=self.region)
             sts = session.client("sts")
             identity = sts.get_caller_identity()
             return PermissionStatus(
-                ok=True, provider_name=self.name,
+                ok=True,
+                provider_name=self.name,
                 message=f"Account: {identity['Account']}  ARN: {identity['Arn']}",
             )
         except Exception as exc:
             return PermissionStatus(
-                ok=False, provider_name=self.name,
+                ok=False,
+                provider_name=self.name,
                 missing_creds=["AWS credentials"],
                 message=f"{exc} — {self.setup_hint}",
             )
 
     def scan(self) -> ScanResult:
         from agentsentry.scanners.aws import AWSScanner
+
         scanner = AWSScanner(profile=self.profile, region=self.region)
         self._scanner = scanner
         return scanner.scan()

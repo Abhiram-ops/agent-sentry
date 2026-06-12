@@ -8,6 +8,7 @@ Key formats:
 
 Both HMAC variants use HMAC-SHA256 offline validation. No server call after activation.
 """
+
 from __future__ import annotations
 
 import base64
@@ -19,16 +20,16 @@ import sys
 from pathlib import Path
 
 # ── Secrets ───────────────────────────────────────────────────────────────────
-_FREE_SECRET: bytes = b"as-fr-v1-7k2m9p4n"   # free tier
-_PRO_SECRET:  bytes = b"as-lk-v1-3m9n7q2x4p"  # pro tier
+_FREE_SECRET: bytes = b"as-fr-v1-7k2m9p4n"  # free tier
+_PRO_SECRET: bytes = b"as-lk-v1-3m9n7q2x4p"  # pro tier
 
 # ── Storage ───────────────────────────────────────────────────────────────────
-_LICENSE_DIR  = Path.home() / ".agentsentry"
+_LICENSE_DIR = Path.home() / ".agentsentry"
 _LICENSE_FILE = _LICENSE_DIR / "license.json"
 
 # ── Key regexes ───────────────────────────────────────────────────────────────
-_FREE_RE        = re.compile(r"^AF-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
-_PRO_RE         = re.compile(r"^AS-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
+_FREE_RE = re.compile(r"^AF-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
+_PRO_RE = re.compile(r"^AS-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
 # Simple format issued by the website claim API: AS-FREE-XXXX-XXXX (hex)
 _SIMPLE_FREE_RE = re.compile(r"^AS-FREE-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}$", re.IGNORECASE)
 
@@ -36,6 +37,7 @@ CLAIM_URL = "https://agent-sentry-beta.vercel.app/claim"
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
+
 
 def _decode_key(key: str, secret: bytes) -> bool:
     """Return True if the key's HMAC validates against the given secret."""
@@ -48,8 +50,8 @@ def _decode_key(key: str, secret: bytes) -> bool:
     if len(raw) < 10:
         return False
     mac_bytes = raw[:6]
-    nonce     = raw[6:10]
-    expected  = hmac.new(secret, nonce, hashlib.sha256).digest()[:6]
+    nonce = raw[6:10]
+    expected = hmac.new(secret, nonce, hashlib.sha256).digest()[:6]
     return hmac.compare_digest(mac_bytes, expected)
 
 
@@ -73,10 +75,11 @@ def _validate_key(key: str) -> str | None:
 def _make_key(secret: bytes, prefix: str, nonce: bytes | None = None) -> str:
     """Generate a key from a nonce (random if not provided)."""
     import os
+
     if nonce is None:
         nonce = os.urandom(4)
     mac = hmac.new(secret, nonce, hashlib.sha256).digest()
-    raw = mac[:6] + nonce          # 10 bytes
+    raw = mac[:6] + nonce  # 10 bytes
     enc = base64.b32encode(raw).decode().rstrip("=")  # 16 chars
     return f"{prefix}-{enc[:4]}-{enc[4:8]}-{enc[8:12]}-{enc[12:16]}"
 
@@ -94,6 +97,7 @@ def generate_pro_key(purchase_id: str) -> str:
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 def activate(key: str) -> tuple[bool, str]:
     """
@@ -137,6 +141,7 @@ def require_free(feature: str) -> None:
         return
     from rich.console import Console
     from rich.panel import Panel
+
     Console(legacy_windows=False).print(
         Panel(
             f"[bold cyan]{feature}[/bold cyan] requires a [bold]free AgentSentry account[/bold].\n\n"
@@ -160,6 +165,7 @@ def require_pro(feature: str) -> None:
         return
     from rich.console import Console
     from rich.panel import Panel
+
     Console(legacy_windows=False).print(
         Panel(
             f"[bold yellow]⚡ {feature}[/bold yellow] is an [bold]AgentSentry Pro[/bold] feature.\n\n"

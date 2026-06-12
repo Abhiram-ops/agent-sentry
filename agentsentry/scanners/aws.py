@@ -14,7 +14,6 @@ Usage:
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
@@ -26,7 +25,6 @@ from agentsentry.core.models import (
     Resource,
     ScanResult,
 )
-
 
 # Policies that signal administrative or high-privilege access
 HIGH_PRIV_POLICIES = {
@@ -53,9 +51,9 @@ class AWSScanner:
 
     def __init__(self, profile: str | None = None, region: str = "us-east-1"):
         session = boto3.Session(profile_name=profile, region_name=region)
-        self.iam    = session.client("iam")
-        self.sts    = session.client("sts")
-        self.s3     = session.client("s3")
+        self.iam = session.client("iam")
+        self.sts = session.client("sts")
+        self.s3 = session.client("s3")
         self.lambda_ = session.client("lambda")
         self.region = region
         self._last_result = None  # populated by scan() for build_access_edges()
@@ -80,7 +78,9 @@ class AWSScanner:
         print("[AgentSentry] Scanning Lambda functions...")
         resources.extend(self._scan_lambda_functions())
 
-        print(f"[AgentSentry] Done. Found {len(nhis)} NHIs, {len(resources)} resources.")
+        print(
+            f"[AgentSentry] Done. Found {len(nhis)} NHIs, {len(resources)} resources."
+        )
 
         result = ScanResult(
             scan_id=f"aws-{account_id}",
@@ -125,7 +125,9 @@ class AWSScanner:
         # Get inline policies
         inline_policies = []
         try:
-            inline_names = self.iam.list_role_policies(RoleName=role_name)["PolicyNames"]
+            inline_names = self.iam.list_role_policies(RoleName=role_name)[
+                "PolicyNames"
+            ]
             for pname in inline_names:
                 doc = self.iam.get_role_policy(RoleName=role_name, PolicyName=pname)
                 inline_policies.append(doc["PolicyDocument"])
@@ -247,8 +249,17 @@ class AWSScanner:
             # Heuristic crown jewel detection based on name patterns
             is_crown_jewel = any(
                 kw in name.lower()
-                for kw in ["prod", "customer", "pii", "backup",
-                           "secret", "key", "data", "model", "weights"]
+                for kw in [
+                    "prod",
+                    "customer",
+                    "pii",
+                    "backup",
+                    "secret",
+                    "key",
+                    "data",
+                    "model",
+                    "weights",
+                ]
             )
 
             if not acl_checked:
@@ -258,16 +269,18 @@ class AWSScanner:
             else:
                 tags = []
 
-            resources.append(Resource(
-                id=f"s3-{name}",
-                name=name,
-                resource_type="s3_bucket",
-                provider=CloudProvider.AWS,
-                arn=f"arn:aws:s3:::{name}",
-                is_crown_jewel=is_crown_jewel,
-                is_public=is_public if acl_checked else False,
-                sensitivity_tags=tags,
-            ))
+            resources.append(
+                Resource(
+                    id=f"s3-{name}",
+                    name=name,
+                    resource_type="s3_bucket",
+                    provider=CloudProvider.AWS,
+                    arn=f"arn:aws:s3:::{name}",
+                    is_crown_jewel=is_crown_jewel,
+                    is_public=is_public if acl_checked else False,
+                    sensitivity_tags=tags,
+                )
+            )
 
         return resources
 
@@ -285,7 +298,10 @@ class AWSScanner:
             acl_resp = self.s3.get_bucket_acl(Bucket=bucket_name)
             for grant in acl_resp.get("Grants", []):
                 grantee = grant.get("Grantee", {})
-                if grantee.get("URI") == "http://acs.amazonaws.com/groups/global/AllUsers":
+                if (
+                    grantee.get("URI")
+                    == "http://acs.amazonaws.com/groups/global/AllUsers"
+                ):
                     return True, True
             return False, True
         except ClientError:
@@ -299,14 +315,16 @@ class AWSScanner:
             paginator = self.lambda_.get_paginator("list_functions")
             for page in paginator.paginate():
                 for fn in page["Functions"]:
-                    resources.append(Resource(
-                        id=f"lambda-{fn['FunctionName']}",
-                        name=fn["FunctionName"],
-                        resource_type="lambda_function",
-                        provider=CloudProvider.AWS,
-                        arn=fn["FunctionArn"],
-                        is_crown_jewel="prod" in fn["FunctionName"].lower(),
-                    ))
+                    resources.append(
+                        Resource(
+                            id=f"lambda-{fn['FunctionName']}",
+                            name=fn["FunctionName"],
+                            resource_type="lambda_function",
+                            provider=CloudProvider.AWS,
+                            arn=fn["FunctionArn"],
+                            is_crown_jewel="prod" in fn["FunctionName"].lower(),
+                        )
+                    )
         except ClientError:
             pass
 
@@ -321,8 +339,7 @@ class AWSScanner:
             return self.sts.get_caller_identity()["Account"]
         except (ClientError, NoCredentialsError) as e:
             raise RuntimeError(
-                "Could not connect to AWS. Run 'aws configure' first.\n"
-                f"Error: {e}"
+                "Could not connect to AWS. Run 'aws configure' first.\n" f"Error: {e}"
             )
 
     def _is_cross_account(self, trust_policy: dict) -> bool:
@@ -360,24 +377,24 @@ class AWSScanner:
         # nx.shortest_path uses weight as cost, so high-privilege policies must
         # have LOW weights so the algorithm routes through them, not around them.
         POLICY_RESOURCE_MAP: dict[str, tuple[str, str, float]] = {
-            "AdministratorAccess":         ("",         "*",               1.0),
-            "PowerUserAccess":             ("",         "power:*",         1.5),
-            "IAMFullAccess":               ("iam-",     "iam:*",           2.0),
-            "SecretsManagerReadWrite":     ("secret-",  "secretsmanager:*",2.0),
-            "AmazonS3FullAccess":          ("s3-",      "s3:*",            2.5),
-            "AWSLambda_FullAccess":        ("lambda-",  "lambda:*",        3.0),
-            "AmazonRDSFullAccess":         ("rds-",     "rds:*",           3.0),
-            "AmazonS3ReadOnlyAccess":      ("s3-",      "s3:GetObject",    8.0),
+            "AdministratorAccess": ("", "*", 1.0),
+            "PowerUserAccess": ("", "power:*", 1.5),
+            "IAMFullAccess": ("iam-", "iam:*", 2.0),
+            "SecretsManagerReadWrite": ("secret-", "secretsmanager:*", 2.0),
+            "AmazonS3FullAccess": ("s3-", "s3:*", 2.5),
+            "AWSLambda_FullAccess": ("lambda-", "lambda:*", 3.0),
+            "AmazonRDSFullAccess": ("rds-", "rds:*", 3.0),
+            "AmazonS3ReadOnlyAccess": ("s3-", "s3:GetObject", 8.0),
         }
 
         # Service prefix → resource id prefix (for inline policy Action matching)
         SERVICE_RESOURCE_PREFIX: dict[str, str] = {
-            "s3":              "s3-",
-            "lambda":          "lambda-",
-            "rds":             "rds-",
-            "secretsmanager":  "secret-",
-            "ec2":             "ec2-",
-            "iam":             "iam-",
+            "s3": "s3-",
+            "lambda": "lambda-",
+            "rds": "rds-",
+            "secretsmanager": "secret-",
+            "ec2": "ec2-",
+            "iam": "iam-",
         }
 
         resource_ids = {r.id for r in self._last_result.resources}
@@ -391,7 +408,11 @@ class AWSScanner:
                     continue
                 res_prefix, label, weight = POLICY_RESOURCE_MAP[policy]
                 # Connect to all matching scanned resources
-                matched = [rid for rid in resource_ids if rid.startswith(res_prefix)] if res_prefix else list(resource_ids)
+                matched = (
+                    [rid for rid in resource_ids if rid.startswith(res_prefix)]
+                    if res_prefix
+                    else list(resource_ids)
+                )
                 if matched:
                     for to_id in matched:
                         edges.append((from_id, to_id, label, weight))
@@ -411,7 +432,11 @@ class AWSScanner:
                     for action in actions:
                         prefix = action.split(":")[0].lower()
                         res_prefix = SERVICE_RESOURCE_PREFIX.get(prefix, "")
-                        matched = [rid for rid in resource_ids if rid.startswith(res_prefix)] if res_prefix else []
+                        matched = (
+                            [rid for rid in resource_ids if rid.startswith(res_prefix)]
+                            if res_prefix
+                            else []
+                        )
                         # wildcard action = easiest path (cost 1.0); specific action = harder (cost 4.0)
                         weight = 1.0 if action in ("*", "*:*") else 4.0
                         for to_id in matched:
