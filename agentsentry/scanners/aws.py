@@ -356,15 +356,18 @@ class AWSScanner:
         edges: list[tuple[str, str, str, float]] = []
 
         # Map managed-policy name → (resource_type_prefix, edge_label, weight)
+        # Weight = attack-path COST (lower = easier to traverse / more dangerous).
+        # nx.shortest_path uses weight as cost, so high-privilege policies must
+        # have LOW weights so the algorithm routes through them, not around them.
         POLICY_RESOURCE_MAP: dict[str, tuple[str, str, float]] = {
-            "AmazonS3FullAccess":          ("s3-",      "s3:*",            9.0),
-            "AmazonS3ReadOnlyAccess":      ("s3-",      "s3:GetObject",    2.0),
-            "AWSLambda_FullAccess":        ("lambda-",  "lambda:*",        7.0),
-            "AmazonRDSFullAccess":         ("rds-",     "rds:*",           7.0),
-            "SecretsManagerReadWrite":     ("secret-",  "secretsmanager:*",8.0),
-            "AdministratorAccess":         ("",         "*",               10.0),
-            "PowerUserAccess":             ("",         "power:*",         9.0),
-            "IAMFullAccess":               ("iam-",     "iam:*",           9.0),
+            "AdministratorAccess":         ("",         "*",               1.0),
+            "PowerUserAccess":             ("",         "power:*",         1.5),
+            "IAMFullAccess":               ("iam-",     "iam:*",           2.0),
+            "SecretsManagerReadWrite":     ("secret-",  "secretsmanager:*",2.0),
+            "AmazonS3FullAccess":          ("s3-",      "s3:*",            2.5),
+            "AWSLambda_FullAccess":        ("lambda-",  "lambda:*",        3.0),
+            "AmazonRDSFullAccess":         ("rds-",     "rds:*",           3.0),
+            "AmazonS3ReadOnlyAccess":      ("s3-",      "s3:GetObject",    8.0),
         }
 
         # Service prefix → resource id prefix (for inline policy Action matching)
@@ -409,7 +412,8 @@ class AWSScanner:
                         prefix = action.split(":")[0].lower()
                         res_prefix = SERVICE_RESOURCE_PREFIX.get(prefix, "")
                         matched = [rid for rid in resource_ids if rid.startswith(res_prefix)] if res_prefix else []
-                        weight = 10.0 if action in ("*", "*:*") else 5.0
+                        # wildcard action = easiest path (cost 1.0); specific action = harder (cost 4.0)
+                        weight = 1.0 if action in ("*", "*:*") else 4.0
                         for to_id in matched:
                             edges.append((from_id, to_id, action, weight))
 
