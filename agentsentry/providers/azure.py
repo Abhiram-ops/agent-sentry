@@ -19,7 +19,8 @@ _AZURE_IMPORT_ERROR: Exception | None = None
 try:
     from azure.identity import DefaultAzureCredential
     from azure.mgmt.authorization import AuthorizationManagementClient  # noqa: F401
-    from azure.mgmt.resource import SubscriptionClient
+    from azure.mgmt.resource import ResourceManagementClient  # noqa: F401
+    from azure.mgmt.subscription import SubscriptionClient
 
     _AZURE_OK = True
 except ImportError as _e:
