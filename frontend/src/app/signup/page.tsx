@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { motion } from "framer-motion";
 import { CheckCircle, Copy, Check, Mail } from "lucide-react";
 
+const STORAGE_KEY = "agentsentry_api_key";
+
 interface SignupResult {
   api_key: string;
   activation_code: string | null;
@@ -89,6 +91,7 @@ export default function SignupPage() {
         return;
       }
 
+      localStorage.setItem(STORAGE_KEY, json.api_key);
       setResult({ api_key: json.api_key, activation_code: json.activation_code });
       setStatus("success");
     } catch {
