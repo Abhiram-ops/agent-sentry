@@ -1,0 +1,52 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createUser, getUserByEmail } from '@/lib/db';
+import { sendActivationCodeEmail } from '@/lib/email';
+
+interface SignupBody {
+  email?: string;
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = (await req.json()) as SignupBody;
+    const email = body.email?.trim().toLowerCase();
+
+    if (!email || !isValidEmail(email)) {
+      return NextResponse.json({ error: 'A valid email is required.' }, { status: 400 });
+    }
+
+    const existing = await getUserByEmail(email);
+    if (existing) {
+      return NextResponse.json(
+        { error: 'An account with this email already exists.' },
+        { status: 409 },
+      );
+    }
+
+    // Creates the user with tier='free' and a fresh AS-FREE-... activation code.
+    const user = await createUser(email);
+
+    // Trigger 1: email the free activation code (best-effort, never blocks signup).
+    if (user.activation_code) {
+      await sendActivationCodeEmail(user.email, user.activation_code, 'free');
+    }
+
+    return NextResponse.json(
+      {
+        api_key: user.api_key,
+        user_id: user.id,
+        credits: user.credits_balance,
+        tier: user.tier,
+        activation_code: user.activation_code,
+      },
+      { status: 201 },
+    );
+  } catch (err) {
+    console.error('[/api/auth/signup]', err);
+    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
+  }
+}

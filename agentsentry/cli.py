@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import sys
 
 # On legacy Windows consoles (cmd.exe with the cp1252 codepage), Rich's
@@ -87,6 +88,33 @@ def main():
     pass
 
 
+# ── License gate ──────────────────────────────────────────────────────────────
+
+
+def require_license(func):
+    """
+    Pre-flight license gate for a command callback.
+
+    Applied to every command except ``activate`` (and Click's eager --help /
+    --version, which short-circuit before the callback runs). Blocks the command
+    when the device is unactivated, and enforces the Free-tier command allow-list
+    (only ``scan local`` / ``scan mock``).
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        from agentsentry import license as lic
+
+        # Map the Click callback name to a user-facing command word.
+        command = (
+            "scan" if func.__name__ == "scan" else func.__name__.replace("cmd_", "")
+        )
+        lic.enforce(command, kwargs.get("target"))
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 # ── activate ──────────────────────────────────────────────────────────────────
 
 
@@ -137,6 +165,7 @@ def cmd_activate(key: str):
 
 
 @main.command("providers")
+@require_license
 def cmd_providers():
     """List all scan providers and whether they are ready."""
     _print_banner()
@@ -203,6 +232,7 @@ def cmd_providers():
 
 @main.command("permissions")
 @click.argument("provider_name", metavar="PROVIDER")
+@require_license
 def cmd_permissions(provider_name: str):
     """Show what credentials and permissions a provider requires."""
     _print_banner()
@@ -278,6 +308,7 @@ def cmd_permissions(provider_name: str):
     is_flag=True,
     help="Pro mode — full attack narratives, MITRE detail, step-by-step remediation",
 )
+@require_license
 def scan(
     target,
     visualize,
@@ -376,6 +407,7 @@ def scan(
     type=click.Path(dir_okay=False, writable=True),
     help="Write the full ScanResult as JSON to FILEPATH (for SIEM/SOAR ingestion)",
 )
+@require_license
 def blast(nhi_name: str, target: str, output_json_file: str | None):
     """Show blast radius for a specific NHI."""
     _, scanner = _build_provider(target)
@@ -648,7 +680,7 @@ def _print_banner():
         f"  [bold #00ff88]⬡  AGENTSENTRY[/bold #00ff88]  "
         f"[dim]v{__version__}[/dim]  [dim]·[/dim]  "
         f"[dim]NHI & AI Agent Risk Scanner[/dim]  [dim]·[/dim]  "
-        f"[dim]MIT · free forever[/dim]"
+        f"[dim]Free: local & mock · Pro: all scanners[/dim]"
     )
     console.rule(style="dim #333333")
     console.print()
@@ -780,6 +812,7 @@ def _provider_display_name(name: str) -> str:
 @main.command("interactive")
 @click.option("--visualize", is_flag=True, help="Generate HTML attack graph after scan")
 @click.option("--enrich", is_flag=True, help="Enrich with CISA KEV threat intel")
+@require_license
 def cmd_interactive(visualize: bool, enrich: bool):
     """Interactive mode — pick your providers and path visually."""
     import subprocess
