@@ -182,7 +182,9 @@ def _store(code: str, tier: str, source: str) -> None:
         "source": source,
         "activated_at": datetime.now(timezone.utc).isoformat(),
     }
-    _license_file().write_text(json.dumps(data, indent=2))
+    path = _license_file()
+    path.write_text(json.dumps(data, indent=2))
+    os.chmod(path, 0o600)
 
 
 # ── Public API ────────────────────────────────────────────────────────────────

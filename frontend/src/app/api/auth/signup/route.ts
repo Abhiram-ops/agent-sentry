@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createUser, getUserByEmail } from '@/lib/db';
 import { sendActivationCodeEmail } from '@/lib/email';
+import { checkRateLimit } from '@/lib/rateLimit';
 import {
   createSession,
   SESSION_COOKIE,
@@ -18,6 +19,12 @@ function isValidEmail(email: string): boolean {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || 'unknown';
+    const allowed = await checkRateLimit(ip, '/api/auth/signup', 5, 60);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const body = (await req.json()) as SignupBody;
     const email = body.email?.trim().toLowerCase();
 

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendPlainEmail } from "@/lib/email";
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export async function POST(req: NextRequest) {
   const { email } = await req.json();
-  if (!email || typeof email !== "string" || !email.includes("@"))
+  if (!email || typeof email !== "string" || !isValidEmail(email))
     return NextResponse.json({ error: "Invalid email" }, { status: 400 });
   const publicationId = process.env.BEEHIIV_PUBLICATION_ID;
   const apiKey = process.env.BEEHIIV_API_KEY;
