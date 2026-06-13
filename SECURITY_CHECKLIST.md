@@ -1,8 +1,8 @@
-# AgentSentry Pre-Launch Security & Privacy Checklist
+# AgentSentry Pre-Launch Security, Privacy & GTM Checklist
 
 **Ship Security Tools, Not Security Liabilities.**
 
-A comprehensive checklist for launching AgentSentry with strong legal, privacy, and security posture. Check off items as you complete them.
+A comprehensive checklist for launching AgentSentry with strong legal, privacy, security, and commercial readiness. Check off items as you complete them.
 
 ---
 
@@ -264,45 +264,213 @@ A comprehensive checklist for launching AgentSentry with strong legal, privacy, 
 
 ---
 
-## Pre-Launch Verification (Day Before)
+## 09 — Compliance & Security Verification (Market-Ready)
 
-- [ ] HTTPS working on production domain
-- [ ] Privacy Policy is live and accurate
-- [ ] Terms of Service are live
-- [ ] Security headers correct (https://securityheaders.com)
-- [ ] Database backups configured
-- [ ] Error logging configured
-- [ ] Stripe webhooks verified (test event successful)
-- [ ] All env vars set in Vercel (no missing secrets)
-- [ ] `npm run build` passes (zero errors)
-- [ ] `npx tsc --noEmit` passes (zero errors)
-- [ ] Manual test: signup → claim key → receive email
-- [ ] Manual test: buy credits → balance updates
-- [ ] Manual test: API key works with curl
-- [ ] Cloudflare DNS pointing to Vercel correctly
-- [ ] Rate limiting active (test: `for i in {1..10}; do curl...; done`)
+- [ ] **Third-Party Security Audit**
+  - Schedule pentest with reputable firm (HackerOne, Intigriti, or similar)
+  - Fix critical/high findings before launch
+  - Keep audit report for enterprise sales materials
+
+- [ ] **Source Code Audit**
+  - Review for hardcoded secrets, insecure patterns
+  - Check dependencies for known CVEs
+  - Document audit results for customer requests
+
+- [ ] **Data Privacy Compliance**
+  - Privacy Policy covers GDPR, CCPA, LGPD
+  - Data residency: document where Vercel Postgres stores data (US)
+  - Ability to delete user data on request
+  - Data retention policy for logs/transactions (90 days for logs, 3 years for billing)
+
+- [ ] **Industry Certifications (Enterprise)**
+  - SOC 2 Type II: if targeting enterprise (expensive, but worth it for $50k+ deals)
+  - ISO 27001: optional but adds credibility
+  - Start SOC 2 process before launch (takes 6 months)
+
+- [ ] **Responsible Disclosure Policy**
+  - Security.md in repo with contact email (security@agentsentry.org)
+  - Clear process: researcher reports → you investigate → patch → credit researcher
+  - SLA: respond within 24 hours
 
 ---
 
-## Launch Day
+## 10 — Product & Technical Readiness (Go-To-Market)
+
+- [ ] **MVP Feature Complete**
+  - CLI scans AWS, Azure, GCP (minimum 3 cloud providers)
+  - PREA scoring works end-to-end
+  - Dashboard shows results + credits + usage
+  - API is stable and documented
+
+- [ ] **Integration Ecosystem**
+  - API is REST, documented, rate-limited, versioned
+  - Webhooks for scan completion (optional, nice to have)
+  - Integration examples: curl, Python SDK, Node.js SDK (at least curl in docs)
+  - SIEM/SOAR integrations: not MVP, but plan for roadmap
+
+- [ ] **Scalability & Performance**
+  - Benchmark scan speed (target: <30s for small AWS account)
+  - API response time <200ms (p95)
+  - Handle 1000 concurrent users without degradation
+  - Load test before launch (k6, artillery, or similar)
+
+- [ ] **Deployment Options**
+  - SaaS: agentsentry.org (primary) ✓
+  - CLI: `pip install agentsentry` (primary) ✓
+  - Docker: optional Dockerfile for local scanning
+  - On-premises: document how to run locally (no cloud communication required)
+
+- [ ] **False Positive Rate**
+  - Document expected accuracy (e.g., "PREA scoring has X% false positive rate in Y test cases")
+  - Compare to industry benchmarks (Prowler, CloudMapper, similar tools)
+  - Be honest about limitations: PREA is heuristic, not ground truth
+
+---
+
+## 11 — Pricing & Licensing (Business Model)
+
+- [ ] **Pricing Strategy Defined**
+  - Free tier: 1 scan/day, basic report (drive adoption)
+  - Pro tier: $15/month, unlimited scans, export to JSON/PDF (convert power users)
+  - Enterprise: custom pricing, MSP support, SLA (land big deals)
+  - OR: Credit-based (current model) — document per-scan costs clearly
+
+- [ ] **Free Trial / POC Framework**
+  - Free tier available without credit card (low friction)
+  - Pro trial: 14 days free (requires card, no charge)
+  - POC checklist: "Scan your AWS account, see results in 5 min"
+  - Case study template: before/after PREA scores
+
+- [ ] **Licensing & Terms Clear**
+  - AGPL-3.0 license is explicit in Terms of Service
+  - If customers fork: they must open-source modifications
+  - Commercial exception available (e.g., "pay $X/month for closed-source license")
+  - Document for legal/procurement teams
+
+---
+
+## 12 — Go-To-Market (GTM) & Sales Enablement
+
+- [ ] **Value Proposition Documented**
+  - Unique differentiator: "Only tool that audits AI agent codebases" or "10x faster NHI discovery"
+  - ROI story: "Identify agent escalation risk before production deployment"
+  - Comparison matrix: AgentSentry vs. Prowler, CloudMapper, etc.
+  - Customer testimonial or case study (even from friendly beta user)
+
+- [ ] **Sales Collateral Ready**
+  - Data sheet (1-pager): what it does, features, pricing, contact
+  - ROI calculator: "If your team spends 2h/week on manual audit, save $X/month with AgentSentry"
+  - Battlecard: "When competing against X tool, here's why you win"
+  - Demo video: 2–3 min walkthrough (optional but effective)
+
+- [ ] **Technical Documentation Complete**
+  - API reference: all endpoints, auth, rate limits, examples
+  - Deployment guide: SaaS, CLI, Docker, on-premises
+  - Troubleshooting: common errors, FAQ
+  - Video tutorials: scan your first account, read PREA scores, export results
+
+- [ ] **Partner Programs (Optional for MVP)**
+  - MSP/MSSP partnerships: approach 5–10 managed security service providers
+  - Integration partners: Slack, PagerDuty, DataDog (optional, post-MVP)
+  - Referral program: offer discount for customer referrals (simple to start)
+  - Reseller agreement: allow consultancies to bundle AgentSentry
+
+- [ ] **Brand & Website**
+  - Homepage clearly explains: what it does, who it's for, pricing
+  - Blog/content: "AI Agent Security in 2026", "Why NHI Auditing Matters", case studies
+  - Social proof: GitHub stars badge, testimonials, customer logos (even anon: "Fortune 500 company")
+  - Media kit: press release template, screenshots, logos for press coverage
+
+---
+
+## 13 — Launch & Post-Launch Support
+
+- [ ] **Beta Testing Program**
+  - 10–20 friendly beta users (security practitioners, DevOps teams, AI engineers)
+  - Private Slack or Discord for feedback
+  - Collect: feature requests, pain points, early wins
+  - Generate case study: "Company X discovered Y risk with AgentSentry"
+  - Offer free Pro tier or discount in exchange for testimonial
+
+- [ ] **Customer Support Ready**
+  - Email support (support@agentsentry.org via ImprovMX)
+  - Discord/Slack community (optional but builds engagement)
+  - SLA: respond within 24 hours for Tier 1
+  - Support runbook: common issues, troubleshooting steps
+  - Escalation path: you → co-founders → paid support (if enterprise)
+
+- [ ] **Telemetry & Monitoring**
+  - Sentry or similar for error tracking (log exceptions, not PII)
+  - Product telemetry: track signups, scans, feature usage (anonymized)
+  - Dashboard: daily active users, MRR, churn rate, support tickets
+  - Weekly review: adoption trends, bottlenecks, feature requests
+
+- [ ] **Continuous Improvement**
+  - Weekly: review user feedback, prioritize bugs
+  - Monthly: product updates, feature releases
+  - Quarterly: security updates, dependency updates, SOC 2 evidence collection
+  - Yearly: retrospective, roadmap planning, pricing review
+
+- [ ] **Post-Launch Marketing**
+  - Day 1: Twitter/LinkedIn announcement (target: security influencers, DevSecOps community)
+  - Week 1: ProductHunt submission (organic upvote from friendly users)
+  - Month 1: blog post "We're in beta", case study, guest post on security blogs
+  - Month 2+: talks at conferences, podcast appearances, thought leadership
+
+- [ ] **Customer Feedback Loop**
+  - NPS survey: monthly (target: >40 for SaaS)
+  - Exit interview: when users churn, understand why
+  - Feature request tracker: public roadmap (https://roadmap.agentsentry.org)
+  - Community engagement: respond to GitHub issues, Reddit mentions, HN comments
+
+---
+
+## Pre-Launch Checklist (Compliance + Commercial)
+
+**Security & Compliance:**
+- [ ] Privacy Policy live and accurate
+- [ ] Terms of Service live
+- [ ] Security.md exists (responsible disclosure)
+- [ ] Third-party pentest complete (or scheduled)
+- [ ] Source code audit done
+- [ ] No hardcoded secrets in codebase
+
+**Commercial Readiness:**
+- [ ] Pricing clearly defined and documented
+- [ ] Data sheet and sales materials ready
+- [ ] Free tier / trial experience is frictionless
+- [ ] API documentation complete
+- [ ] Beta users onboarded (at least 5)
+- [ ] Support process documented
+
+**Technical:**
+- [ ] `npm run build` passes
+- [ ] `npx tsc --noEmit` passes
+- [ ] Scans complete without errors
+- [ ] PREA scores are accurate (manual validation against test cases)
+- [ ] CLI and web interface are stable
+- [ ] Monitoring/telemetry is active
+
+---
+
+## Launch Day Checklist
 
 - [ ] Deploy to production (`git push origin master`)
-- [ ] Verify production URL loads (no 500 errors)
-- [ ] Run curl tests against production
-- [ ] Check Vercel logs (Deployments → View Log)
-- [ ] Monitor Stripe dashboard for first transactions
-- [ ] Send announcement with Privacy Policy + Terms links
+- [ ] All health checks passing (uptime monitor, error tracking)
+- [ ] Send announcement email to beta users
+- [ ] Post on Twitter/LinkedIn/ProductHunt
+- [ ] Monitor error logs for first 24 hours
+- [ ] Respond to early feedback within 1 hour
 
 ---
 
-## Ongoing (Monthly)
+## Post-Launch (First Month)
 
-- [ ] Review error logs for patterns
-- [ ] Check Stripe for failed charges
-- [ ] Review rate limiting logs (bots?)
-- [ ] `npm update` and `npm audit`
-- [ ] Check OWASP Top 10 for new CVEs
-- [ ] Review user feedback for security concerns
+- [ ] Daily: check support emails, Slack, error logs
+- [ ] Weekly: user feedback review, bug prioritization
+- [ ] Week 2: first public case study or blog post
+- [ ] Week 3: feature update (show momentum)
+- [ ] Week 4: retrospective (what worked, what didn't, adjust)
 
 ---
 
