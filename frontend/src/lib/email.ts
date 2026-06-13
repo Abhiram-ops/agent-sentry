@@ -50,6 +50,34 @@ async function send(to: string, subject: string, html: string): Promise<boolean>
   }
 }
 
+/** Sends a plain-text email via Resend with a custom from/reply-to — used outside the branded shell (contact form, newsletter). */
+export async function sendPlainEmail(opts: {
+  to: string;
+  subject: string;
+  text: string;
+  from: string;
+  replyTo?: string;
+}): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email] RESEND_API_KEY not set — skipping email to', opts.to);
+    return false;
+  }
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    await resend.emails.send({
+      from: opts.from,
+      to: opts.to,
+      subject: opts.subject,
+      text: opts.text,
+      replyTo: opts.replyTo,
+    });
+    return true;
+  } catch (err) {
+    console.error('[email] send failed', err);
+    return false;
+  }
+}
+
 /** Trigger 1: emails a newly-signed-up user their free activation code. */
 export function sendActivationCodeEmail(email: string, code: string, tier: Tier): Promise<boolean> {
   const label = tier === 'pro' ? 'YOUR PRO ACTIVATION CODE' : 'YOUR FREE ACTIVATION CODE';

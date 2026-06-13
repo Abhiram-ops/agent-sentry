@@ -20,8 +20,8 @@ const contacts = [
   {
     icon: Mail,
     label: "Email",
-    handle: "agentsentry.tool@gmail.com",
-    href: "mailto:agentsentry.tool@gmail.com",
+    handle: "support@agentsentry.org",
+    href: "mailto:support@agentsentry.org",
     description: "Partnerships, enterprise, or anything else",
   },
 ];

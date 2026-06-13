@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import { sendPlainEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json();
@@ -21,18 +21,11 @@ export async function POST(req: NextRequest) {
     console.error("[subscribe] Beehiiv error:", res.status);
     return NextResponse.json({ error: "Subscription failed" }, { status: 500 });
   }
-  const gmailUser = process.env.GMAIL_USER;
-  const gmailPass = process.env.GMAIL_APP_PASSWORD;
-  if (gmailUser && gmailPass) {
-    try {
-      const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: gmailUser, pass: gmailPass } });
-      await transporter.sendMail({
-        from: `"Blast Radius" <${gmailUser}>`,
-        to: email,
-        subject: "Welcome to Blast Radius",
-        text: `Hey, thanks for subscribing to Blast Radius by AgentSentry.\n\nEach issue covers real NHI and AI agent security incidents.\n\nCheck out AgentSentry: https://agent-sentry-beta.vercel.app\n\n— Abhiram`,
-      });
-    } catch (e) { console.error("[subscribe] Email error:", e instanceof Error ? e.message : e); }
-  }
+  await sendPlainEmail({
+    from: "Blast Radius <newsletter@agentsentry.org>",
+    to: email,
+    subject: "Welcome to Blast Radius",
+    text: `Hey, thanks for subscribing to Blast Radius by AgentSentry.\n\nEach issue covers real NHI and AI agent security incidents.\n\nCheck out AgentSentry: https://agent-sentry-beta.vercel.app\n\n— Abhiram`,
+  });
   return NextResponse.json({ success: true });
 }
