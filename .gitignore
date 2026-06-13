@@ -43,3 +43,16 @@ __pycache__/
 agentsentry/agentsentry/
 agentsentry/build/
 agentsentry/dist/
+
+# Python build artifacts (repo root)
+/dist/
+/build/
+
+# Generated scan/report output
+/output.json
+/agentsentry_graph.html
+/deployed-index.html
+/lib/
+
+# Local agent + tooling state
+.claude/

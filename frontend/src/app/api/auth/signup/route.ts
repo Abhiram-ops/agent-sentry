@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createUser, getUserByEmail } from '@/lib/db';
 import { sendActivationCodeEmail } from '@/lib/email';
+import {
+  createSession,
+  SESSION_COOKIE,
+  SESSION_MAX_AGE_SECONDS,
+  sessionCookieOptions,
+} from '@/lib/auth';
 
 interface SignupBody {
   email?: string;
@@ -35,7 +41,11 @@ export async function POST(req: NextRequest) {
       await sendActivationCodeEmail(user.email, user.activation_code, 'free');
     }
 
-    return NextResponse.json(
+    // Establish a web session immediately so "Go to dashboard" works without a
+    // separate login step (the dashboard is gated by the session cookie).
+    const sessionToken = await createSession(user.id);
+
+    const res = NextResponse.json(
       {
         api_key: user.api_key,
         user_id: user.id,
@@ -45,6 +55,8 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 },
     );
+    res.cookies.set(SESSION_COOKIE, sessionToken, sessionCookieOptions(SESSION_MAX_AGE_SECONDS));
+    return res;
   } catch (err) {
     console.error('[/api/auth/signup]', err);
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });

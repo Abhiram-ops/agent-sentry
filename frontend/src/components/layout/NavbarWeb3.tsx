@@ -57,15 +57,55 @@ function GetStartedPill() {
   );
 }
 
+const textLinkStyle: React.CSSProperties = {
+  color: 'rgba(255,255,255,0.75)', fontSize: '14px', fontWeight: 500, textDecoration: 'none',
+  fontFamily: "'General Sans', sans-serif", letterSpacing: '-0.01em', whiteSpace: 'nowrap',
+  transition: 'color 0.15s ease', background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+};
+
+type AuthState =
+  | { status: 'loading' }
+  | { status: 'authed'; email: string }
+  | { status: 'guest' };
+
 export function NavbarWeb3() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [auth, setAuth] = useState<AuthState>({ status: 'loading' });
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 24);
     window.addEventListener('scroll', handler, { passive: true });
     return () => window.removeEventListener('scroll', handler);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/user/profile', { cache: 'no-store' });
+        if (cancelled) return;
+        if (res.ok) {
+          const json = (await res.json()) as { email: string };
+          setAuth({ status: 'authed', email: json.email });
+        } else {
+          setAuth({ status: 'guest' });
+        }
+      } catch {
+        if (!cancelled) setAuth({ status: 'guest' });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleLogout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // ignore — clear client state regardless
+    }
+    window.location.assign('/');
+  }
 
   return (
     <>
@@ -116,7 +156,37 @@ export function NavbarWeb3() {
             <GithubIcon size={15} color="currentColor" />
             GitHub
           </Link>
-          <GetStartedPill />
+
+          {auth.status === 'authed' ? (
+            <>
+              <span title={auth.email} style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'rgba(255,255,255,0.55)', fontSize: '13.5px', fontFamily: "'General Sans', sans-serif", maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
+                {auth.email}
+              </span>
+              <Link href="/dashboard"
+                style={textLinkStyle}
+                onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.75)')}>
+                Dashboard
+              </Link>
+              <button onClick={handleLogout}
+                style={{ borderRadius: '999px', border: '0.6px solid rgba(255,255,255,0.25)', background: 'transparent', color: '#fff', fontSize: '14px', fontWeight: 500, padding: '9px 20px', fontFamily: "'General Sans', sans-serif", cursor: 'pointer', whiteSpace: 'nowrap', transition: 'border-color 0.15s ease, background 0.15s ease' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent'; }}>
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login"
+                style={textLinkStyle}
+                onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.75)')}>
+                Log in
+              </Link>
+              <GetStartedPill />
+            </>
+          )}
         </div>
 
         <button onClick={() => setMenuOpen((o) => !o)} className="navbar-web3-hamburger"
@@ -140,12 +210,34 @@ export function NavbarWeb3() {
               <GithubIcon size={16} color="currentColor" />
               GitHub
             </Link>
-            <div style={{ paddingTop: '8px' }}>
-              <Link href="/signup" onClick={() => setMenuOpen(false)}
-                style={{ display: 'block', textAlign: 'center', borderRadius: '999px', border: '0.6px solid rgba(255,255,255,1)', color: '#fff', fontSize: '14px', fontWeight: 500, padding: '12px 29px', textDecoration: 'none', fontFamily: "'General Sans', sans-serif" }}>
-                Get Started Free
-              </Link>
-            </div>
+
+            {auth.status === 'authed' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '14px', color: 'rgba(255,255,255,0.55)', fontFamily: "'General Sans', sans-serif" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)' }} />
+                  {auth.email}
+                </span>
+                <Link href="/dashboard" onClick={() => setMenuOpen(false)}
+                  style={{ fontSize: '16px', color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontFamily: "'General Sans', sans-serif", fontWeight: 500 }}>
+                  Dashboard
+                </Link>
+                <button onClick={() => { setMenuOpen(false); void handleLogout(); }}
+                  style={{ textAlign: 'center', borderRadius: '999px', border: '0.6px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontSize: '14px', fontWeight: 500, padding: '12px 29px', fontFamily: "'General Sans', sans-serif", cursor: 'pointer' }}>
+                  Log out
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <Link href="/login" onClick={() => setMenuOpen(false)}
+                  style={{ fontSize: '16px', color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontFamily: "'General Sans', sans-serif", fontWeight: 500 }}>
+                  Log in
+                </Link>
+                <Link href="/signup" onClick={() => setMenuOpen(false)}
+                  style={{ display: 'block', textAlign: 'center', borderRadius: '999px', background: 'var(--green)', color: '#000', fontSize: '14px', fontWeight: 600, padding: '12px 29px', textDecoration: 'none', fontFamily: "'General Sans', sans-serif" }}>
+                  Get started free
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -158,4 +250,4 @@ export function NavbarWeb3() {
       `}</style>
     </>
   );
-            }
+}

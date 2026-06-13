@@ -37,8 +37,9 @@ _PRO_SECRET: bytes = b"as-lk-v1-3m9n7q2x4p"  # pro tier
 
 # ── URLs ──────────────────────────────────────────────────────────────────────
 _DEFAULT_API_BASE = "https://agent-sentry-beta.vercel.app"
-SIGNUP_URL = "https://agent-sentry-beta.vercel.app/dashboard"
-CLAIM_URL = "https://agent-sentry-beta.vercel.app/claim"
+SIGNUP_URL = "https://agent-sentry-beta.vercel.app/signup"
+# Back-compat alias: the old /claim page was removed; point legacy callers at /signup.
+CLAIM_URL = SIGNUP_URL
 
 
 def _activate_url() -> str:
@@ -123,26 +124,49 @@ def generate_pro_key(purchase_id: str) -> str:
 
 
 # ── Online activation ─────────────────────────────────────────────────────────
+class NetworkError(Exception):
+    """Raised when the license server could not be reached (vs. a rejected code)."""
+
+
 def _activate_online(code: str) -> str | None:
     """
     POST the code to the license server. Returns the tier ('free'/'pro') on a
-    200 response, or None on any error (network down, invalid code, no httpx).
+    200 response, or None when the server authoritatively rejects the code (404).
+
+    Raises NetworkError when the server can't be reached or returns a transient
+    error (5xx / timeout), retrying a few times first to ride out Vercel cold
+    starts. This lets callers tell "wrong code" apart from "no connection".
     """
     try:
         import httpx
-    except ImportError:
-        return None
-    try:
-        resp = httpx.post(_activate_url(), json={"activation_code": code}, timeout=10.0)
-    except Exception:
-        return None
-    if resp.status_code != 200:
-        return None
-    try:
-        tier = resp.json().get("tier")
-    except Exception:
-        return None
-    return tier if tier in ("free", "pro") else None
+    except ImportError as exc:
+        raise NetworkError("httpx is not installed") from exc
+
+    last_error: Exception | None = None
+    for attempt in range(3):
+        try:
+            resp = httpx.post(_activate_url(), json={"activation_code": code}, timeout=15.0)
+        except Exception as exc:  # network/DNS/timeout
+            last_error = exc
+            continue
+
+        if resp.status_code == 200:
+            try:
+                tier = resp.json().get("tier")
+            except Exception:
+                return None
+            return tier if tier in ("free", "pro") else None
+
+        # 404 = the server looked and the code does not exist → genuinely invalid.
+        if resp.status_code == 404:
+            return None
+
+        # 4xx (other) = bad request, treat as invalid; 5xx = transient, retry.
+        if resp.status_code < 500:
+            return None
+        last_error = RuntimeError(f"server returned {resp.status_code}")
+
+    raise NetworkError(str(last_error) if last_error else "could not reach license server")
 
 
 def _store(code: str, tier: str, source: str) -> None:
@@ -168,11 +192,18 @@ def activate(code: str) -> tuple[bool, str]:
 
     Tries the license server first (authoritative for AS-FREE-/AS-PRO- codes),
     then falls back to offline HMAC validation for legacy AF-/AS- keys. Returns
-    (success, tier) where tier is 'free', 'pro', or 'invalid'.
+    (success, tier) where tier is 'free' or 'pro' on success, and on failure is
+    'invalid' (server rejected the code) or 'network' (server unreachable).
     """
     code = code.strip()
 
-    tier = _activate_online(code)
+    network_failed = False
+    try:
+        tier = _activate_online(code)
+    except NetworkError:
+        tier = None
+        network_failed = True
+
     if tier:
         _store(code, tier, source="online")
         return True, tier
@@ -182,7 +213,7 @@ def activate(code: str) -> tuple[bool, str]:
         _store(code.upper(), offline_tier, source="offline")
         return True, offline_tier
 
-    return False, "invalid"
+    return False, "network" if network_failed else "invalid"
 
 
 def check() -> tuple[str | None, dict]:

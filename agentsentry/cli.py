@@ -122,7 +122,7 @@ def require_license(func):
 @click.argument("key")
 def cmd_activate(key: str):
     """Activate AgentSentry with a license key."""
-    from agentsentry.license import activate as do_activate, CLAIM_URL
+    from agentsentry.license import activate as do_activate, SIGNUP_URL
 
     _print_banner()
     success, tier = do_activate(key)
@@ -146,12 +146,27 @@ def cmd_activate(key: str):
             )
         )
         console.print()
+    elif tier == "network":
+        console.print(
+            Panel(
+                f"  [yellow]●[/yellow]  Couldn't reach the license server to verify "
+                f"[bold]{key}[/bold].\n\n"
+                f"  [dim]Your code is likely fine — this is a network issue.[/dim]\n"
+                f"  [dim]Check your connection and run the command again:[/dim]\n"
+                f"  [bold green]agentsentry activate {key}[/bold green]",
+                title="[bold yellow]Activation Pending[/bold yellow]",
+                border_style="yellow",
+                padding=(1, 2),
+            )
+        )
+        console.print()
+        sys.exit(1)
     else:
         console.print(
             Panel(
                 f"  [red]✗[/red]  Invalid license key: [bold]{key}[/bold]\n\n"
-                f"  [dim]Get a free key at:[/dim]\n"
-                f"  [bold #00ff88]{CLAIM_URL}[/bold #00ff88]",
+                f"  [dim]Create a free account and get a code at:[/dim]\n"
+                f"  [bold #00ff88]{SIGNUP_URL}[/bold #00ff88]",
                 title="[bold red]Activation Failed[/bold red]",
                 border_style="red",
                 padding=(1, 2),
