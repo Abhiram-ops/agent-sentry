@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import type { Tier } from '@/lib/db';
 
-const FROM = 'AgentSentry <noreply@agentsentry.tool>';
+const FROM = 'AgentSentry <noreply@agentsentry.org>';
 
 function shell(title: string, bodyHtml: string): string {
   return `<!DOCTYPE html>

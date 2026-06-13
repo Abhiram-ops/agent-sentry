@@ -131,7 +131,7 @@ export default function SignupPage() {
               <div style={{ textAlign: "center" }}>
                 <CheckCircle style={{ width: 40, height: 40, color: "#00ff88", margin: "0 auto 12px" }} />
                 <p style={{ fontSize: 20, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Account created!</p>
-                <p style={{ color: "#a0a0a0", fontSize: 14 }}>We&apos;ve also emailed these to {email.trim().toLowerCase()}.</p>
+                <p style={{ color: "#a0a0a0", fontSize: 14 }}>Save these now — they won&apos;t be shown again. We&apos;ve also emailed them to {email.trim().toLowerCase()}.</p>
               </div>
 
               <CopyField label="API key" value={result.api_key} />
