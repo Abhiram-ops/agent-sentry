@@ -7,7 +7,15 @@ import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import type { CreditTransaction, Tier } from '@/lib/db';
-import { Copy, Check, Mail, KeyRound, RefreshCw } from 'lucide-react';
+import { Copy, Check, Mail, KeyRound, RefreshCw, Zap } from 'lucide-react';
+
+const PRO_BENEFITS = [
+  'All cloud scanners — AWS, Azure, GCP, GitHub, and Kubernetes',
+  'AI-agent framework detection — LangChain, CrewAI, and AutoGen',
+  'Blast-radius mapping with lateral-movement attack graphs',
+  'CISA KEV enrichment and JSON exports for CI pipelines',
+  'Automated scheduled scans (Automation add-on, $9/mo) — recurring local scans that email you when new NHIs, zombie credentials, or rotation-due keys are found',
+];
 
 interface Profile {
   email: string;
@@ -252,6 +260,31 @@ export default function DashboardPage() {
                   </code>
                 </div>
               </section>
+
+              {/* Pro benefits */}
+              {profile.tier === 'pro' && (
+                <section className="dash-card">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                    <Zap style={{ width: 18, height: 18, color: 'var(--accent)' }} />
+                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Your Pro benefits</h2>
+                  </div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 18 }}>
+                    Your Pro license unlocks the following on the CLI.
+                  </p>
+                  <ul style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20, paddingLeft: 0, listStyle: 'none' }}>
+                    {PRO_BENEFITS.map(benefit => (
+                      <li key={benefit} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14, color: 'var(--text)' }}>
+                        <Check style={{ width: 16, height: 16, marginTop: 2, color: 'var(--accent)', flexShrink: 0 }} />
+                        <span>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="dash-label" style={{ marginBottom: 8 }}>Try the new automated scans</div>
+                  <code className="next-step-box" style={{ display: 'block', color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+                    agentsentry schedule add --target aws --interval daily --output-dir ~/agentsentry-reports --notify-email
+                  </code>
+                </section>
+              )}
 
               {/* Credits */}
               <section className="dash-card">
