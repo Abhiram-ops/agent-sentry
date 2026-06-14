@@ -38,6 +38,7 @@ _PRO_SECRET: bytes = b"as-lk-v1-3m9n7q2x4p"  # pro tier
 # ── URLs ──────────────────────────────────────────────────────────────────────
 _DEFAULT_API_BASE = "https://agent-sentry-beta.vercel.app"
 SIGNUP_URL = "https://agent-sentry-beta.vercel.app/signup"
+DASHBOARD_URL = "https://agent-sentry-beta.vercel.app/dashboard"
 # Back-compat alias: the old /claim page was removed; point legacy callers at /signup.
 CLAIM_URL = SIGNUP_URL
 
@@ -311,6 +312,97 @@ def enforce(command: str, scan_target: str | None = None) -> None:
     feature = f"scan {scan_target}" if command == "scan" else command
     _block_pro(feature)
     sys.exit(1)
+
+
+# ── Automation add-on gate ─────────────────────────────────────────────────────
+
+
+def _block_automation() -> None:
+    from rich.panel import Panel
+
+    _console().print(
+        Panel(
+            "  [bold red]Access Denied: this requires the Automation add-on.[/bold red]\n\n"
+            "  Scheduled scans are a $9/month add-on for Pro accounts —\n"
+            "  link your account and subscribe from the dashboard:\n\n"
+            f"  [bold cyan]{DASHBOARD_URL}[/bold cyan]\n\n"
+            "  [dim]If you've just subscribed, run this command again — the\n"
+            "  CLI re-checks your subscription at most once every 24h.[/dim]",
+            title="[bold red]Automation Subscription Required[/bold red]",
+            border_style="yellow",
+            padding=(1, 2),
+        )
+    )
+
+
+def _check_subscription_status(api_key: str) -> bool:
+    """Best-effort GET /api/cli/subscription-status — returns False on any error."""
+    try:
+        import httpx
+    except ImportError:
+        return False
+
+    base = os.environ.get("AGENTSENTRY_API", _DEFAULT_API_BASE).rstrip("/")
+    try:
+        resp = httpx.get(
+            f"{base}/api/cli/subscription-status",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=15.0,
+        )
+    except Exception:
+        return False
+
+    if resp.status_code != 200:
+        return False
+    try:
+        return bool(resp.json().get("active"))
+    except Exception:
+        return False
+
+
+def _require_automation() -> None:
+    """
+    Pre-flight gate for Automation add-on commands (``schedule add``, etc.).
+
+    Checks the cached subscription status in ``schedules.json`` first
+    (re-checking the server at most once every 24h), so scheduled runs don't
+    need a network round-trip every time. Exits 1 with an upgrade message if
+    no account is linked or the subscription is not active.
+
+    Set ``AGENTSENTRY_SKIP_LICENSE=1`` to bypass (CI / automated environments).
+    """
+    if os.environ.get("AGENTSENTRY_SKIP_LICENSE"):
+        return
+
+    from agentsentry.automation import config as automation_config
+
+    cfg = automation_config.load_config()
+
+    cache = automation_config.get_subscription_cache(cfg)
+    if cache is not None:
+        try:
+            checked_at = datetime.fromisoformat(cache["checked_at"])
+            age_hours = (datetime.now(timezone.utc) - checked_at).total_seconds() / 3600
+        except Exception:
+            age_hours = None
+        if age_hours is not None and age_hours < 24:
+            if cache.get("active"):
+                return
+            _block_automation()
+            sys.exit(1)
+
+    api_key = automation_config.get_api_key(cfg)
+    if not api_key:
+        _block_automation()
+        sys.exit(1)
+
+    active = _check_subscription_status(api_key)
+    automation_config.set_subscription_cache(cfg, active)
+    automation_config.save_config(cfg)
+
+    if not active:
+        _block_automation()
+        sys.exit(1)
 
 
 # ── Legacy helpers (retained for backward compatibility) ──────────────────────

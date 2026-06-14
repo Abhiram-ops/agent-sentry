@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import functools
+import json
+import os
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 # On legacy Windows consoles (cmd.exe with the cp1252 codepage), Rich's
 # Win32 writer encodes output using the console's codepage and crashes with
@@ -530,6 +534,20 @@ def _build_provider(
     sys.exit(1)
 
 
+def _run_scan_for_target(target: str, **build_kwargs) -> ScanResult:
+    """
+    Build the provider for *target*, scan it, and score the results.
+
+    The minimal provider → scan → score pipeline, with no permission
+    pre-check or report printing — used by the unattended scheduled-scan
+    runner, which handles its own output.
+    """
+    _, scanner = _build_provider(target, **build_kwargs)
+    result = scanner.scan()
+    result.nhis = NHIScorer().score_all(result.nhis)
+    return result
+
+
 def _write_scan_result_json(result: ScanResult, filepath: str):
     """Serialize the full ScanResult to *filepath* as JSON (SIEM/SOAR integration)."""
     import json
@@ -1018,3 +1036,328 @@ def cmd_interactive(visualize: bool, enrich: bool):
         visualize=visualize,
         output="agentsentry_graph.html",
     )
+
+
+# ── schedule (Automation add-on) ────────────────────────────────────────────
+#
+# Local OS-scheduled recurring scans. Gated by @require_license (Pro) plus
+# license._require_automation() (the $9/month Automation subscription).
+
+SCHEDULE_TARGETS = [c for c in PROVIDER_CHOICES if c != "all"]
+SCHEDULE_INTERVALS = ["hourly", "daily", "weekly"]
+
+
+@main.group("schedule")
+def schedule_group():
+    """Manage local scheduled scans (Automation add-on, requires Pro)."""
+
+
+@schedule_group.command("add")
+@click.option(
+    "--target",
+    "target",
+    required=True,
+    type=click.Choice(SCHEDULE_TARGETS, case_sensitive=False),
+)
+@click.option(
+    "--interval",
+    "interval",
+    required=True,
+    type=click.Choice(SCHEDULE_INTERVALS, case_sensitive=False),
+)
+@click.option(
+    "--output-dir",
+    "output_dir",
+    required=True,
+    type=click.Path(file_okay=False),
+    help="Directory to write scan reports + diff summaries to",
+)
+@click.option(
+    "--notify-email",
+    is_flag=True,
+    help="Email a summary to your AgentSentry account after each run",
+)
+@click.option("--profile", default=None, help="AWS credential profile")
+@click.option("--region", default="us-east-1", show_default=True)
+@click.option("--org", default=None, help="GitHub org")
+@click.option("--namespace", default=None, help="K8s namespace")
+@click.option("--context", default=None, help="K8s kubeconfig context")
+@click.option("--path", default=".", show_default=True, help="Directory to scan (agents/local targets)")
+@require_license
+def schedule_add(target, interval, output_dir, notify_email, profile, region, org, namespace, context, path):
+    """Register a recurring local scan with the OS scheduler."""
+    from agentsentry import license as lic
+    from agentsentry.automation import config as automation_config, scheduler_os
+
+    lic._require_automation()
+
+    output_path = Path(output_dir).expanduser().resolve()
+
+    plan_lines = [
+        f"  This will register a [bold]{interval}[/bold] scheduled task that runs",
+        f"  [dim]agentsentry _run-scheduled <id>[/dim] using your locally-configured",
+        f"  credentials, and:\n",
+        f"  • Scan [bold]{target}[/bold]",
+        f"  • Write reports + diff summaries to [bold]{output_path}[/bold]",
+    ]
+    if notify_email:
+        plan_lines.append("  • Email a summary to your AgentSentry account on each run")
+    else:
+        plan_lines.append("  • Keep everything on this machine — nothing is uploaded")
+
+    console.print(
+        Panel(
+            "\n".join(plan_lines),
+            title="[bold]Schedule a recurring scan[/bold]",
+            border_style="#00ff88",
+            padding=(1, 2),
+        )
+    )
+    if not click.confirm("  Proceed?", default=True):
+        console.print("  [dim]cancelled[/dim]\n")
+        return
+
+    cfg = automation_config.load_config()
+
+    if notify_email and not automation_config.get_api_key(cfg):
+        api_key = click.prompt("  AgentSentry account API key (from your dashboard)")
+        automation_config.set_api_key(cfg, api_key.strip())
+
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    extra_args = {
+        "profile": profile,
+        "region": region,
+        "org": org,
+        "namespace": namespace,
+        "context": context,
+        "path": path,
+    }
+
+    schedule_id = automation_config.add_schedule(
+        cfg,
+        target=target,
+        interval=interval,
+        output_dir=str(output_path),
+        notify_email=notify_email,
+        extra_args=extra_args,
+    )
+    automation_config.save_config(cfg)
+
+    try:
+        scheduler_os.register(schedule_id, interval)
+    except Exception as exc:
+        automation_config.remove_schedule(cfg, schedule_id)
+        automation_config.save_config(cfg)
+        console.print(f"\n  [red]✗[/red]  failed to register the OS scheduler task: {exc}\n")
+        sys.exit(1)
+
+    console.print(
+        f"\n  [bold #00ff88]✓[/bold #00ff88]  scheduled [bold]{schedule_id}[/bold]  "
+        f"({interval} · {target} → {output_path})\n"
+    )
+    console.print(f"  [dim]test it now:[/dim]  agentsentry schedule run-now {schedule_id}\n")
+
+
+@schedule_group.command("list")
+@require_license
+def schedule_list():
+    """List registered scheduled scans."""
+    from agentsentry.automation import config as automation_config
+
+    cfg = automation_config.load_config()
+    schedules = cfg.get("schedules", {})
+
+    if not schedules:
+        console.print("\n  [dim]no scheduled scans registered[/dim]\n")
+        console.print(
+            "  [dim]agentsentry schedule add --target aws --interval daily "
+            "--output-dir ~/agentsentry-reports[/dim]\n"
+        )
+        return
+
+    table = Table(
+        box=box.SIMPLE_HEAD,
+        show_header=True,
+        header_style="bold #00ff88",
+        border_style="dim",
+    )
+    table.add_column("ID", style="bold")
+    table.add_column("Target")
+    table.add_column("Interval")
+    table.add_column("Output dir")
+    table.add_column("Last run", style="dim")
+
+    for schedule_id, schedule in schedules.items():
+        table.add_row(
+            schedule_id,
+            schedule.get("target", ""),
+            schedule.get("interval", ""),
+            schedule.get("output_dir", ""),
+            schedule.get("last_run_at") or "never",
+        )
+
+    console.print()
+    console.print(table)
+    console.print()
+
+
+@schedule_group.command("remove")
+@click.argument("schedule_id")
+@require_license
+def schedule_remove(schedule_id):
+    """Unregister a scheduled scan."""
+    from agentsentry.automation import config as automation_config, scheduler_os
+
+    cfg = automation_config.load_config()
+    if automation_config.get_schedule(cfg, schedule_id) is None:
+        console.print(f"\n  [red]✗[/red]  no schedule with id [bold]{schedule_id}[/bold]\n")
+        sys.exit(1)
+
+    scheduler_os.unregister(schedule_id)
+    automation_config.remove_schedule(cfg, schedule_id)
+    automation_config.save_config(cfg)
+
+    console.print(f"\n  [bold #00ff88]✓[/bold #00ff88]  removed schedule [bold]{schedule_id}[/bold]\n")
+
+
+@schedule_group.command("run-now")
+@click.argument("schedule_id")
+@require_license
+def schedule_run_now(schedule_id):
+    """Run a scheduled scan immediately (for testing)."""
+    _run_scheduled(schedule_id)
+
+
+@main.command("_run-scheduled", hidden=True)
+@click.argument("schedule_id")
+@require_license
+def run_scheduled(schedule_id):
+    """Run a scheduled scan. Invoked by the OS scheduler — not for interactive use."""
+    _run_scheduled(schedule_id)
+
+
+def _run_scheduled(schedule_id: str) -> None:
+    """Run *schedule_id*: scan, diff against the last run, write reports, notify."""
+    from agentsentry import license as lic
+    from agentsentry.automation import config as automation_config
+    from agentsentry.automation.diff import diff_scans
+
+    lic._require_automation()
+
+    cfg = automation_config.load_config()
+    schedule = automation_config.get_schedule(cfg, schedule_id)
+    if schedule is None:
+        console.print(f"\n  [red]✗[/red]  no schedule with id [bold]{schedule_id}[/bold]\n")
+        sys.exit(1)
+
+    target = schedule["target"]
+    output_dir = Path(schedule["output_dir"])
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    extra_args = schedule.get("extra_args") or {}
+    build_kwargs = {
+        k: v
+        for k, v in extra_args.items()
+        if k in ("profile", "region", "org", "namespace", "context", "path") and v is not None
+    }
+
+    result = _run_scan_for_target(target, **build_kwargs)
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    _write_scan_result_json(result, str(output_dir / f"agentsentry_{target}_{timestamp}.json"))
+
+    snapshot_path = output_dir / f".agentsentry_snapshot_{target}.json"
+    prev: ScanResult | None = None
+    if snapshot_path.exists():
+        try:
+            prev = ScanResult.model_validate_json(snapshot_path.read_text(encoding="utf-8"))
+        except Exception:
+            prev = None
+
+    diff = diff_scans(prev, result)
+
+    summary = {
+        "schedule_id": schedule_id,
+        "target": target,
+        "scan_timestamp": result.timestamp.isoformat(),
+        "new_nhis": diff.new_nhis,
+        "newly_zombie": diff.newly_zombie,
+        "rotation_due": diff.rotation_due,
+    }
+    summary_path = output_dir / f"agentsentry_{target}_{timestamp}_summary.json"
+    summary_path.write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
+
+    snapshot_path.write_text(json.dumps(result.model_dump(mode="json"), default=str), encoding="utf-8")
+
+    _print_schedule_summary(schedule_id, target, diff)
+
+    if schedule.get("notify_email"):
+        api_key = automation_config.get_api_key(cfg)
+        if api_key:
+            _post_scan_report(api_key, summary)
+        else:
+            console.print("  [dim]--notify-email is set but no API key is stored — skipping upload[/dim]\n")
+
+    automation_config.touch_schedule(cfg, schedule_id)
+    automation_config.save_config(cfg)
+
+
+def _print_schedule_summary(schedule_id: str, target: str, diff) -> None:
+    lines: list[str] = []
+
+    if diff.new_nhis:
+        count = len(diff.new_nhis)
+        lines.append(f"  [bold red]●[/bold red]  {count} new ident{'ity' if count == 1 else 'ities'} detected")
+        for item in diff.new_nhis[:5]:
+            lines.append(f"      [dim]→[/dim] {item['name']}  [dim]({item['risk_level']}, {item['risk_score']:.1f})[/dim]")
+            lines.append(f"        [dim]{item['suggestion']}[/dim]")
+
+    if diff.newly_zombie:
+        count = len(diff.newly_zombie)
+        lines.append(f"  [bold yellow]●[/bold yellow]  {count} credential(s) newly inactive 180+ days")
+        for item in diff.newly_zombie[:5]:
+            lines.append(f"      [dim]→[/dim] {item['name']}")
+
+    if diff.rotation_due:
+        count = len(diff.rotation_due)
+        lines.append(f"  [bold yellow]●[/bold yellow]  {count} credential(s) due for rotation (90+ days)")
+        for item in diff.rotation_due[:5]:
+            lines.append(f"      [dim]→[/dim] {item['name']}")
+
+    if not lines:
+        lines.append("  [bold #00ff88]✓[/bold #00ff88]  no new risks detected")
+
+    console.print(
+        Panel(
+            "\n".join(lines),
+            title=f"[bold]scheduled scan[/bold]  [dim]{schedule_id} · {target}[/dim]",
+            border_style="#00ff88" if diff.is_clean else "yellow",
+            padding=(1, 2),
+        )
+    )
+    console.print()
+
+
+def _post_scan_report(api_key: str, summary: dict) -> None:
+    """Best-effort upload of the scan summary — log and continue on any failure."""
+    try:
+        import httpx
+    except ImportError:
+        console.print("  [dim]httpx not installed — skipping summary upload[/dim]\n")
+        return
+
+    base = os.environ.get("AGENTSENTRY_API", "https://agent-sentry-beta.vercel.app").rstrip("/")
+    try:
+        resp = httpx.post(
+            f"{base}/api/cli/scan-report",
+            json=summary,
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=15.0,
+        )
+        if resp.status_code == 200:
+            console.print("  [dim]✓ summary emailed via AgentSentry[/dim]\n")
+        else:
+            console.print(f"  [dim]could not upload scan report (HTTP {resp.status_code})[/dim]\n")
+    except Exception as exc:
+        console.print(f"  [dim]could not upload scan report: {exc}[/dim]\n")
