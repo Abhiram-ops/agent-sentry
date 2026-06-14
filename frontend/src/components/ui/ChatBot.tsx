@@ -66,7 +66,6 @@ export default function ChatBot() {
   const [unread, setUnread] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -75,16 +74,14 @@ export default function ChatBot() {
     check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Pop the launcher into view 2s after load, with a "Chat with us" tooltip
-  // so it's unmistakably a chatbot rather than a stray button.
+  // Pop the launcher into view and auto-open the chat 2s after load.
   useEffect(() => {
-    const showFab = setTimeout(() => setVisible(true), 2000);
-    const showTip = setTimeout(() => setShowTooltip(true), 2400);
-    const hideTip = setTimeout(() => setShowTooltip(false), 7000);
-    return () => { clearTimeout(showFab); clearTimeout(showTip); clearTimeout(hideTip); };
+    const timer = setTimeout(() => {
+      setVisible(true);
+      setOpen(true);
+    }, 2000);
+    return () => clearTimeout(timer);
   }, []);
-
-  useEffect(() => { if (open) setShowTooltip(false); }, [open]);
 
   useEffect(() => {
     if (open) { setUnread(0); setTimeout(() => inputRef.current?.focus(), 200); }
@@ -135,18 +132,6 @@ export default function ChatBot() {
 
   return (
     <>
-      {/* "It's a chatbot" tooltip */}
-      <AnimatePresence>
-        {visible && !open && showTooltip && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 8 }}
-            transition={{ duration: 0.2 }} className="chatbot-tooltip"
-          >
-            💬 Chat with the AgentSentry assistant
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* FAB */}
       <AnimatePresence>
         {visible && (
