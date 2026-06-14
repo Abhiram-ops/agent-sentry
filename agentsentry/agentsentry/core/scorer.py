@@ -184,7 +184,11 @@ class NHIScorer:
             nhi.risk_score = min(nhi.risk_score, 99.0)
 
         nhi.risk_level = self._risk_level(nhi.risk_score)
-        nhi.findings = self._generate_findings(nhi)
+        # Append, don't overwrite: providers (e.g. LocalProvider) may have
+        # already attached specific findings (e.g. "AWS Access Key ID in
+        # environment", "Unencrypted SSH private key") — preserve those
+        # alongside the generic NHI-00x findings generated here.
+        nhi.findings = nhi.findings + self._generate_findings(nhi)
         nhi.mitre_techniques = self._map_mitre(nhi)
 
         return nhi

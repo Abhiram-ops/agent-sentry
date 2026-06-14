@@ -22,6 +22,7 @@ from agentsentry.core.models import (
     ZOMBIE_CREDENTIAL_THRESHOLD_DAYS,
     AutonomyLevel,
     CloudProvider,
+    Finding,
     NHIType,
     NonHumanIdentity,
     RiskLevel,
@@ -609,3 +610,25 @@ class TestFindings:
         assert "T1078.004" in nhi.mitre_techniques
         assert "T1528" in nhi.mitre_techniques
         assert "T1199" in nhi.mitre_techniques
+
+    def test_preexisting_findings_are_preserved(self, scorer):
+        """Provider-attached findings (e.g. from LocalProvider) must survive
+        scoring alongside the generic NHI-00x findings — scorer.score()
+        should append, not overwrite."""
+        nhi = make_nhi(
+            findings=[
+                Finding(
+                    finding_id="local-x",
+                    title="AWS Access Key ID in environment",
+                    description="found one",
+                    risk_level=RiskLevel.CRITICAL,
+                    mitre_techniques=["T1552.007"],
+                    remediation="rotate it",
+                )
+            ],
+            last_rotated=None,
+        )
+        scored = scorer.score(nhi)
+        ids = self._ids(scored)
+        assert "local-x" in ids
+        assert "NHI-002" in ids

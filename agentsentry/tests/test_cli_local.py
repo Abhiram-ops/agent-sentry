@@ -72,3 +72,19 @@ class TestScanLocal:
         data = json.loads("\n".join(lines[start:]))
         assert data["provider"] == "local"
         assert "nhis" in data and "resources" in data
+
+    def test_scan_local_json_free_tier(self, tmp_path, license_home):
+        """`scan local --json` must work for free-tier users — `local` is in
+        FREE_SCAN_TARGETS and --json isn't separately gated."""
+        license_home("free")
+        result = _run(["scan", "local", "--path", str(tmp_path), "--force", "--json"])
+        assert result.exit_code == 0, result.output
+        lines = [
+            line
+            for line in result.output.splitlines()
+            if not line.startswith("[AgentSentry")
+        ]
+        start = next(i for i, line in enumerate(lines) if line.strip().startswith("{"))
+        data = json.loads("\n".join(lines[start:]))
+        assert data["provider"] == "local"
+        assert "nhis" in data and "resources" in data

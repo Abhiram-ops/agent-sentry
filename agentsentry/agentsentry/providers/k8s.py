@@ -8,20 +8,14 @@ Credentials:
 
 Install SDK:  pip install agentsentry[k8s]
 """
-
 from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
 
 from agentsentry.core.models import (
-    CloudProvider,
-    NHIType,
-    NonHumanIdentity,
-    Resource,
-    RiskLevel,
-    ScanResult,
-    Finding,
+    CloudProvider, NHIType, NonHumanIdentity,
+    Resource, RiskLevel, ScanResult, Finding,
 )
 from agentsentry.providers.base import BaseProvider, PermissionStatus
 
@@ -29,16 +23,13 @@ _K8S_OK = False
 _K8S_ERR: Exception | None = None
 try:
     from kubernetes import client as k8s_client, config as k8s_config
-
     _K8S_OK = True
 except ImportError as _e:
     _K8S_ERR = _e
 
 # Cluster roles that grant near-admin access
 HIGH_PRIV_CLUSTER_ROLES = {
-    "cluster-admin",
-    "admin",
-    "system:masters",
+    "cluster-admin", "admin", "system:masters",
 }
 
 DANGEROUS_VERBS = {"*", "escalate", "bind", "impersonate"}
@@ -48,22 +39,15 @@ SENSITIVE_RESOURCES = {"secrets", "serviceaccounts/token", "pods/exec", "pods/at
 class KubernetesProvider(BaseProvider):
 
     def __init__(self, context: str | None = None, namespace: str | None = None):
-        self.context = context or os.environ.get("KUBECONTEXT")
-        self.namespace = namespace or os.environ.get(
-            "K8S_NAMESPACE"
-        )  # None = all namespaces
+        self.context   = context   or os.environ.get("KUBECONTEXT")
+        self.namespace = namespace or os.environ.get("K8S_NAMESPACE")  # None = all namespaces
 
     @property
-    def name(self) -> str:
-        return "k8s"
-
+    def name(self) -> str:         return "k8s"
     @property
-    def display_name(self) -> str:
-        return "Kubernetes"
-
+    def display_name(self) -> str: return "Kubernetes"
     @property
-    def cloud_provider(self) -> CloudProvider:
-        return CloudProvider.K8S
+    def cloud_provider(self) -> CloudProvider: return CloudProvider.K8S
 
     @property
     def required_permissions(self) -> list[str]:
@@ -83,9 +67,7 @@ class KubernetesProvider(BaseProvider):
     def check_permissions(self) -> PermissionStatus:
         if not _K8S_OK:
             return PermissionStatus(
-                ok=False,
-                provider_name=self.name,
-                sdk_available=False,
+                ok=False, provider_name=self.name, sdk_available=False,
                 message="Run: pip install agentsentry[k8s]",
             )
         try:
@@ -94,14 +76,12 @@ class KubernetesProvider(BaseProvider):
             v1.list_namespace(_request_timeout=5)
             ctx = self.context or os.environ.get("KUBECONFIG", "default kubeconfig")
             return PermissionStatus(
-                ok=True,
-                provider_name=self.name,
+                ok=True, provider_name=self.name,
                 message=f"Context: {ctx}",
             )
         except Exception as exc:
             return PermissionStatus(
-                ok=False,
-                provider_name=self.name,
+                ok=False, provider_name=self.name,
                 missing_creds=["Kubernetes credentials / kubeconfig"],
                 message=str(exc),
             )
@@ -114,12 +94,10 @@ class KubernetesProvider(BaseProvider):
 
     def scan(self) -> ScanResult:
         if not _K8S_OK:
-            raise RuntimeError(
-                "Kubernetes SDK not installed. Run: pip install agentsentry[k8s]"
-            )
+            raise RuntimeError("Kubernetes SDK not installed. Run: pip install agentsentry[k8s]")
 
         self._load_config()
-        v1 = k8s_client.CoreV1Api()
+        v1   = k8s_client.CoreV1Api()
         rbac = k8s_client.RbacAuthorizationV1Api()
 
         nhis: list[NonHumanIdentity] = []
@@ -135,37 +113,33 @@ class KubernetesProvider(BaseProvider):
         )
 
         for sa in sa_list.items:
-            ns = sa.metadata.namespace
+            ns   = sa.metadata.namespace
             name = sa.metadata.name
             findings: list[Finding] = []
 
             # Check automount
             if sa.automount_service_account_token is True:
-                findings.append(
-                    Finding(
-                        finding_id=f"k8s-automount-{ns}-{name}",
-                        title="automountServiceAccountToken: true",
-                        description=(
-                            f"ServiceAccount {ns}/{name} automatically mounts its token into every pod. "
-                            "If any pod is compromised, the attacker gains this SA's credentials."
-                        ),
-                        risk_level=RiskLevel.MEDIUM,
-                        mitre_techniques=["T1552.007"],
-                        remediation="Set automountServiceAccountToken: false on the SA and opt-in per Pod.",
-                    )
-                )
+                findings.append(Finding(
+                    finding_id=f"k8s-automount-{ns}-{name}",
+                    title="automountServiceAccountToken: true",
+                    description=(
+                        f"ServiceAccount {ns}/{name} automatically mounts its token into every pod. "
+                        "If any pod is compromised, the attacker gains this SA's credentials."
+                    ),
+                    risk_level=RiskLevel.MEDIUM,
+                    mitre_techniques=["T1552.007"],
+                    remediation="Set automountServiceAccountToken: false on the SA and opt-in per Pod.",
+                ))
 
-            nhis.append(
-                NonHumanIdentity(
-                    id=f"k8s-sa-{ns}-{name}",
-                    name=f"{ns}/{name}",
-                    type=NHIType.K8S_SERVICE_ACCOUNT,
-                    provider=CloudProvider.K8S,
-                    created_date=sa.metadata.creation_timestamp,
-                    findings=findings,
-                    mitre_techniques=["T1552.007"] if findings else [],
-                )
-            )
+            nhis.append(NonHumanIdentity(
+                id=f"k8s-sa-{ns}-{name}",
+                name=f"{ns}/{name}",
+                type=NHIType.K8S_SERVICE_ACCOUNT,
+                provider=CloudProvider.K8S,
+                created_date=sa.metadata.creation_timestamp,
+                findings=findings,
+                mitre_techniques=["T1552.007"] if findings else [],
+            ))
 
         print("[AgentSentry/K8s] Listing ClusterRoleBindings...")
 
@@ -175,7 +149,7 @@ class KubernetesProvider(BaseProvider):
             role_ref = crb.role_ref.name if crb.role_ref else ""
             is_high_priv = role_ref in HIGH_PRIV_CLUSTER_ROLES
 
-            for subject in crb.subjects or []:
+            for subject in (crb.subjects or []):
                 if subject.kind != "ServiceAccount":
                     continue
                 sa_id = f"k8s-sa-{subject.namespace}-{subject.name}"
@@ -189,11 +163,7 @@ class KubernetesProvider(BaseProvider):
                             f"{subject.namespace}/{subject.name} is bound to cluster role '{role_ref}' "
                             f"via ClusterRoleBinding '{crb.metadata.name}'. This is near-admin access."
                         ),
-                        risk_level=(
-                            RiskLevel.CRITICAL
-                            if role_ref == "cluster-admin"
-                            else RiskLevel.HIGH
-                        ),
+                        risk_level=RiskLevel.CRITICAL if role_ref == "cluster-admin" else RiskLevel.HIGH,
                         mitre_techniques=["T1078.004"],
                         remediation=f"Replace the '{role_ref}' binding with a least-privilege Role scoped to the required namespace.",
                     )
@@ -203,16 +173,13 @@ class KubernetesProvider(BaseProvider):
 
         # ── Namespaces as resources ────────────────────────────────────
         for ns in v1.list_namespace().items:
-            resources.append(
-                Resource(
-                    id=f"k8s-ns-{ns.metadata.name}",
-                    name=ns.metadata.name,
-                    resource_type="k8s_namespace",
-                    provider=CloudProvider.K8S,
-                    is_crown_jewel=ns.metadata.name
-                    in ("kube-system", "production", "prod"),
-                )
-            )
+            resources.append(Resource(
+                id=f"k8s-ns-{ns.metadata.name}",
+                name=ns.metadata.name,
+                resource_type="k8s_namespace",
+                provider=CloudProvider.K8S,
+                is_crown_jewel=ns.metadata.name in ("kube-system", "production", "prod"),
+            ))
 
         context_name = self.context or "default"
         return ScanResult(

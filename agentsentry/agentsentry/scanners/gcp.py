@@ -18,7 +18,6 @@ service-account last-authentication time — last_used is left unset.
 Setup:
     gcloud auth application-default login
 """
-
 from __future__ import annotations
 
 import os
@@ -35,26 +34,18 @@ from agentsentry.core.models import (
 )
 
 HIGH_PRIV_ROLES = {
-    "roles/owner",
-    "roles/editor",
+    "roles/owner", "roles/editor",
     "roles/iam.serviceAccountAdmin",
     "roles/iam.securityAdmin",
-    "roles/iam.serviceAccountTokenCreator",  # impersonation
-    "roles/iam.serviceAccountKeyAdmin",  # mint new long-lived keys
+    "roles/iam.serviceAccountTokenCreator",   # impersonation
+    "roles/iam.serviceAccountKeyAdmin",       # mint new long-lived keys
     "roles/storage.admin",
     "roles/secretmanager.admin",
 }
 
 CROWN_JEWEL_KEYWORDS = [
-    "prod",
-    "customer",
-    "pii",
-    "backup",
-    "secret",
-    "key",
-    "data",
-    "model",
-    "weights",
+    "prod", "customer", "pii", "backup", "secret",
+    "key", "data", "model", "weights",
 ]
 
 INTERNET_FACING_KEYWORDS = ["public", "external", "internet", "api", "web", "app"]
@@ -92,7 +83,6 @@ class GCPScanner:
             (iam_service, crm_service, storage_service, bq_service)
         ):
             import google.auth
-
             credentials, detected_project = google.auth.default(
                 scopes=["https://www.googleapis.com/auth/cloud-platform.read-only"]
             )
@@ -108,7 +98,6 @@ class GCPScanner:
 
     def _build(self, api: str, version: str):
         from googleapiclient.discovery import build
-
         return build(api, version, credentials=self._creds, cache_discovery=False)
 
     # ------------------------------------------------------------------
@@ -122,16 +111,12 @@ class GCPScanner:
         nhis = self._scan_service_accounts(role_bindings)
         resources = self._scan_buckets() + self._scan_bq_datasets()
 
-        print(
-            f"[AgentSentry/GCP] Done. Found {len(nhis)} NHIs, "
-            f"{len(resources)} resources."
-        )
+        print(f"[AgentSentry/GCP] Done. Found {len(nhis)} NHIs, "
+              f"{len(resources)} resources.")
 
         result = ScanResult(
-            scan_id=(
-                f"gcp-{self.project}-"
-                f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-            ),
+            scan_id=(f"gcp-{self.project}-"
+                     f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"),
             provider=CloudProvider.GCP,
             account_id=self.project,
             nhis=nhis,
@@ -148,11 +133,9 @@ class GCPScanner:
         """Aggregate EVERY project-level role per service-account email."""
         bindings_by_email: dict[str, list[str]] = {}
         try:
-            policy = (
-                self._crm.projects()
-                .getIamPolicy(resource=self.project, body={})
-                .execute()
-            )
+            policy = self._crm.projects().getIamPolicy(
+                resource=self.project, body={}
+            ).execute()
             for binding in policy.get("bindings", []):
                 role = binding.get("role", "")
                 for member in binding.get("members", []):
@@ -176,16 +159,14 @@ class GCPScanner:
         nhis: list[NonHumanIdentity] = []
         accounts = []
         try:
-            request = (
-                self._iam.projects()
-                .serviceAccounts()
-                .list(name=f"projects/{self.project}")
+            request = self._iam.projects().serviceAccounts().list(
+                name=f"projects/{self.project}"
             )
             while request is not None:
                 resp = request.execute()
                 accounts.extend(resp.get("accounts", []))
-                request = (
-                    self._iam.projects().serviceAccounts().list_next(request, resp)
+                request = self._iam.projects().serviceAccounts().list_next(
+                    request, resp
                 )
         except Exception as exc:
             print(f"[AgentSentry/GCP] Warning: could not list service accounts: {exc}")
@@ -201,17 +182,15 @@ class GCPScanner:
         for email, roles in role_bindings.items():
             if email in listed_emails:
                 continue
-            nhis.append(
-                NonHumanIdentity(
-                    id=f"gcp-sa-ext-{email.split('@')[0][:24]}",
-                    name=email,
-                    type=NHIType.GCP_SERVICE_ACCOUNT,
-                    provider=CloudProvider.GCP,
-                    attached_policies=list(roles),
-                    is_cross_account=True,  # bound here, homed elsewhere
-                    findings=self._role_findings(email, roles),
-                )
-            )
+            nhis.append(NonHumanIdentity(
+                id=f"gcp-sa-ext-{email.split('@')[0][:24]}",
+                name=email,
+                type=NHIType.GCP_SERVICE_ACCOUNT,
+                provider=CloudProvider.GCP,
+                attached_policies=list(roles),
+                is_cross_account=True,  # bound here, homed elsewhere
+                findings=self._role_findings(email, roles),
+            ))
 
         return nhis
 
@@ -227,24 +206,22 @@ class GCPScanner:
         findings = key_findings + self._role_findings(email, roles)
 
         if disabled and (roles or last_rotated):
-            findings.append(
-                Finding(
-                    finding_id=f"gcp-sa-disabled-{unique_id[:12]}",
-                    title="Disabled service account still holds roles or keys",
-                    description=(
-                        f"Service account {email} is disabled but still has "
-                        f"{len(roles)} role binding(s) and/or user-managed keys. "
-                        "Re-enabling it silently restores all of that access."
-                    ),
-                    risk_level=RiskLevel.MEDIUM,
-                    mitre_techniques=["T1078.004"],
-                    remediation=(
-                        "Delete the service account (or strip its bindings and "
-                        "keys) instead of leaving it disabled."
-                    ),
-                    evidence={"roles": roles, "disabled": True},
-                )
-            )
+            findings.append(Finding(
+                finding_id=f"gcp-sa-disabled-{unique_id[:12]}",
+                title="Disabled service account still holds roles or keys",
+                description=(
+                    f"Service account {email} is disabled but still has "
+                    f"{len(roles)} role binding(s) and/or user-managed keys. "
+                    "Re-enabling it silently restores all of that access."
+                ),
+                risk_level=RiskLevel.MEDIUM,
+                mitre_techniques=["T1078.004"],
+                remediation=(
+                    "Delete the service account (or strip its bindings and "
+                    "keys) instead of leaving it disabled."
+                ),
+                evidence={"roles": roles, "disabled": True},
+            ))
 
         return NonHumanIdentity(
             id=f"gcp-sa-{unique_id}",
@@ -259,7 +236,9 @@ class GCPScanner:
                 kw in email.lower() for kw in INTERNET_FACING_KEYWORDS
             ),
             findings=findings,
-            mitre_techniques=sorted({t for f in findings for t in f.mitre_techniques}),
+            mitre_techniques=sorted({
+                t for f in findings for t in f.mitre_techniques
+            }),
         )
 
     def _inspect_keys(self, sa: dict, email: str):
@@ -273,13 +252,9 @@ class GCPScanner:
         findings: list[Finding] = []
 
         try:
-            keys_resp = (
-                self._iam.projects()
-                .serviceAccounts()
-                .keys()
-                .list(name=sa["name"], keyTypes=["USER_MANAGED"])
-                .execute()
-            )
+            keys_resp = self._iam.projects().serviceAccounts().keys().list(
+                name=sa["name"], keyTypes=["USER_MANAGED"]
+            ).execute()
             user_keys = keys_resp.get("keys", [])
         except Exception:
             return created_date, last_rotated, findings
@@ -288,36 +263,34 @@ class GCPScanner:
             return created_date, last_rotated, findings
 
         key_times = sorted(
-            t
-            for t in (_parse_gcp_time(k.get("validAfterTime")) for k in user_keys)
-            if t is not None
+            t for t in (
+                _parse_gcp_time(k.get("validAfterTime")) for k in user_keys
+            ) if t is not None
         )
         if key_times:
             created_date = key_times[0]
             last_rotated = key_times[-1]
 
-        findings.append(
-            Finding(
-                finding_id=f"gcp-sa-key-{email[:12]}",
-                title=f"User-managed SA key present ({len(user_keys)} key(s))",
-                description=(
-                    f"Service account {email} has {len(user_keys)} user-managed "
-                    "key(s). These are long-lived credentials that can be "
-                    "downloaded and exfiltrated."
-                ),
-                risk_level=RiskLevel.HIGH,
-                mitre_techniques=["T1552.001"],
-                remediation=(
-                    "Prefer Workload Identity Federation over SA keys. If keys "
-                    "are required, rotate them every 90 days."
-                ),
-                evidence={
-                    "key_count": len(user_keys),
-                    "oldest_key": key_times[0].isoformat() if key_times else None,
-                    "newest_key": key_times[-1].isoformat() if key_times else None,
-                },
-            )
-        )
+        findings.append(Finding(
+            finding_id=f"gcp-sa-key-{email[:12]}",
+            title=f"User-managed SA key present ({len(user_keys)} key(s))",
+            description=(
+                f"Service account {email} has {len(user_keys)} user-managed "
+                "key(s). These are long-lived credentials that can be "
+                "downloaded and exfiltrated."
+            ),
+            risk_level=RiskLevel.HIGH,
+            mitre_techniques=["T1552.001"],
+            remediation=(
+                "Prefer Workload Identity Federation over SA keys. If keys "
+                "are required, rotate them every 90 days."
+            ),
+            evidence={
+                "key_count": len(user_keys),
+                "oldest_key": key_times[0].isoformat() if key_times else None,
+                "newest_key": key_times[-1].isoformat() if key_times else None,
+            },
+        ))
 
         return created_date, last_rotated, findings
 
@@ -326,24 +299,22 @@ class GCPScanner:
         if not high_priv:
             return []
         worst_is_critical = bool({"roles/owner", "roles/editor"} & set(high_priv))
-        return [
-            Finding(
-                finding_id=f"gcp-high-priv-{email[:12]}",
-                title=f"High-privilege project role(s): {', '.join(high_priv)}",
-                description=(
-                    f"Service account {email} holds {', '.join(high_priv)} at the "
-                    "project level. Token theft or key exfiltration hands an "
-                    "attacker that entire surface."
-                ),
-                risk_level=RiskLevel.CRITICAL if worst_is_critical else RiskLevel.HIGH,
-                mitre_techniques=["T1078.004"],
-                remediation=(
-                    "Replace project-level grants with the narrowest predefined "
-                    "role on the specific resources this workload touches."
-                ),
-                evidence={"roles": roles},
-            )
-        ]
+        return [Finding(
+            finding_id=f"gcp-high-priv-{email[:12]}",
+            title=f"High-privilege project role(s): {', '.join(high_priv)}",
+            description=(
+                f"Service account {email} holds {', '.join(high_priv)} at the "
+                "project level. Token theft or key exfiltration hands an "
+                "attacker that entire surface."
+            ),
+            risk_level=RiskLevel.CRITICAL if worst_is_critical else RiskLevel.HIGH,
+            mitre_techniques=["T1078.004"],
+            remediation=(
+                "Replace project-level grants with the narrowest predefined "
+                "role on the specific resources this workload touches."
+            ),
+            evidence={"roles": roles},
+        )]
 
     # ------------------------------------------------------------------
     # Resources
@@ -359,19 +330,17 @@ class GCPScanner:
 
         for bucket in buckets:
             name = bucket.get("name", "unknown")
-            resources.append(
-                Resource(
-                    id=f"gcp-bucket-{name}",
-                    name=name,
-                    resource_type="gcs_bucket",
-                    provider=CloudProvider.GCP,
-                    is_crown_jewel=any(
-                        kw in name.lower() for kw in CROWN_JEWEL_KEYWORDS
-                    ),
-                    is_public=self._is_bucket_public(name),
-                    sensitivity_tags=["PUBLIC"] if self._is_bucket_public(name) else [],
-                )
-            )
+            resources.append(Resource(
+                id=f"gcp-bucket-{name}",
+                name=name,
+                resource_type="gcs_bucket",
+                provider=CloudProvider.GCP,
+                is_crown_jewel=any(
+                    kw in name.lower() for kw in CROWN_JEWEL_KEYWORDS
+                ),
+                is_public=self._is_bucket_public(name),
+                sensitivity_tags=["PUBLIC"] if self._is_bucket_public(name) else [],
+            ))
         return resources
 
     def _is_bucket_public(self, name: str) -> bool:
@@ -395,17 +364,15 @@ class GCPScanner:
 
         for ds in datasets:
             ds_id = ds.get("datasetReference", {}).get("datasetId", "unknown")
-            resources.append(
-                Resource(
-                    id=f"gcp-bq-{ds_id}",
-                    name=ds_id,
-                    resource_type="bigquery_dataset",
-                    provider=CloudProvider.GCP,
-                    is_crown_jewel=any(
-                        kw in ds_id.lower() for kw in CROWN_JEWEL_KEYWORDS
-                    ),
-                )
-            )
+            resources.append(Resource(
+                id=f"gcp-bq-{ds_id}",
+                name=ds_id,
+                resource_type="bigquery_dataset",
+                provider=CloudProvider.GCP,
+                is_crown_jewel=any(
+                    kw in ds_id.lower() for kw in CROWN_JEWEL_KEYWORDS
+                ),
+            ))
         return resources
 
     # ------------------------------------------------------------------
@@ -415,10 +382,10 @@ class GCPScanner:
     # role prefix → (resource id prefix, weight). Weight is attack-path
     # COST: lower = easier hop.
     ROLE_RESOURCE_MAP: dict[str, tuple[str, float]] = {
-        "roles/owner": ("", 0.5),
-        "roles/editor": ("", 0.5),
-        "roles/storage.": ("gcp-bucket-", 0.75),
-        "roles/bigquery.": ("gcp-bq-", 0.75),
+        "roles/owner":          ("",            0.5),
+        "roles/editor":         ("",            0.5),
+        "roles/storage.":       ("gcp-bucket-", 0.75),
+        "roles/bigquery.":      ("gcp-bq-",     0.75),
         "roles/secretmanager.": ("gcp-secret-", 0.75),
     }
 
@@ -442,8 +409,7 @@ class GCPScanner:
                         continue
                     matched = (
                         [rid for rid in resource_ids if rid.startswith(res_prefix)]
-                        if res_prefix
-                        else list(resource_ids)
+                        if res_prefix else list(resource_ids)
                     )
                     if not matched:
                         matched = [f"virtual-gcp-{res_prefix.rstrip('-') or 'all'}"]

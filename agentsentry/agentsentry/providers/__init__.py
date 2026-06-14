@@ -21,7 +21,6 @@ Usage:
     from agentsentry.providers.base import BaseProvider
     registry.register("myenv", MyProvider)
 """
-
 from __future__ import annotations
 
 from typing import Type
@@ -50,12 +49,12 @@ class ProviderRegistry:
         self._loaded = True
 
         # Each import is isolated — a missing optional SDK won't block others
-        _safe_register(self, "aws", "agentsentry.providers.aws", "AWSProvider")
-        _safe_register(self, "azure", "agentsentry.providers.azure", "AzureProvider")
-        _safe_register(self, "gcp", "agentsentry.providers.gcp", "GCPProvider")
+        _safe_register(self, "aws",    "agentsentry.providers.aws",    "AWSProvider")
+        _safe_register(self, "azure",  "agentsentry.providers.azure",  "AzureProvider")
+        _safe_register(self, "gcp",    "agentsentry.providers.gcp",    "GCPProvider")
         _safe_register(self, "github", "agentsentry.providers.github", "GitHubProvider")
-        _safe_register(self, "k8s", "agentsentry.providers.k8s", "KubernetesProvider")
-        _safe_register(self, "local", "agentsentry.providers.local", "LocalProvider")
+        _safe_register(self, "k8s",    "agentsentry.providers.k8s",    "KubernetesProvider")
+        _safe_register(self, "local",  "agentsentry.providers.local",  "LocalProvider")
 
     def all(self) -> dict[str, Type[BaseProvider]]:
         self._load_builtins()
@@ -77,14 +76,10 @@ class ProviderRegistry:
                 provider = cls()
                 results.append(provider.check_permissions())
             except Exception as exc:
-                results.append(
-                    PermissionStatus(
-                        ok=False,
-                        provider_name=name,
-                        sdk_available=False,
-                        message=str(exc),
-                    )
-                )
+                results.append(PermissionStatus(
+                    ok=False, provider_name=name,
+                    sdk_available=False, message=str(exc),
+                ))
         return results
 
     def detect_ready(self) -> list[str]:
@@ -92,12 +87,9 @@ class ProviderRegistry:
         return [s.provider_name for s in self.detect() if s.ok]
 
 
-def _safe_register(
-    reg: ProviderRegistry, name: str, module: str, cls_name: str
-) -> None:
+def _safe_register(reg: ProviderRegistry, name: str, module: str, cls_name: str) -> None:
     try:
         import importlib
-
         mod = importlib.import_module(module)
         cls = getattr(mod, cls_name)
         reg.register(name, cls)

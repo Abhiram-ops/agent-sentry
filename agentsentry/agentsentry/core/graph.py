@@ -13,17 +13,19 @@ what can an attacker reach and how quickly?
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import networkx as nx
 
 from agentsentry.core.models import NonHumanIdentity, NHIType, Resource, RiskLevel
 
+
 RISK_COLORS = {
     RiskLevel.CRITICAL: "#e74c3c",
-    RiskLevel.HIGH: "#e67e22",
-    RiskLevel.MEDIUM: "#f1c40f",
-    RiskLevel.LOW: "#2ecc71",
-    RiskLevel.INFO: "#95a5a6",
+    RiskLevel.HIGH:     "#e67e22",
+    RiskLevel.MEDIUM:   "#f1c40f",
+    RiskLevel.LOW:      "#2ecc71",
+    RiskLevel.INFO:     "#95a5a6",
 }
 
 # Edge weight for NHI → NHI lateral movement (sts:AssumeRole chains).
@@ -114,7 +116,9 @@ class NHIAttackGraph:
     # Lateral Movement (NHI → NHI edges from trust policies)
     # ------------------------------------------------------------------
 
-    def build_lateral_movement_edges(self, nhis: list[NonHumanIdentity]) -> int:
+    def build_lateral_movement_edges(
+        self, nhis: list[NonHumanIdentity]
+    ) -> int:
         """
         Parse each NHI's trust_policy and add NHI → NHI lateral-movement
         edges for sts:AssumeRole chains.
@@ -241,8 +245,7 @@ class NHIAttackGraph:
         # Find crown jewels in reachable set (sorted — descendants() returns
         # a set, and CLI/report output must be deterministic run to run)
         crown_jewels = sorted(
-            node
-            for node in reachable
+            node for node in reachable
             if self.G.nodes[node].get("is_crown_jewel", False)
         )
 
@@ -262,7 +265,9 @@ class NHIAttackGraph:
         return {
             "compromised_nhi": self.G.nodes[nhi_id].get("label", nhi_id),
             "reachable_count": len(reachable),
-            "crown_jewels_at_risk": [self.G.nodes[cj]["label"] for cj in crown_jewels],
+            "crown_jewels_at_risk": [
+                self.G.nodes[cj]["label"] for cj in crown_jewels
+            ],
             "attack_paths": attack_paths,
             "blast_radius_score": blast_score,
         }

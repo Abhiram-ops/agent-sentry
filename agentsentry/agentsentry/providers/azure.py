@@ -9,7 +9,6 @@ Credentials (any of these):
 
 Install SDK:  pip install agentsentry[azure]
 """
-
 from __future__ import annotations
 
 from agentsentry.core.models import CloudProvider, ScanResult
@@ -21,7 +20,6 @@ try:
     from azure.mgmt.authorization import AuthorizationManagementClient  # noqa: F401
     from azure.mgmt.resource import ResourceManagementClient  # noqa: F401
     from azure.mgmt.subscription import SubscriptionClient
-
     _AZURE_OK = True
 except ImportError as _e:
     _AZURE_OK = False
@@ -35,16 +33,11 @@ class AzureProvider(BaseProvider):
         self._scanner = None
 
     @property
-    def name(self) -> str:
-        return "azure"
-
+    def name(self) -> str:         return "azure"
     @property
-    def display_name(self) -> str:
-        return "Microsoft Azure"
-
+    def display_name(self) -> str: return "Microsoft Azure"
     @property
-    def cloud_provider(self) -> CloudProvider:
-        return CloudProvider.AZURE
+    def cloud_provider(self) -> CloudProvider: return CloudProvider.AZURE
 
     @property
     def required_permissions(self) -> list[str]:
@@ -67,9 +60,7 @@ class AzureProvider(BaseProvider):
     def check_permissions(self) -> PermissionStatus:
         if not _AZURE_OK:
             return PermissionStatus(
-                ok=False,
-                provider_name=self.name,
-                sdk_available=False,
+                ok=False, provider_name=self.name, sdk_available=False,
                 message="Run: pip install agentsentry[azure]",
             )
         try:
@@ -78,32 +69,26 @@ class AzureProvider(BaseProvider):
             subs = list(sub_client.subscriptions.list())
             if not subs:
                 return PermissionStatus(
-                    ok=False,
-                    provider_name=self.name,
+                    ok=False, provider_name=self.name,
                     missing_perms=["No accessible subscriptions found"],
                 )
             self._credential = cred
             sub_names = [s.display_name for s in subs[:3]]
             return PermissionStatus(
-                ok=True,
-                provider_name=self.name,
+                ok=True, provider_name=self.name,
                 message=f"Subscriptions: {', '.join(sub_names)}",
             )
         except Exception as exc:
             return PermissionStatus(
-                ok=False,
-                provider_name=self.name,
+                ok=False, provider_name=self.name,
                 missing_creds=["Azure credentials"],
                 message=f"{exc}\n{self.setup_hint}",
             )
 
     def scan(self) -> ScanResult:
         if not _AZURE_OK:
-            raise RuntimeError(
-                "Azure SDK not installed. Run: pip install agentsentry[azure]"
-            )
+            raise RuntimeError("Azure SDK not installed. Run: pip install agentsentry[azure]")
         from agentsentry.scanners.azure import AzureScanner
-
         cred = self._credential or DefaultAzureCredential(logging_enable=False)
         self._scanner = AzureScanner(credential=cred)
         return self._scanner.scan()

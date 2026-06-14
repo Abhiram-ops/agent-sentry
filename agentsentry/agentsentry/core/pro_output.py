@@ -24,11 +24,14 @@ from typing import NamedTuple
 
 from rich.console import Console
 from rich.panel import Panel
+from rich.rule import Rule
+from rich.table import Table
+from rich import box
+from rich.text import Text
+from rich.columns import Columns
 
 from agentsentry.core.models import (
-    NonHumanIdentity,
-    NHIType,
-    RiskLevel,
+    NonHumanIdentity, NHIType, RiskLevel, CloudProvider, AutonomyLevel,
 )
 
 console = Console(legacy_windows=False)
@@ -36,26 +39,25 @@ console = Console(legacy_windows=False)
 # ── MITRE technique catalogue ─────────────────────────────────────────────────
 
 MITRE_CATALOG: dict[str, tuple[str, str]] = {
-    "T1552.001": ("Credentials in Files", "Credential Access"),
-    "T1552.004": ("Private Keys", "Credential Access"),
-    "T1552.007": ("Container API", "Credential Access"),
-    "T1552.008": ("Chat Messages", "Credential Access"),
-    "T1528": ("Steal Application Access Token", "Credential Access"),
-    "T1078": ("Valid Accounts", "Persistence / Defense Evasion"),
-    "T1078.004": ("Valid Cloud Accounts", "Persistence / Defense Evasion"),
-    "T1199": ("Trusted Relationship", "Initial Access"),
-    "T1611": ("Escape to Host", "Privilege Escalation"),
-    "T1530": ("Data from Cloud Storage Object", "Collection"),
-    "T1651": ("Cloud Administration Command", "Execution"),
-    "T1059": ("Command and Scripting Interpreter", "Execution"),
-    "T1098": ("Account Manipulation", "Persistence"),
-    "T1136": ("Create Account", "Persistence"),
-    "T1190": ("Exploit Public-Facing Application", "Initial Access"),
-    "T1567": ("Exfiltration Over Web Service", "Exfiltration"),
+    "T1552.001": ("Credentials in Files",               "Credential Access"),
+    "T1552.004": ("Private Keys",                        "Credential Access"),
+    "T1552.007": ("Container API",                       "Credential Access"),
+    "T1552.008": ("Chat Messages",                       "Credential Access"),
+    "T1528":     ("Steal Application Access Token",      "Credential Access"),
+    "T1078":     ("Valid Accounts",                      "Persistence / Defense Evasion"),
+    "T1078.004": ("Valid Cloud Accounts",                "Persistence / Defense Evasion"),
+    "T1199":     ("Trusted Relationship",                "Initial Access"),
+    "T1611":     ("Escape to Host",                      "Privilege Escalation"),
+    "T1530":     ("Data from Cloud Storage Object",      "Collection"),
+    "T1651":     ("Cloud Administration Command",        "Execution"),
+    "T1059":     ("Command and Scripting Interpreter",   "Execution"),
+    "T1098":     ("Account Manipulation",                "Persistence"),
+    "T1136":     ("Create Account",                      "Persistence"),
+    "T1190":     ("Exploit Public-Facing Application",   "Initial Access"),
+    "T1567":     ("Exfiltration Over Web Service",       "Exfiltration"),
 }
 
 # ── Exploitation difficulty ───────────────────────────────────────────────────
-
 
 class Difficulty(NamedTuple):
     label: str
@@ -63,23 +65,13 @@ class Difficulty(NamedTuple):
     time_to_exploit: str
     tools: str
 
-
-DIFF_TRIVIAL = Difficulty(
-    "TRIVIAL", "bold red", "< 5 minutes", "curl / aws-cli / automated scanners"
-)
-DIFF_EASY = Difficulty(
-    "EASY", "bold orange1", "5–30 minutes", "CLI tools, no special skills"
-)
-DIFF_MODERATE = Difficulty(
-    "MODERATE", "bold yellow", "1–4 hours", "Requires account access or enumeration"
-)
-DIFF_HARD = Difficulty(
-    "HARD", "bold green", "Days+", "Requires privilege escalation chain"
-)
+DIFF_TRIVIAL  = Difficulty("TRIVIAL",  "bold red",     "< 5 minutes",  "curl / aws-cli / automated scanners")
+DIFF_EASY     = Difficulty("EASY",     "bold orange1",  "5–30 minutes", "CLI tools, no special skills")
+DIFF_MODERATE = Difficulty("MODERATE", "bold yellow",   "1–4 hours",    "Requires account access or enumeration")
+DIFF_HARD     = Difficulty("HARD",     "bold green",    "Days+",        "Requires privilege escalation chain")
 
 
 # ── Per-type knowledge base ───────────────────────────────────────────────────
-
 
 def _what_is_this(nhi: NonHumanIdentity) -> str:
     t = nhi.type
@@ -302,9 +294,7 @@ def _attack_narrative(nhi: NonHumanIdentity) -> tuple[str, Difficulty]:
         diff = DIFF_TRIVIAL if unencrypted else DIFF_MODERATE
         return steps, diff
 
-    if t == NHIType.IAM_USER_KEY or (
-        t == NHIType.API_KEY and ("aws" in name or "akia" in name)
-    ):
+    if t == NHIType.IAM_USER_KEY or (t == NHIType.API_KEY and ("aws" in name or "akia" in name)):
         steps = (
             "1. Attacker finds the key (truffleHog, gitleaks, Shodan, or git history):\n"
             "   [dim]trufflehog git https://github.com/target/repo[/dim]\n"
@@ -411,19 +401,9 @@ def _attack_narrative(nhi: NonHumanIdentity) -> tuple[str, Difficulty]:
         return steps, DIFF_EASY
 
     if t == NHIType.AI_AGENT:
-        irreversible = [
-            t
-            for t in nhi.agent_tools
-            if t
-            in {
-                "send_email",
-                "delete_record",
-                "transfer_funds",
-                "deploy",
-                "execute_code",
-                "send_slack_message",
-            }
-        ]
+        irreversible = [t for t in nhi.agent_tools if t in {
+            "send_email", "delete_record", "transfer_funds", "deploy", "execute_code", "send_slack_message"
+        }]
         steps = (
             "1. Attacker crafts a prompt injection in any input the agent processes\n"
             "   (email body, web page, document, user message, database record)\n"
@@ -512,9 +492,7 @@ def _step_by_step_remediation(nhi: NonHumanIdentity) -> str:
             "  Tools: Teleport, HashiCorp Vault SSH secrets engine, AWS EC2 Instance Connect."
         )
 
-    if t == NHIType.IAM_USER_KEY or (
-        t == NHIType.API_KEY and ("aws" in name or "akia" in name)
-    ):
+    if t == NHIType.IAM_USER_KEY or (t == NHIType.API_KEY and ("aws" in name or "akia" in name)):
         return (
             "[bold]Step 1: Rotate or delete the key IMMEDIATELY[/bold]\n"
             "  [dim]aws iam delete-access-key --access-key-id AKIA...[/dim]\n"
@@ -662,7 +640,8 @@ def _step_by_step_remediation(nhi: NonHumanIdentity) -> str:
     remediation_lines = [f.remediation for f in nhi.findings if f.remediation]
     if remediation_lines:
         return "\n\n".join(
-            f"[bold]Step {i+1}:[/bold] {r}" for i, r in enumerate(remediation_lines[:5])
+            f"[bold]Step {i+1}:[/bold] {r}"
+            for i, r in enumerate(remediation_lines[:5])
         )
     return (
         "[bold]Step 1:[/bold] Identify all systems using this credential.\n"
@@ -677,26 +656,23 @@ def _step_by_step_remediation(nhi: NonHumanIdentity) -> str:
 
 RISK_BORDER = {
     RiskLevel.CRITICAL: "bold red",
-    RiskLevel.HIGH: "orange1",
-    RiskLevel.MEDIUM: "yellow",
-    RiskLevel.LOW: "green",
-    RiskLevel.INFO: "dim",
+    RiskLevel.HIGH:     "orange1",
+    RiskLevel.MEDIUM:   "yellow",
+    RiskLevel.LOW:      "green",
+    RiskLevel.INFO:     "dim",
 }
 RISK_LABEL = {
     RiskLevel.CRITICAL: "[on red][bold white] CRITICAL [/bold white][/on red]",
-    RiskLevel.HIGH: "[on orange1][bold white] HIGH [/bold white][/on orange1]",
-    RiskLevel.MEDIUM: "[on yellow][bold black] MEDIUM [/bold black][/on yellow]",
-    RiskLevel.LOW: "[on green][bold black] LOW [/bold black][/on low]",
-    RiskLevel.INFO: "[dim] INFO [/dim]",
+    RiskLevel.HIGH:     "[on orange1][bold white] HIGH [/bold white][/on orange1]",
+    RiskLevel.MEDIUM:   "[on yellow][bold black] MEDIUM [/bold black][/on yellow]",
+    RiskLevel.LOW:      "[on green][bold black] LOW [/bold black][/on low]",
+    RiskLevel.INFO:     "[dim] INFO [/dim]",
 }
 
 
 # ── Main entry points ─────────────────────────────────────────────────────────
 
-
-def print_pro_report(
-    nhis: list[NonHumanIdentity], *, only_risk_levels: set[RiskLevel] | None = None
-) -> None:
+def print_pro_report(nhis: list[NonHumanIdentity], *, only_risk_levels: set[RiskLevel] | None = None) -> None:
     """
     Print full pro analyst report for every NHI.
 
@@ -729,7 +705,7 @@ def print_pro_report(
 
 def _print_nhi_pro(nhi: NonHumanIdentity) -> None:
     border = RISK_BORDER.get(nhi.risk_level, "dim")
-    badge = RISK_LABEL.get(nhi.risk_level, "")
+    badge  = RISK_LABEL.get(nhi.risk_level, "")
 
     # ── 1. Identity Profile ──────────────────────────────────────────
     profile_lines = [
@@ -743,17 +719,13 @@ def _print_nhi_pro(nhi: NonHumanIdentity) -> None:
     if nhi.arn:
         profile_lines.append(f"  [dim]arn         [/dim] [dim]{nhi.arn}[/dim]")
     if nhi.attached_policies:
-        profile_lines.append(
-            f"  [dim]policies    [/dim] [bold]{', '.join(nhi.attached_policies[:6])}[/bold]"
-        )
+        profile_lines.append(f"  [dim]policies    [/dim] [bold]{', '.join(nhi.attached_policies[:6])}[/bold]")
     if nhi.last_used:
         age = (datetime.now(nhi.last_used.tzinfo) - nhi.last_used).days
         profile_lines.append(f"  [dim]last used   [/dim] {age} days ago")
     if nhi.last_rotated:
         rot = (datetime.now(nhi.last_rotated.tzinfo) - nhi.last_rotated).days
-        profile_lines.append(
-            f"  [dim]last rotated[/dim] {rot} days ago  {'[bold red]⚠ overdue[/bold red]' if rot > 90 else ''}"
-        )
+        profile_lines.append(f"  [dim]last rotated[/dim] {rot} days ago  {'[bold red]⚠ overdue[/bold red]' if rot > 90 else ''}")
     else:
         profile_lines.append("  [dim]last rotated[/dim] [bold red]never[/bold red]")
     if nhi.is_cross_account:
@@ -761,47 +733,37 @@ def _print_nhi_pro(nhi: NonHumanIdentity) -> None:
     if nhi.is_internet_facing:
         profile_lines.append("  [bold red]⚠  internet-facing[/bold red]")
     if nhi.type.value == "ai_agent" and nhi.autonomy_level:
-        profile_lines.append(
-            f"  [dim]autonomy    [/dim] [bold]{nhi.autonomy_level.value}[/bold]"
-        )
+        profile_lines.append(f"  [dim]autonomy    [/dim] [bold]{nhi.autonomy_level.value}[/bold]")
     if nhi.agent_tools:
-        profile_lines.append(
-            f"  [dim]tools       [/dim] {', '.join(nhi.agent_tools[:8])}"
-        )
+        profile_lines.append(f"  [dim]tools       [/dim] {', '.join(nhi.agent_tools[:8])}")
 
-    console.print(
-        Panel(
-            "\n".join(profile_lines),
-            title="[bold]⬡ IDENTITY PROFILE[/bold]",
-            border_style=border,
-            padding=(0, 2),
-        )
-    )
+    console.print(Panel(
+        "\n".join(profile_lines),
+        title="[bold]⬡ IDENTITY PROFILE[/bold]",
+        border_style=border,
+        padding=(0, 2),
+    ))
 
     # ── 2. What is this? ────────────────────────────────────────────
     what = _what_is_this(nhi)
-    console.print(
-        Panel(
-            f"  {what}",
-            title="[bold]◈ WHAT IS THIS?[/bold]",
-            border_style=border,
-            padding=(1, 2),
-        )
-    )
+    console.print(Panel(
+        f"  {what}",
+        title="[bold]◈ WHAT IS THIS?[/bold]",
+        border_style=border,
+        padding=(1, 2),
+    ))
 
     # ── 3. Attack narrative ─────────────────────────────────────────
     narrative, difficulty = _attack_narrative(nhi)
-    console.print(
-        Panel(
-            f"  {narrative}\n\n"
-            f"  [dim]Exploitation difficulty:[/dim]  [{difficulty.color}]{difficulty.label}[/{difficulty.color}]  "
-            f"[dim]·[/dim]  [dim]Time to exploit: {difficulty.time_to_exploit}[/dim]\n"
-            f"  [dim]Tools needed: {difficulty.tools}[/dim]",
-            title="[bold]⚡ HOW AN ATTACKER EXPLOITS THIS[/bold]",
-            border_style=border,
-            padding=(1, 2),
-        )
-    )
+    console.print(Panel(
+        f"  {narrative}\n\n"
+        f"  [dim]Exploitation difficulty:[/dim]  [{difficulty.color}]{difficulty.label}[/{difficulty.color}]  "
+        f"[dim]·[/dim]  [dim]Time to exploit: {difficulty.time_to_exploit}[/dim]\n"
+        f"  [dim]Tools needed: {difficulty.tools}[/dim]",
+        title="[bold]⚡ HOW AN ATTACKER EXPLOITS THIS[/bold]",
+        border_style=border,
+        padding=(1, 2),
+    ))
 
     # ── 4. MITRE ATT&CK ────────────────────────────────────────────
     techniques = nhi.mitre_techniques
@@ -819,14 +781,12 @@ def _print_nhi_pro(nhi: NonHumanIdentity) -> None:
                 )
             else:
                 mitre_lines.append(f"  [bold cyan]{tid}[/bold cyan]")
-        console.print(
-            Panel(
-                "\n".join(mitre_lines),
-                title="[bold]◎ MITRE ATT&CK[/bold]",
-                border_style=border,
-                padding=(1, 2),
-            )
-        )
+        console.print(Panel(
+            "\n".join(mitre_lines),
+            title="[bold]◎ MITRE ATT&CK[/bold]",
+            border_style=border,
+            padding=(1, 2),
+        ))
 
     # ── 5. Findings detail ──────────────────────────────────────────
     if nhi.findings:
@@ -837,24 +797,20 @@ def _print_nhi_pro(nhi: NonHumanIdentity) -> None:
                 f"  [{risk_color}]●[/{risk_color}]  [bold]{f.title}[/bold]  [dim]({f.finding_id})[/dim]\n"
                 f"     {f.description}\n"
             )
-        console.print(
-            Panel(
-                "\n".join(finding_lines),
-                title="[bold]⊗ VULNERABILITY DETAIL[/bold]",
-                border_style=border,
-                padding=(1, 2),
-            )
-        )
+        console.print(Panel(
+            "\n".join(finding_lines),
+            title="[bold]⊗ VULNERABILITY DETAIL[/bold]",
+            border_style=border,
+            padding=(1, 2),
+        ))
 
     # ── 6. Step-by-step remediation ─────────────────────────────────
     remediation = _step_by_step_remediation(nhi)
-    console.print(
-        Panel(
-            f"  {remediation}",
-            title="[bold]🔒 STEP-BY-STEP REMEDIATION[/bold]",
-            border_style="bold #00ff88",
-            padding=(1, 2),
-        )
-    )
+    console.print(Panel(
+        f"  {remediation}",
+        title="[bold]🔒 STEP-BY-STEP REMEDIATION[/bold]",
+        border_style="bold #00ff88",
+        padding=(1, 2),
+    ))
 
     console.print()

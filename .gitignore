@@ -39,8 +39,7 @@ Thumbs.db
 __pycache__/
 *.egg-info/
 
-# PyPI build artifact mirror (nested package copy, not part of canonical source)
-agentsentry/agentsentry/
+# Python build artifacts
 agentsentry/build/
 agentsentry/dist/
 
