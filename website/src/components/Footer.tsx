@@ -63,7 +63,7 @@ export default function Footer() {
             <ul>
               <li><a href="https://github.com/Abhiram-ops/agent-sentry/blob/main/LICENSE" target="_blank" rel="noopener">AGPL-3.0 License</a></li>
               <li><a href="#">Privacy</a></li>
-              <li><a href="mailto:agentsentry.tool@gmail.com">Contact</a></li>
+              <li><a href="mailto:hello@agentsentry.org">Contact</a></li>
             </ul>
           </div>
         </div>

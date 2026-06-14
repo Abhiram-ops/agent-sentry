@@ -26,9 +26,9 @@ const channels = [
   {
     icon: Mail,
     label: "Email",
-    handle: "agentsentry.tool@gmail.com",
+    handle: "hello@agentsentry.org",
     description: "For partnership, research collaboration, or anything else.",
-    href: "mailto:agentsentry.tool@gmail.com",
+    href: "mailto:hello@agentsentry.org",
     cta: "Send Email",
     accent: "#a855f7",
   },

@@ -143,7 +143,7 @@ Your free tool sits at the intersection of all three. That's the pitch.
 **Publication name**: The NHI Weekly
 **Tagline**: "Machine identity and AI agent security — in plain English, every week"
 
-**Dedicated email**: Create `nhiweekly@gmail.com` for the newsletter
+**Dedicated email**: Use `hello@agentsentry.org` for the newsletter
 **Reply-to**: Use this for all newsletter correspondence
 **From name**: "Abhiram @ AgentSentry"
 
@@ -188,7 +188,7 @@ CTA: One clear action (try a command, join Discord, share with a colleague)
 ## LAUNCH SEQUENCE — 30 DAY PLAN
 
 ### Week -1 (This Week): Foundation
-- [ ] Create nhiweekly@gmail.com
+- [ ] Use hello@agentsentry.org for the newsletter
 - [ ] Set up Beehiiv account (beehiiv.com) — 1 hour
 - [ ] Add email capture to website
 - [ ] Set up GitHub Sponsors (github.com/sponsors)
@@ -346,7 +346,7 @@ When you get 500+ users, hire a backend developer to build:
 
 ## 3 THINGS TO DO TODAY
 
-1. **Create nhiweekly@gmail.com** and set up Beehiiv at beehiiv.com
+1. **Use hello@agentsentry.org** and set up Beehiiv at beehiiv.com
 2. **Apply to GitHub Secure Open Source Fund** at github.com/open-source/github-secure-open-source-fund
 3. **Set up GitHub Sponsors** at github.com/sponsors
 

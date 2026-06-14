@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 echo "→ Setting up git..."
 git init
-git config user.email "lankaabhiram16@gmail.com"
+git config user.email "hello@agentsentry.org"
 git config user.name "Abhiram Lanka"
 git branch -M main
 

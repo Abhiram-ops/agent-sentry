@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import type { Tier } from '@/lib/db';
 
 const FROM = 'AgentSentry <noreply@agentsentry.org>';
+const REPLY_TO = 'support@agentsentry.org';
 
 function shell(title: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
@@ -42,35 +43,7 @@ async function send(to: string, subject: string, html: string): Promise<boolean>
   }
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({ from: FROM, to, subject, html });
-    return true;
-  } catch (err) {
-    console.error('[email] send failed', err);
-    return false;
-  }
-}
-
-/** Sends a plain-text email via Resend with a custom from/reply-to — used outside the branded shell (contact form, newsletter). */
-export async function sendPlainEmail(opts: {
-  to: string;
-  subject: string;
-  text: string;
-  from: string;
-  replyTo?: string;
-}): Promise<boolean> {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[email] RESEND_API_KEY not set — skipping email to', opts.to);
-    return false;
-  }
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: opts.from,
-      to: opts.to,
-      subject: opts.subject,
-      text: opts.text,
-      replyTo: opts.replyTo,
-    });
+    await resend.emails.send({ from: FROM, to, subject, html, replyTo: REPLY_TO });
     return true;
   } catch (err) {
     console.error('[email] send failed', err);
@@ -106,55 +79,6 @@ export function sendProCodeEmail(email: string, code: string): Promise<boolean> 
   return sendActivationCodeEmail(email, code, 'pro');
 }
 
-function buttonBlock(label: string, href: string): string {
-  return `<div style="text-align:center;margin:28px 0;">
-    <a href="${href}" style="display:inline-block;background:#00ff88;color:#000;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:0.95rem;">${label}</a>
-  </div>
-  <p style="color:rgba(255,255,255,0.4);font-size:0.75rem;word-break:break-all;text-align:center;">
-    Or paste this link into your browser:<br>
-    <a href="${href}" style="color:rgba(0,255,136,0.7);">${href}</a>
-  </p>`;
-}
-
-/** Web login: emails a one-time magic link that signs the user in. */
-export function sendLoginLinkEmail(email: string, link: string): Promise<boolean> {
-  const html = shell(
-    'Sign in to your dashboard',
-    `<p style="color:rgba(255,255,255,0.9);font-size:1rem;">Click the button below to sign in to your AgentSentry dashboard.</p>
-     ${buttonBlock('Sign in to AgentSentry', link)}
-     <p style="color:rgba(255,255,255,0.5);font-size:0.85rem;">
-       This link expires in 24 hours and can only be used once. If you didn't request it, you can safely ignore this email.
-     </p>`,
-  );
-  return send(email, 'Your AgentSentry sign-in link', html);
-}
-
-/** Email change: emails the NEW address a link confirming the change. */
-export function sendEmailChangeVerification(newEmail: string, link: string): Promise<boolean> {
-  const html = shell(
-    'Confirm your new email',
-    `<p style="color:rgba(255,255,255,0.9);font-size:1rem;">Confirm that you want to use this address for your AgentSentry account.</p>
-     ${buttonBlock('Confirm new email', link)}
-     <p style="color:rgba(255,255,255,0.5);font-size:0.85rem;">
-       This link expires in 24 hours. If you didn't request an email change, ignore this message and your address stays the same.
-     </p>`,
-  );
-  return send(newEmail, 'Confirm your new AgentSentry email', html);
-}
-
-/** Key rotation: emails the user their freshly-generated API key. */
-export function sendApiKeyEmail(email: string, apiKey: string): Promise<boolean> {
-  const html = shell(
-    'Your new API key',
-    `<p style="color:rgba(255,255,255,0.9);font-size:1rem;">You regenerated your AgentSentry API key. Your previous key no longer works.</p>
-     ${codeBlock('YOUR NEW API KEY', apiKey)}
-     <p style="color:rgba(255,255,255,0.5);font-size:0.85rem;">
-       Update any scripts or CI that used the old key. If you didn't do this, regenerate it again from your dashboard immediately.
-     </p>`,
-  );
-  return send(email, 'Your new AgentSentry API key', html);
-}
-
 /** Trigger 2: emails the Pro usage guide when the CLI first activates Pro. */
 export function sendProGuideEmail(email: string): Promise<boolean> {
   const html = shell(
@@ -175,7 +99,7 @@ export function sendProGuideEmail(email: string): Promise<boolean> {
        <code style="color:#00ff88;font-size:0.85rem;display:block;">agentsentry scan all --enrich --json report.json</code>
      </div>
      <p style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin-top:24px;">
-       Questions? Just reply to this email.
+       Questions? Reply to this email or reach us at support@agentsentry.org.
      </p>`,
   );
   return send(email, 'Your AgentSentry Pro usage guide', html);
