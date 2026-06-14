@@ -16,52 +16,23 @@ const NAV_LINKS = [
 
 const GITHUB_URL = 'https://github.com/Abhiram-ops/agent-sentry';
 
-function ShieldIcon() {
+function LogoMark() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    <svg width="30" height="30" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <polygon points="50,12 82.9,31 82.9,69 50,88 17.1,69 17.1,31" fill="none" stroke="#1e293b" strokeWidth="2.5" strokeLinejoin="round" />
+      <circle cx="50" cy="12" r="2.8" fill="var(--accent)" />
+      <circle cx="82.9" cy="31" r="2.8" fill="var(--accent)" />
+      <circle cx="82.9" cy="69" r="2.8" fill="var(--accent)" />
+      <circle cx="50" cy="88" r="2.8" fill="var(--accent)" />
+      <circle cx="17.1" cy="69" r="2.8" fill="var(--accent)" />
+      <circle cx="17.1" cy="31" r="2.8" fill="var(--accent)" />
+      <path d="M 68.7,48.09 A 19,11 0 1,0 68.7,51.91" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="69" cy="50" r="3" fill="var(--accent)" />
+      <circle cx="50" cy="50" r="6.5" fill="var(--accent)" />
+      <circle cx="47.5" cy="47.5" r="2.2" fill="rgba(255,255,255,0.9)" />
     </svg>
   );
 }
-
-function MenuIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-function GetStartedPill() {
-  return (
-    <Link
-      href="/signup"
-      style={{ textDecoration: 'none', display: 'inline-block', position: 'relative', borderRadius: '999px', border: '0.6px solid rgba(0,255,136,0.6)', padding: '1.5px' }}
-    >
-      <span aria-hidden="true" style={{ position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', width: '55%', height: '10px', background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.6) 0%, transparent 75%)', filter: 'blur(3px)', borderRadius: '50%', pointerEvents: 'none', zIndex: 2, display: 'block' }} />
-      <span style={{ position: 'relative', zIndex: 1, display: 'block', borderRadius: '999px', background: 'var(--green)', color: '#000', fontSize: '14px', fontWeight: 600, padding: '11px 24px', fontFamily: "'General Sans', sans-serif", whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
-        Get started free
-      </span>
-    </Link>
-  );
-}
-
-const textLinkStyle: React.CSSProperties = {
-  color: 'rgba(255,255,255,0.75)', fontSize: '14px', fontWeight: 500, textDecoration: 'none',
-  fontFamily: "'General Sans', sans-serif", letterSpacing: '-0.01em', whiteSpace: 'nowrap',
-  transition: 'color 0.15s ease', background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-};
 
 type AuthState =
   | { status: 'loading' }
@@ -74,7 +45,7 @@ export function NavbarWeb3() {
   const [auth, setAuth] = useState<AuthState>({ status: 'loading' });
 
   useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 24);
+    const handler = () => setScrolled(window.scrollY > 16);
     window.addEventListener('scroll', handler, { passive: true });
     return () => window.removeEventListener('scroll', handler);
   }, []);
@@ -108,146 +79,78 @@ export function NavbarWeb3() {
   }
 
   return (
-    <>
-      <header
-        className="navbar-web3-header"
-        style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          paddingLeft: '120px', paddingRight: '120px', paddingTop: '20px', paddingBottom: '20px',
-          fontFamily: "'General Sans', sans-serif",
-          transition: 'background 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease',
-          background: scrolled ? 'rgba(0,0,0,0.75)' : 'transparent',
-          backdropFilter: scrolled ? 'blur(20px) saturate(1.4)' : 'none',
-          WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(1.4)' : 'none',
-          borderBottom: scrolled ? '1px solid rgba(255,255,255,0.08)' : '1px solid transparent',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <ShieldIcon />
-            </div>
-            <span style={{ color: '#fff', fontSize: '15px', fontWeight: 600, letterSpacing: '-0.01em', fontFamily: "'General Sans', sans-serif", lineHeight: 1 }}>
-              Agent<span style={{ color: 'var(--green)' }}>Sentry</span>
-            </span>
-          </Link>
+    <header id="main-nav" className={`nav${scrolled ? ' scrolled' : ''}`}>
+      <div className="container nav-inner">
+        <Link href="/" className="nav-logo">
+          <LogoMark />
+          <span className="nav-logo-text">AgentSentry</span>
+        </Link>
 
-          <nav className="navbar-web3-links" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                style={{ color: 'rgba(255,255,255,0.75)', fontSize: '13.5px', fontWeight: 500, textDecoration: 'none', fontFamily: "'General Sans', sans-serif", letterSpacing: '-0.01em', transition: 'color 0.15s ease', whiteSpace: 'nowrap' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.75)')}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
+        <nav className="nav-links" aria-label="Primary">
+          {NAV_LINKS.map((link) => (
+            <Link key={link.href} href={link.href}>{link.label}</Link>
+          ))}
+        </nav>
 
-        <div className="navbar-web3-links" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer"
-            style={{ display: 'flex', alignItems: 'center', gap: '7px', color: 'rgba(255,255,255,0.65)', fontSize: '14px', fontWeight: 500, textDecoration: 'none', fontFamily: "'General Sans', sans-serif", transition: 'color 0.15s ease' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}>
+        <div className="nav-sep" />
+
+        <div className="nav-actions">
+          <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="nav-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
             <GithubIcon size={15} color="currentColor" />
             GitHub
           </Link>
 
           {auth.status === 'authed' ? (
             <>
-              <span title={auth.email} style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'rgba(255,255,255,0.55)', fontSize: '13.5px', fontFamily: "'General Sans', sans-serif", maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
-                {auth.email}
-              </span>
-              <Link href="/dashboard"
-                style={textLinkStyle}
-                onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.75)')}>
-                Dashboard
-              </Link>
-              <button onClick={handleLogout}
-                style={{ borderRadius: '999px', border: '0.6px solid rgba(255,255,255,0.25)', background: 'transparent', color: '#fff', fontSize: '14px', fontWeight: 500, padding: '9px 20px', fontFamily: "'General Sans', sans-serif", cursor: 'pointer', whiteSpace: 'nowrap', transition: 'border-color 0.15s ease, background 0.15s ease' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent'; }}>
-                Log out
-              </button>
+              <Link href="/dashboard" className="nav-ghost">Dashboard</Link>
+              <button onClick={handleLogout} className="btn btn-outline">Log out</button>
             </>
           ) : (
             <>
-              <Link href="/login"
-                style={textLinkStyle}
-                onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.75)')}>
-                Log in
-              </Link>
-              <GetStartedPill />
+              <Link href="/login" className="nav-ghost">Log in</Link>
+              <Link href="/signup" className="btn btn-primary">Get started free</Link>
             </>
           )}
         </div>
 
-        <button onClick={() => setMenuOpen((o) => !o)} className="navbar-web3-hamburger"
-          style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', padding: '4px', display: 'none' }}
-          aria-label="Toggle menu">
-          {menuOpen ? <CloseIcon /> : <MenuIcon />}
-        </button>
-      </header>
-
-      {menuOpen && (
-        <div style={{ position: 'fixed', top: 68, left: 0, right: 0, zIndex: 99, background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '24px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {NAV_LINKS.map((link) => (
-              <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}
-                style={{ fontSize: '16px', color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontFamily: "'General Sans', sans-serif", fontWeight: 500 }}>
-                {link.label}
-              </Link>
-            ))}
-            <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontFamily: "'General Sans', sans-serif", fontWeight: 500 }}>
-              <GithubIcon size={16} color="currentColor" />
-              GitHub
-            </Link>
-
-            {auth.status === 'authed' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '14px', color: 'rgba(255,255,255,0.55)', fontFamily: "'General Sans', sans-serif" }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)' }} />
-                  {auth.email}
-                </span>
-                <Link href="/dashboard" onClick={() => setMenuOpen(false)}
-                  style={{ fontSize: '16px', color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontFamily: "'General Sans', sans-serif", fontWeight: 500 }}>
-                  Dashboard
-                </Link>
-                <button onClick={() => { setMenuOpen(false); void handleLogout(); }}
-                  style={{ textAlign: 'center', borderRadius: '999px', border: '0.6px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontSize: '14px', fontWeight: 500, padding: '12px 29px', fontFamily: "'General Sans', sans-serif", cursor: 'pointer' }}>
-                  Log out
-                </button>
-              </div>
+        <button onClick={() => setMenuOpen((o) => !o)} className="nav-burger" aria-label="Toggle menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {menuOpen ? (
+              <>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                <Link href="/login" onClick={() => setMenuOpen(false)}
-                  style={{ fontSize: '16px', color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontFamily: "'General Sans', sans-serif", fontWeight: 500 }}>
-                  Log in
-                </Link>
-                <Link href="/signup" onClick={() => setMenuOpen(false)}
-                  style={{ display: 'block', textAlign: 'center', borderRadius: '999px', background: 'var(--green)', color: '#000', fontSize: '14px', fontWeight: 600, padding: '12px 29px', textDecoration: 'none', fontFamily: "'General Sans', sans-serif" }}>
-                  Get started free
-                </Link>
-              </div>
+              <>
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </>
             )}
-          </div>
-        </div>
-      )}
-      <style>{`
-        @media (max-width: 768px) {
-          .navbar-web3-header { padding-left: 20px !important; padding-right: 20px !important; }
-          .navbar-web3-links { display: none !important; }
-          .navbar-web3-hamburger { display: flex !important; }
-        }
-      `}</style>
-    </>
+          </svg>
+        </button>
+      </div>
+
+      <div className={`container nav-mobile-menu${menuOpen ? ' open' : ''}`}>
+        {NAV_LINKS.map((link) => (
+          <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>
+        ))}
+        <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <GithubIcon size={15} color="currentColor" />
+          GitHub
+        </Link>
+        {auth.status === 'authed' ? (
+          <>
+            <Link href="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</Link>
+            <button onClick={() => { setMenuOpen(false); void handleLogout(); }} className="btn btn-outline" style={{ marginTop: 8 }}>Log out</button>
+          </>
+        ) : (
+          <>
+            <Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link>
+            <Link href="/signup" onClick={() => setMenuOpen(false)} className="btn btn-primary" style={{ marginTop: 8, justifyContent: 'center' }}>Get started free</Link>
+          </>
+        )}
+      </div>
+    </header>
   );
 }

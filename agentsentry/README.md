@@ -4,7 +4,7 @@
 [![PyPI](https://img.shields.io/pypi/v/nhi-audit?label=PyPI&color=00cc6a)](https://pypi.org/project/nhi-audit/)
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-AGPL--3.0-green)
 [![Website](https://img.shields.io/badge/website-agent--sentry--beta.vercel.app-brightgreen)](https://agent-sentry-beta.vercel.app)
 
 ![AgentSentry Demo](https://raw.githubusercontent.com/Abhiram-ops/agent-sentry/main/demo.gif)
@@ -122,4 +122,4 @@ agent-sentry/
 - **PyPI:** [pypi.org/project/nhi-audit](https://pypi.org/project/nhi-audit/)
 - **Issues:** [GitHub Issues](https://github.com/Abhiram-ops/agent-sentry/issues)
 
-**License:** MIT — free forever.
+**License:** AGPL-3.0 — free forever.

@@ -1,11 +1,10 @@
 import { NavbarWeb3 } from '@/components/layout/NavbarWeb3';
 import { HeroWeb3 } from '@/components/sections/HeroWeb3';
-import LiveAuditTerminal from '@/components/sections/LiveAuditTerminal';
-import Stats from '@/components/sections/Stats';
 import HowItWorks from '@/components/sections/HowItWorks';
 import Providers from '@/components/sections/Providers';
-import AttackGraphVisualizer from '@/components/sections/AttackGraphVisualizer';
+import LiveAuditTerminal from '@/components/sections/LiveAuditTerminal';
 import Features from '@/components/sections/Features';
+import AttackGraphVisualizer from '@/components/sections/AttackGraphVisualizer';
 import RiskCalculator from '@/components/sections/RiskCalculator';
 import MethodologySection from '@/components/sections/MethodologySection';
 import Pricing from '@/components/sections/Pricing';
@@ -18,27 +17,42 @@ export default function Home() {
     <main>
       <NavbarWeb3 />
       <HeroWeb3 />
-
-      {/* Proof of work — live static audit of an agent codebase */}
-      <section id="live-audit" aria-label="Live audit demonstration" className="container py-16">
-        <LiveAuditTerminal />
-      </section>
-
-      <Stats />
       <HowItWorks />
       <Providers />
 
-      {/* Proof of work — blast-radius attack graph with raw JSON evidence */}
-      <section id="attack-graph" aria-label="Attack graph demonstration" className="container py-16">
-        <AttackGraphVisualizer />
+      {/* Proof of work — live static audit of an agent codebase */}
+      <section id="live-audit" aria-label="Live audit demonstration" className="section section-dark">
+        <div className="container">
+          <div className="section-header centered">
+            <div className="section-label" style={{ justifyContent: 'center' }}>Proof of work</div>
+            <h2>Watch a real scan run</h2>
+            <p>
+              No staged demo — this is the actual CLI scanning a sample agent codebase and surfacing
+              a critical PREA finding line by line.
+            </p>
+          </div>
+          <LiveAuditTerminal />
+        </div>
       </section>
 
       <Features />
+
+      {/* Proof of work — blast-radius attack graph with raw JSON evidence */}
+      <section id="attack-graph" aria-label="Attack graph demonstration" className="section section-dark">
+        <div className="container">
+          <div className="section-header centered">
+            <div className="section-label" style={{ justifyContent: 'center' }}>Proof of work</div>
+            <h2>From one compromised agent to your data</h2>
+            <p>
+              Click a node to inspect the raw evidence behind each hop in the blast radius graph.
+            </p>
+          </div>
+          <AttackGraphVisualizer />
+        </div>
+      </section>
+
       <RiskCalculator />
-
-      {/* Academic methodology — PREA formula and the A-factor (renders its own <section>) */}
       <MethodologySection />
-
       <Pricing />
       <NewsletterSignup />
       <Contact />

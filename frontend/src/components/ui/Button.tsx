@@ -4,22 +4,22 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff88] focus-visible:ring-offset-2 focus-visible:ring-offset-[#04040e] disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
         default:
-          'bg-[#00ff88] text-[#04040e] font-semibold hover:bg-[#00e07a] shadow-[0_0_16px_rgba(0,255,136,0.25)] hover:shadow-[0_0_24px_rgba(0,255,136,0.4)]',
+          'bg-[var(--accent)] text-white font-semibold hover:bg-[var(--accent-hover)] shadow-[0_4px_14px_rgba(29,78,216,0.25)] hover:shadow-[0_4px_18px_rgba(29,78,216,0.35)]',
         destructive:
-          'bg-[#ff3366] text-white hover:bg-[#cc2952]',
+          'bg-[#ef4444] text-white hover:bg-[#dc2626]',
         outline:
-          'border border-[rgba(255,255,255,0.12)] bg-transparent text-white hover:bg-[rgba(0,255,136,0.08)] hover:border-[rgba(0,255,136,0.35)] hover:text-[#00ff88]',
+          'border border-[var(--border)] bg-transparent text-[var(--text)] hover:bg-[var(--bg-subtle)] hover:border-[#cbd5e1]',
         secondary:
-          'bg-[#101010] text-white border border-[rgba(255,255,255,0.08)] hover:bg-[#1a1a1a]',
+          'bg-[var(--bg-subtle)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--accent-subtle)]',
         ghost:
-          'text-white hover:bg-[rgba(0,255,136,0.08)] hover:text-[#00ff88]',
+          'text-[var(--text)] hover:bg-[var(--bg-subtle)]',
         link:
-          'text-[#00ff88] underline-offset-4 hover:underline p-0 h-auto',
+          'text-[var(--accent)] underline-offset-4 hover:underline p-0 h-auto',
       },
       size: {
         default: 'h-10 px-4 py-2',

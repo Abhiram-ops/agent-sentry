@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Container } from "@/components/ui/Container";
 
 const PRESETS = [
   { label: "ML Pipeline (Admin)",  p:9, r:8, e:3, a:1.0, note:"IAM role with AdministratorAccess" },
@@ -12,40 +11,40 @@ const PRESETS = [
   { label: "Monitoring SA (safe)", p:1, r:3, e:1, a:1.0, note:"Read-only, internal-only service account" },
 ];
 
-function riskLevel(score: number) {
-  if (score > 100) return { label:"CRITICAL", color:"#ff3366", bg:"rgba(255,51,102,0.10)" };
-  if (score > 50)  return { label:"HIGH",     color:"#ffcc00", bg:"rgba(255,204,0,0.10)" };
-  if (score > 20)  return { label:"MEDIUM",   color:"#ff8800", bg:"rgba(255,136,0,0.10)" };
-  return             { label:"LOW",      color:"#00cc66", bg:"rgba(0,204,102,0.10)" };
+const GAUGE_MAX = 1500; // 10 × 10 × 5 × 3
+
+function severity(score: number) {
+  if (score > 100) return { label: "CRITICAL", cls: "sev-critical", color: "#f87171" };
+  if (score > 50)  return { label: "HIGH",     cls: "sev-high",     color: "#fb923c" };
+  if (score > 20)  return { label: "MEDIUM",   cls: "sev-medium",   color: "#fbbf24" };
+  return               { label: "LOW",      cls: "sev-low",      color: "#4ade80" };
 }
 
-function Slider({ label, desc, value, min, max, step = 1, onChange, color }: {
-  label: string; desc: string; value: number; min: number; max: number; step?: number;
-  onChange: (v: number) => void; color: string;
+function trackStyle(value: number, min: number, max: number) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return { background: `linear-gradient(to right, #1d4ed8 ${pct}%, #1a2540 ${pct}%)` };
+}
+
+function Slider({ k, label, desc, value, min, max, step = 1, onChange }: {
+  k: string; label: string; desc: string; value: number; min: number; max: number; step?: number;
+  onChange: (v: number) => void;
 }) {
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline" }}>
-        <div>
-          <span style={{ color:"#fff", fontWeight:600, fontSize:14 }}>{label}</span>
-          <span style={{ color:"#3a3a3a", fontSize:12, marginLeft:8 }}>{desc}</span>
+    <div>
+      <div className="slider-header">
+        <div className="slider-label-wrap">
+          <span className="slider-key">{k}</span>
+          <span className="slider-name">{label}</span>
+          <span className="slider-desc">{desc}</span>
         </div>
-        <span style={{ fontFamily:"monospace", fontSize:20, fontWeight:700, color, minWidth:40, textAlign:"right" }}>{value}</span>
+        <span className="slider-val">{value.toFixed(1)}</span>
       </div>
-      <div style={{ position:"relative", height:6 }}>
-        <div style={{ position:"absolute", inset:0, borderRadius:3, background:"rgba(255,255,255,0.06)" }} />
-        <div style={{ position:"absolute", left:0, top:0, bottom:0, borderRadius:3, background:color, width:`${((value-min)/(max-min))*100}%`, transition:"width 0.1s" }} />
-        <input type="range" min={min} max={max} step={step} value={value}
-          onChange={e => onChange(parseFloat(e.target.value))}
-          style={{ position:"absolute", inset:0, width:"100%", opacity:0, cursor:"pointer", height:6, margin:0 }} />
-        <div style={{
-          position:"absolute", top:"50%", transform:"translate(-50%,-50%)",
-          left:`${((value-min)/(max-min))*100}%`,
-          width:16, height:16, borderRadius:"50%", background:color,
-          border:"2px solid #000", boxShadow:`0 0 8px ${color}80`,
-          pointerEvents:"none", transition:"left 0.1s",
-        }} />
-      </div>
+      <input
+        type="range" className="prea-slider"
+        min={min} max={max} step={step} value={value}
+        style={trackStyle(value, min, max)}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+      />
     </div>
   );
 }
@@ -57,107 +56,79 @@ export default function RiskCalculator() {
   const [a, setA] = useState(1.5);
 
   const score = p * r * e * a;
-  const lvl   = riskLevel(score);
-  const pct   = Math.min(100, (score / 500) * 100);
+  const sev = severity(score);
+  const pct = Math.min(100, (score / GAUGE_MAX) * 100);
 
   const apply = (preset: typeof PRESETS[0]) => {
     setP(preset.p); setR(preset.r); setE(preset.e); setA(preset.a);
   };
 
   return (
-    <section style={{ padding:"120px 0", position:"relative", overflow:"hidden" }}>
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
-
-      <Container>
-        <motion.div initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }}
-          viewport={{ once:true, margin:"-80px" }} transition={{ duration:0.5 }}
-          style={{ textAlign:"center", marginBottom:64 }}>
-          <div style={{ fontFamily:"monospace", fontSize:11, color:"#00ff88", marginBottom:16, letterSpacing:"0.2em", textTransform:"uppercase" }}>P×R×E×A Calculator</div>
-          <h2 style={{ fontSize:"clamp(2rem,3.5vw,3rem)", fontWeight:700, color:"#fff", marginBottom:16, lineHeight:1.1, letterSpacing:"-0.02em" }}>
-            Compute any NHI&apos;s risk score.
-          </h2>
-          <p style={{ color:"#4a4a4a", maxWidth:480, margin:"0 auto", fontSize:"clamp(0.95rem,1.4vw,1.05rem)", lineHeight:1.75 }}>
+    <section id="calculator" className="section section-dark">
+      <div className="container">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.5 }}
+          className="section-header centered">
+          <div className="section-label" style={{ justifyContent: "center" }}>P×R×E×A Calculator</div>
+          <h2>Compute any NHI&apos;s risk score.</h2>
+          <p>
             Drag the sliders or pick a preset to see how Privilege, Reachability, Exposure,
             and AI-Amplification combine into a real risk score.
           </p>
         </motion.div>
 
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, maxWidth:960, margin:"0 auto" }} className="calc-grid">
-          {/* Sliders */}
-          <motion.div initial={{ opacity:0, y:24 }} whileInView={{ opacity:1, y:0 }}
-            viewport={{ once:true }} transition={{ duration:0.5 }}
-            style={{ padding:"36px 32px", borderRadius:20, border:"1px solid rgba(255,255,255,0.06)", background:"linear-gradient(145deg,#070707,#050505)", display:"flex", flexDirection:"column", gap:28 }}>
-
-            <Slider label="P" desc="Privilege (0–10)"         value={p} min={0} max={10} onChange={setP} color="#ff3366" />
-            <Slider label="R" desc="Reachability (0–10)"      value={r} min={0} max={10} onChange={setR} color="#ff8800" />
-            <Slider label="E" desc="Exposure (0–5)"           value={e} min={0} max={5}  onChange={setE} color="#ffcc00" />
-            <Slider label="A" desc="AI-Amplification (1–3×)"  value={a} min={1} max={3}  step={0.1} onChange={setA} color="#0099ff" />
-
-            {/* Formula */}
-            <div style={{ padding:"14px 16px", borderRadius:10, background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.05)", fontFamily:"monospace", fontSize:14, color:"#333", display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-              <span style={{ color:"#ff3366" }}>{p}</span>
-              <span>×</span>
-              <span style={{ color:"#ff8800" }}>{r}</span>
-              <span>×</span>
-              <span style={{ color:"#ffcc00" }}>{e}</span>
-              <span>×</span>
-              <span style={{ color:"#0099ff" }}>{a.toFixed(1)}</span>
-              <span>=</span>
-              <span style={{ color:"#fff", fontWeight:700, fontSize:16 }}>{score.toFixed(1)}</span>
-            </div>
+        <div className="prea-layout">
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.5 }}
+            className="prea-sliders">
+            <Slider k="P" label="Privilege" desc="(0–10)" value={p} min={0} max={10} onChange={setP} />
+            <Slider k="R" label="Reachability" desc="(0–10)" value={r} min={0} max={10} onChange={setR} />
+            <Slider k="E" label="Exposure" desc="(0–5)" value={e} min={0} max={5} onChange={setE} />
+            <Slider k="A" label="AI-Amplification" desc="(1–3×)" value={a} min={1} max={3} step={0.1} onChange={setA} />
           </motion.div>
 
-          {/* Score display */}
-          <motion.div initial={{ opacity:0, y:24 }} whileInView={{ opacity:1, y:0 }}
-            viewport={{ once:true }} transition={{ duration:0.5, delay:0.08 }}
-            style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.08 }}
+            className="prea-card">
+            <div className="prea-formula-bar">
+              <span>{p.toFixed(1)}</span> × <span>{r.toFixed(1)}</span> × <span>{e.toFixed(1)}</span> × <span>{a.toFixed(1)}</span> = <strong style={{ color: "white" }}>{score.toFixed(1)}</strong>
+            </div>
 
-            {/* Big score */}
-            <div style={{ padding:"32px 28px", borderRadius:20, border:`1px solid ${lvl.color}25`, background:`linear-gradient(145deg, #070707, #050505)`, flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12, position:"relative", overflow:"hidden" }}>
-              <div style={{ height:2, position:"absolute", top:0, left:0, right:0, background:`linear-gradient(90deg, transparent, ${lvl.color}50, transparent)` }} />
-              <motion.div key={lvl.label} initial={{ scale:0.85, opacity:0 }} animate={{ scale:1, opacity:1 }} transition={{ duration:0.25 }}
-                style={{ padding:"6px 18px", borderRadius:20, background:lvl.bg, color:lvl.color, border:`1px solid ${lvl.color}30`, fontFamily:"monospace", fontWeight:700, fontSize:13, letterSpacing:"0.12em" }}>
-                {lvl.label}
-              </motion.div>
-              <motion.div key={score.toFixed(0)} initial={{ y:10, opacity:0 }} animate={{ y:0, opacity:1 }} transition={{ duration:0.2 }}
-                style={{ fontSize:"clamp(3rem,6vw,5rem)", fontWeight:700, fontFamily:"monospace", color:lvl.color, lineHeight:1, letterSpacing:"-0.03em" }}>
-                {score.toFixed(1)}
-              </motion.div>
-              {/* Progress bar */}
-              <div style={{ width:"100%", height:6, borderRadius:3, background:"rgba(255,255,255,0.05)", overflow:"hidden" }}>
-                <motion.div layout style={{ height:"100%", borderRadius:3, background:lvl.color, width:`${pct}%` }} transition={{ duration:0.3 }} />
+            <div className="prea-score-area">
+              <div className="prea-score-num" style={{ color: sev.color }}>{score % 1 === 0 ? score.toFixed(0) : score.toFixed(1)}</div>
+              <div className={`prea-sev-badge ${sev.cls}`}>{sev.label}</div>
+              <div className="prea-gauge-track">
+                <div className="prea-gauge-fill" style={{ width: `${pct}%`, backgroundColor: sev.color }} />
               </div>
-              <div style={{ fontSize:12, color:"#2a2a2a", fontFamily:"monospace" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#475569" }}>
                 threshold: &gt;100 CRITICAL · &gt;50 HIGH · &gt;20 MEDIUM
               </div>
             </div>
 
-            {/* Presets */}
-            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              <div style={{ fontSize:11, fontFamily:"monospace", color:"#2a2a2a", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:4 }}>Real-world presets</div>
-              {PRESETS.map(preset => (
-                <button key={preset.label} onClick={() => apply(preset)}
-                  style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 14px", borderRadius:10, border:"1px solid rgba(255,255,255,0.05)", background:"rgba(255,255,255,0.02)", cursor:"pointer", textAlign:"left", transition:"all 0.15s" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.10)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.05)"; }}>
-                  <div>
-                    <div style={{ color:"#888", fontSize:13 }}>{preset.label}</div>
-                    <div style={{ color:"#2a2a2a", fontSize:11, fontFamily:"monospace", marginTop:2 }}>{preset.note}</div>
-                  </div>
-                  <div style={{ fontFamily:"monospace", fontSize:14, fontWeight:700, color: riskLevel(preset.p*preset.r*preset.e*preset.a).color }}>
-                    {(preset.p*preset.r*preset.e*preset.a).toFixed(0)}
-                  </div>
-                </button>
-              ))}
+            <div className="prea-breakdown">
+              <div className="breakdown-cell"><div className="breakdown-key">P</div><div className="breakdown-value">{p.toFixed(1)}</div></div>
+              <div className="breakdown-cell"><div className="breakdown-key">R</div><div className="breakdown-value">{r.toFixed(1)}</div></div>
+              <div className="breakdown-cell"><div className="breakdown-key">E</div><div className="breakdown-value">{e.toFixed(1)}</div></div>
+              <div className="breakdown-cell"><div className="breakdown-key">A</div><div className="breakdown-value">{a.toFixed(1)}</div></div>
+            </div>
+
+            <div className="presets-label">Real-world presets</div>
+            <div className="presets-list">
+              {PRESETS.map((preset) => {
+                const presetScore = preset.p * preset.r * preset.e * preset.a;
+                return (
+                  <button key={preset.label} className="preset-btn" onClick={() => apply(preset)}>
+                    <span className="preset-btn-name">{preset.label}</span>
+                    <span className="preset-btn-score" style={{ color: severity(presetScore).color }}>
+                      {presetScore.toFixed(0)}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
         </div>
-      </Container>
-
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
-      <style>{`
-        @media (max-width: 720px) { .calc-grid { grid-template-columns: 1fr !important; } }
-      `}</style>
+      </div>
     </section>
   );
 }

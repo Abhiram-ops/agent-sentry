@@ -124,7 +124,7 @@ export default function Hero() {
           viewport={VP} transition={TR}>
           <span className="pill pill-live"><span className="dot" aria-hidden="true"/>Live</span>
           <span className="pill">v0.1.4</span>
-          <span className="pill">MIT License</span>
+          <span className="pill">AGPL-3.0 License</span>
         </motion.div>
 
         <motion.h1

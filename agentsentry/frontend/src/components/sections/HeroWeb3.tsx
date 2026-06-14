@@ -223,7 +223,7 @@ export function HeroWeb3() {
 
           <motion.div variants={fadeUp}
             style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 }}>
-            {([['1,610+', 'Active CVEs'], ['45:1', 'Machine/human ratio'], ['Open Source', 'MIT Licensed']] as [string,string][]).map(([val, lbl], i) => (
+            {([['1,610+', 'Active CVEs'], ['45:1', 'Machine/human ratio'], ['Open Source', 'AGPL-3.0 Licensed']] as [string,string][]).map(([val, lbl], i) => (
               <motion.div key={i} whileHover={{ y: -3 }} transition={{ type: 'spring', stiffness: 300 }}
                 style={{ textAlign: 'center', padding: '12px 20px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)', cursor: 'default' }}>
                 <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: 'monospace', letterSpacing: '-0.02em' }}>{val}</div>

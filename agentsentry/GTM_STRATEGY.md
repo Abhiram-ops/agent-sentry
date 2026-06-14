@@ -78,7 +78,7 @@ Your free tool sits at the intersection of all three. That's the pitch.
 
 **GitHub Secure Open Source Fund**
 - Apply immediately at github.com/open-source/github-secure-open-source-fund
-- You are EXACTLY what they fund: open-source security tool, MIT licensed
+- You are EXACTLY what they fund: open-source security tool, AGPL-3.0 licensed
 - Award: **$10,000 one-time** + Azure credits + mentorship
 - AgentSentry hits every criterion they look for
 

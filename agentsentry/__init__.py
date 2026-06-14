@@ -3,4 +3,4 @@
 __version__ = "0.1.7"
 __author__ = "Abhiram Lanka"
 __email__ = "lankaabhiram16@gmail.com"
-__license__ = "MIT"
+__license__ = "AGPL-3.0-or-later"

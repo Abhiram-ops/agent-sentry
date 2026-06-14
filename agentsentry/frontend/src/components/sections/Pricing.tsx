@@ -15,7 +15,7 @@ const FREE = [
   "MITRE ATT&CK technique mapping",
   "Blast radius analysis",
   "CLI — runs locally, no data leaves you",
-  "Open source — MIT license",
+  "Open source — AGPL-3.0 license",
 ];
 
 // Pro tier: what you unlock with a license key
@@ -142,7 +142,7 @@ export default function Pricing() {
               <div style={{ display:"flex", alignItems:"flex-end", gap:4, marginBottom:6 }}>
                 <span style={{ fontSize:64, fontWeight:700, color:"#fff", lineHeight:1 }}>$0</span>
               </div>
-              <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>Open source · MIT · free forever</div>
+              <div style={{ fontSize:13, color:"#777777", fontFamily:"monospace" }}>Open source · AGPL-3.0 · free forever</div>
             </div>
 
             <Link href="https://github.com/Abhiram-ops/agent-sentry" target="_blank"

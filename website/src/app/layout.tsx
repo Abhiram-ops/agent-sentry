@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AgentSentry — NHI & AI Agent Security Scanner",
   description:
-    "Finds every IAM role, API key, SSH key, and AI agent in your cloud. Scores each one's blast radius. Open source, MIT, free.",
+    "Finds every IAM role, API key, SSH key, and AI agent in your cloud. Scores each one's blast radius. Open source, AGPL-3.0, free.",
   keywords: ["non-human identity", "NHI security", "AI agent security", "cloud security", "IAM audit", "CISA KEV"],
   authors: [{ name: "Abhiram Lanka" }],
   openGraph: {

@@ -107,7 +107,7 @@ export default function Footer() {
           </div>
 
           <div className="text-xs text-[#555] font-mono">
-            MIT License · Built by Abhiram Lanka · 2026
+            AGPL-3.0 License · Built by Abhiram Lanka · 2026
           </div>
         </div>
       </div>

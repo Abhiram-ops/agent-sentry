@@ -8,23 +8,23 @@ interface BadgeProps {
 
 const VARIANT_STYLES: Record<string, React.CSSProperties> = {
   green: {
-    color: "var(--green)",
-    background: "rgba(0, 255, 136, 0.06)",
-    border: "1px solid rgba(0, 255, 136, 0.15)",
+    color: "var(--accent)",
+    background: "var(--accent-subtle)",
+    border: "1px solid var(--accent-muted)",
   },
   red: {
-    color: "var(--red)",
-    background: "rgba(255, 51, 102, 0.06)",
-    border: "1px solid rgba(255, 51, 102, 0.15)",
+    color: "#dc2626",
+    background: "#fef2f2",
+    border: "1px solid #fecaca",
   },
   yellow: {
-    color: "var(--yellow)",
-    background: "rgba(255, 204, 0, 0.06)",
-    border: "1px solid rgba(255, 204, 0, 0.15)",
+    color: "#b45309",
+    background: "#fffbeb",
+    border: "1px solid #fde68a",
   },
   neutral: {
-    color: "var(--text-2)",
-    background: "rgba(255, 255, 255, 0.04)",
+    color: "var(--text-muted)",
+    background: "var(--bg-subtle)",
     border: "1px solid var(--border)",
   },
 };

@@ -35,17 +35,7 @@ function formatDate(iso: string): string {
 }
 
 function Banner({ kind, children }: { kind: 'success' | 'error'; children: React.ReactNode }) {
-  const green = kind === 'success';
-  return (
-    <div style={{
-      borderRadius: 12, padding: '14px 18px', fontSize: 14,
-      border: `1px solid ${green ? 'rgba(0,255,136,0.25)' : 'rgba(255,51,102,0.25)'}`,
-      background: green ? 'rgba(0,255,136,0.06)' : 'rgba(255,51,102,0.06)',
-      color: green ? '#7dffc0' : '#ff8da3',
-    }}>
-      {children}
-    </div>
-  );
+  return <div className={`dash-banner ${kind}`}>{children}</div>;
 }
 
 export default function DashboardPage() {
@@ -192,39 +182,31 @@ export default function DashboardPage() {
     }
   }
 
-  const cardStyle: React.CSSProperties = {
-    borderRadius: 16, border: '1px solid rgba(255,255,255,0.07)',
-    background: 'linear-gradient(160deg, #070707 0%, #050505 100%)', padding: 28,
-  };
-  const labelStyle: React.CSSProperties = {
-    fontFamily: 'monospace', fontSize: 11, color: '#888', letterSpacing: '0.1em', textTransform: 'uppercase',
-  };
-
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#030303', color: '#fff' }}>
+    <div className="auth-shell">
       <Navbar />
-      <main style={{ flex: 1, padding: '120px 24px 80px' }}>
+      <main style={{ flex: 1, padding: '140px 24px 80px' }}>
         <div style={{ maxWidth: 880, margin: '0 auto', width: '100%' }}>
           <div style={{ marginBottom: 32 }}>
-            <p style={{ ...labelStyle, color: '#00ff88', marginBottom: 10 }}>Dashboard</p>
-            <h1 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 700 }}>Your account</h1>
+            <p className="dash-label" style={{ color: 'var(--accent)', marginBottom: 10 }}>Dashboard</p>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 700, color: 'var(--text)' }}>Your account</h1>
           </div>
 
-          {loading && <p style={{ color: '#888' }}>Loading…</p>}
+          {loading && <p style={{ color: 'var(--text-muted)' }}>Loading…</p>}
 
           {!loading && profile && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {banner && <Banner kind={banner.kind}>{banner.text}</Banner>}
 
               {/* Profile */}
-              <section style={cardStyle}>
-                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>Profile</h2>
+              <section className="dash-card">
+                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20, color: 'var(--text)' }}>Profile</h2>
 
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ ...labelStyle, marginBottom: 6 }}>Email</div>
+                  <div className="dash-label" style={{ marginBottom: 6 }}>Email</div>
                   {!changingEmail ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 15, color: '#fff' }}>{profile.email}</span>
+                      <span style={{ fontSize: 15, color: 'var(--text)' }}>{profile.email}</span>
                       <Button variant="outline" size="sm" onClick={() => { setChangingEmail(true); setBanner(null); }}>
                         <Mail style={{ width: 13, height: 13, marginRight: 6 }} /> Change email
                       </Button>
@@ -233,7 +215,8 @@ export default function DashboardPage() {
                     <form onSubmit={handleChangeEmail} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
                       <input type="email" required value={newEmail} onChange={e => setNewEmail(e.target.value)}
                         placeholder="new@example.com"
-                        style={{ flex: 1, minWidth: 220, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none' }} />
+                        className="auth-input"
+                        style={{ flex: 1, minWidth: 220, width: 'auto' }} />
                       <Button type="submit" size="sm" disabled={emailBusy}>{emailBusy ? 'Sending…' : 'Send confirmation'}</Button>
                       <Button type="button" variant="ghost" size="sm" onClick={() => { setChangingEmail(false); setNewEmail(''); }}>Cancel</Button>
                     </form>
@@ -241,17 +224,17 @@ export default function DashboardPage() {
                 </div>
 
                 <div>
-                  <div style={{ ...labelStyle, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div className="dash-label" style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <KeyRound style={{ width: 12, height: 12 }} /> API key
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <code style={{ flex: 1, minWidth: 240, padding: '11px 14px', borderRadius: 10, border: '1px solid rgba(0,255,136,0.2)', background: 'rgba(0,255,136,0.04)', color: '#00ff88', fontSize: 13, wordBreak: 'break-all' }}>
+                    <code className="copy-field-code" style={{ minWidth: 240 }}>
                       {showKey ? profile.api_key : profile.api_key_preview}
                     </code>
-                    <button type="button" onClick={() => setShowKey(s => !s)} style={{ ...labelStyle, background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 12px', color: '#a0a0a0', cursor: 'pointer' }}>
+                    <button type="button" onClick={() => setShowKey(s => !s)} className="dash-label" style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', color: 'var(--text-muted)', cursor: 'pointer' }}>
                       {showKey ? 'Hide' : 'Show'}
                     </button>
-                    <button type="button" onClick={handleCopyKey} aria-label="Copy API key" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: copied ? '#00ff88' : '#a0a0a0', cursor: 'pointer' }}>
+                    <button type="button" onClick={handleCopyKey} aria-label="Copy API key" className={`copy-field-btn ${copied ? 'copied' : ''}`} style={{ width: 42, height: 42 }}>
                       {copied ? <Check style={{ width: 16, height: 16 }} /> : <Copy style={{ width: 16, height: 16 }} />}
                     </button>
                   </div>
@@ -262,22 +245,22 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ ...labelStyle, marginBottom: 8 }}>CLI activation {profile.is_cli_activated ? '· activated' : '· not yet activated'}</div>
-                  <code style={{ display: 'block', padding: '11px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)', color: '#00ff88', fontSize: 13 }}>
+                <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+                  <div className="dash-label" style={{ marginBottom: 8 }}>CLI activation {profile.is_cli_activated ? '· activated' : '· not yet activated'}</div>
+                  <code className="next-step-box" style={{ display: 'block', color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
                     agentsentry activate {profile.activation_code ?? 'AS-FREE-XXXX-XXXX-XXXX-XXXX'}
                   </code>
                 </div>
               </section>
 
               {/* Credits */}
-              <section style={cardStyle}>
+              <section className="dash-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
                   <div>
-                    <div style={{ ...labelStyle, marginBottom: 6 }}>Current balance</div>
+                    <div className="dash-label" style={{ marginBottom: 6 }}>Current balance</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: 32, fontWeight: 700, color: '#00ff88' }}>{profile.credits_balance.toFixed(2)}</span>
-                      <span style={{ color: '#888', fontSize: 14 }}>credits</span>
+                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: 32, fontWeight: 700, color: 'var(--accent)' }}>{profile.credits_balance.toFixed(2)}</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>credits</span>
                       <Badge variant={profile.tier === 'pro' ? 'green' : 'neutral'} dot={profile.tier === 'pro'}>
                         {profile.tier === 'pro' ? 'Pro' : 'Free'}
                       </Badge>
@@ -285,31 +268,31 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div style={{ ...labelStyle, marginBottom: 10 }}>Transaction history</div>
+                <div className="dash-label" style={{ marginBottom: 10 }}>Transaction history</div>
                 {transactions.length === 0 ? (
-                  <p style={{ color: '#888', fontSize: 14 }}>No transactions yet.</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No transactions yet.</p>
                 ) : (
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse' }}>
+                    <table className="dash-table">
                       <thead>
-                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                          <th style={{ textAlign: 'left', padding: '10px 8px', color: '#888', fontWeight: 500 }}>Action</th>
-                          <th style={{ textAlign: 'right', padding: '10px 8px', color: '#888', fontWeight: 500 }}>Credits</th>
-                          <th style={{ textAlign: 'right', padding: '10px 8px', color: '#888', fontWeight: 500 }}>Cost</th>
-                          <th style={{ textAlign: 'right', padding: '10px 8px', color: '#888', fontWeight: 500 }}>Date</th>
+                        <tr>
+                          <th>Action</th>
+                          <th>Credits</th>
+                          <th>Cost</th>
+                          <th>Date</th>
                         </tr>
                       </thead>
                       <tbody>
                         {transactions.map(tx => (
-                          <tr key={tx.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                            <td style={{ padding: '10px 8px', color: '#fff' }}>{formatAction(tx.action)}</td>
-                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'monospace', color: tx.credits_amount >= 0 ? '#00ff88' : '#ff6b6b' }}>
+                          <tr key={tx.id}>
+                            <td>{formatAction(tx.action)}</td>
+                            <td style={{ fontFamily: 'var(--font-mono)', color: tx.credits_amount >= 0 ? 'var(--accent)' : '#dc2626' }}>
                               {tx.credits_amount >= 0 ? '+' : ''}{tx.credits_amount.toFixed(2)}
                             </td>
-                            <td style={{ padding: '10px 8px', textAlign: 'right', color: '#a0a0a0' }}>
+                            <td style={{ color: 'var(--text-muted)' }}>
                               {tx.cost_usd !== null ? `$${tx.cost_usd.toFixed(2)}` : '—'}
                             </td>
-                            <td style={{ padding: '10px 8px', textAlign: 'right', color: '#888' }}>{formatDate(tx.created_at)}</td>
+                            <td style={{ color: 'var(--text-faint)' }}>{formatDate(tx.created_at)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -319,16 +302,16 @@ export default function DashboardPage() {
               </section>
 
               {/* Buy credits */}
-              <section style={cardStyle}>
-                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Buy credits</h2>
-                <p style={{ color: '#888', fontSize: 14, marginBottom: 20 }}>Pay-as-you-go. Credits never expire.</p>
+              <section className="dash-card">
+                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: 'var(--text)' }}>Buy credits</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>Pay-as-you-go. Credits never expire.</p>
                 <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
                   {CREDIT_PACKAGES.map(pkg => (
-                    <div key={pkg.id} style={{ borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div key={pkg.id} className="dash-pkg-card">
                       <div>
-                        <p style={{ color: '#a0a0a0', fontSize: 13, fontWeight: 500 }}>{pkg.name}</p>
-                        <p style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>${pkg.priceUsd}</p>
-                        <p style={{ color: '#888', fontSize: 13, marginTop: 2 }}>{pkg.credits} credits</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 500 }}>{pkg.name}</p>
+                        <p style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 700, marginTop: 4, color: 'var(--text)' }}>${pkg.priceUsd}</p>
+                        <p style={{ color: 'var(--text-faint)', fontSize: 13, marginTop: 2 }}>{pkg.credits} credits</p>
                       </div>
                       <Button onClick={() => handleBuy(pkg.id)} disabled={buyingId !== null} fullWidth>
                         {buyingId === pkg.id ? 'Redirecting…' : 'Buy'}

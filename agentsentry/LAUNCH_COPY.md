@@ -49,7 +49,7 @@ Try it with no cloud credentials:
 GitHub: https://github.com/Abhiram-ops/agent-sentry
 Site: https://agent-sentry-beta.vercel.app
 
-Built in Python, MIT licensed. Would love feedback on the scoring model — I have a research paper formalizing it but I'm genuinely uncertain whether the multiplicative formulation is the right choice vs additive.
+Built in Python, AGPL-3.0 licensed. Would love feedback on the scoring model — I have a research paper formalizing it but I'm genuinely uncertain whether the multiplicative formulation is the right choice vs additive.
 
 ---
 
@@ -77,7 +77,7 @@ pip install nhi-audit
 agentsentry scan mock
 ```
 
-MIT licensed: https://github.com/Abhiram-ops/agent-sentry
+AGPL-3.0 licensed: https://github.com/Abhiram-ops/agent-sentry
 
 Feedback welcome, especially on the scoring model. I'm aware the permission weight table is manually curated and that's a weakness.
 
@@ -117,7 +117,7 @@ The AI-Amplification part is what makes this different from existing CIEM tools.
 
 Key results: a fully autonomous LangChain CRM agent scores 60× higher than an equivalent static IAM role at identical privilege levels. That vulnerability is completely invisible to privilege-only scoring tools.
 
-Open source, MIT licensed, free forever. Try it in 30 seconds:
+Open source, AGPL-3.0 licensed, free forever. Try it in 30 seconds:
 
 pip install nhi-audit
 agentsentry scan mock

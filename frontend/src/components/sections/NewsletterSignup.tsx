@@ -29,46 +29,40 @@ export function NewsletterSignup() {
   };
 
   return (
-    <section style={{ background: "transparent", borderTop: "1px solid #111", borderBottom: "1px solid #111", padding: "64px 24px" }}>
-      <div style={{ maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
-        <div style={{ display: "inline-block", padding: "4px 14px", borderRadius: 20, background: "rgba(0,255,136,0.08)", border: "1px solid rgba(0,255,136,0.15)", fontSize: 12, color: "#00ff88", marginBottom: 20, fontFamily: "monospace" }}>
-          BLAST RADIUS BY AGENTSENTRY
-        </div>
-        <h2 style={{ fontSize: 26, fontWeight: 700, color: "#fff", marginBottom: 12 }}>
-          Stay ahead of machine identity threats
-        </h2>
-        <p style={{ color: "#666", fontSize: 15, lineHeight: 1.7, marginBottom: 32 }}>
+    <section className="section section-dark">
+      <div className="container newsletter-inner">
+        <span className="newsletter-eyebrow">Blast Radius by AgentSentry</span>
+        <h2>Stay ahead of machine identity threats</h2>
+        <p>
           Weekly intel on NHI security and AI agent risks — real findings, practical commands, no fluff.
           Join security engineers and DevOps teams already subscribed.
         </p>
 
         {status === "success" ? (
-          <div style={{ padding: "16px 24px", background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", borderRadius: 12, color: "#00ff88", fontSize: 14 }}>
+          <div style={{ padding: "16px 24px", background: "rgba(29,78,216,0.1)", border: "1px solid rgba(29,78,216,0.25)", borderRadius: "var(--radius)", color: "#93c5fd", fontSize: 14 }}>
             You&apos;re in. Check your inbox for a welcome from Blast Radius.
           </div>
         ) : (
-          <form onSubmit={submit} style={{ display: "flex", gap: 10, maxWidth: 440, margin: "0 auto", flexWrap: "wrap", justifyContent: "center" }}>
+          <form onSubmit={submit} className="newsletter-form">
             <input
               type="email"
+              className="newsletter-input"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
               required
               disabled={status === "loading"}
-              style={{ flex: 1, minWidth: 220, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "12px 16px", color: "#fff", fontSize: 14, outline: "none" }}
-              onFocus={e => { e.target.style.borderColor = "rgba(0,255,136,0.4)"; }}
-              onBlur={e => { e.target.style.borderColor = "rgba(255,255,255,0.1)"; }}
             />
-            <button type="submit" disabled={status === "loading"} style={{ background: "#00ff88", border: "none", borderRadius: 10, padding: "12px 24px", color: "#000", fontWeight: 700, fontSize: 14, cursor: "pointer", whiteSpace: "nowrap", opacity: status === "loading" ? 0.7 : 1 }}>
+            <button type="submit" disabled={status === "loading"} className="btn btn-primary">
               {status === "loading" ? "..." : "Subscribe free"}
             </button>
           </form>
         )}
 
         {status === "error" && (
-          <p style={{ color: "#ff3366", fontSize: 13, marginTop: 12 }}>Something went wrong. Try again.</p>
+          <p className="newsletter-status" style={{ color: "var(--critical)" }}>Something went wrong. Try again.</p>
         )}
-        <p style={{ color: "#333", fontSize: 12, marginTop: 16 }}>No spam. Unsubscribe anytime. Every Tuesday.</p>
+        <p className="newsletter-note">No spam. Unsubscribe anytime. Every Tuesday.</p>
       </div>
     </section>
   );

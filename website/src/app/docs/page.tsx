@@ -85,7 +85,7 @@ export default function DocsPage() {
         {/* Content */}
         <main style={S.main}>
           <div style={{ marginBottom: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {[["PyPI", "#00ff88"], ["MIT", "#00cc6a"], ["Python 3.10+", "#3b82f6"]].map(([label, color]) => (
+            {[["PyPI", "#00ff88"], ["AGPL-3.0", "#00cc6a"], ["Python 3.10+", "#3b82f6"]].map(([label, color]) => (
               <span key={label} style={{ ...S.badge, background: `${color}18`, color, border: `1px solid ${color}33` }}>{label}</span>
             ))}
           </div>

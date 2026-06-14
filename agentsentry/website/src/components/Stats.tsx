@@ -10,7 +10,7 @@ const VP = { once: true, margin: "0px 0px -6% 0px" };
 const STATS = [
   { micro: "NHI Ratio",     count: 45,   suffix: ":1",  label: "Machine to human identities in the average cloud environment" },
   { micro: "KEV CVEs",      count: 1610, suffix: "+",   label: "Actively exploited CVEs cross-referenced from CISA" },
-  { micro: "Cost",          count: null, display: "$0", label: "Free forever. MIT license. No account needed." },
+  { micro: "Cost",          count: null, display: "$0", label: "Free forever. AGPL-3.0 license. No account needed." },
   { micro: "Time to scan",  count: null, display: "< 3 min", label: "Average time to first result on a fresh environment" },
 ];
 

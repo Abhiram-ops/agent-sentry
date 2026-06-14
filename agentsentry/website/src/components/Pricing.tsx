@@ -96,7 +96,7 @@ export default function Pricing() {
             <span className="price-tier">Community</span>
             <h3 className="price-h">Free</h3>
             <div className="price-amt"><span className="amt">$0</span></div>
-            <p className="price-desc">Open source. MIT. No account needed.</p>
+            <p className="price-desc">Open source. AGPL-3.0. No account needed.</p>
 
             {freeStatus === "ok" ? (
               <div className="claim-ok">✓ Check your inbox — installer + key sent</div>

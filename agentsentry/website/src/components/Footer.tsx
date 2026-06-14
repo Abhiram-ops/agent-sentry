@@ -61,7 +61,7 @@ export default function Footer() {
           <div className="foot-col">
             <h4>Legal</h4>
             <ul>
-              <li><a href="https://github.com/Abhiram-ops/agent-sentry/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></li>
+              <li><a href="https://github.com/Abhiram-ops/agent-sentry/blob/main/LICENSE" target="_blank" rel="noopener">AGPL-3.0 License</a></li>
               <li><a href="#">Privacy</a></li>
               <li><a href="mailto:agentsentry.tool@gmail.com">Contact</a></li>
             </ul>
@@ -70,7 +70,7 @@ export default function Footer() {
 
         <div className="foot-bottom">
           <span className="mono">© 2026 AgentSentry &nbsp;·&nbsp; Built by Abhiram Lanka</span>
-          <span className="mono">MIT License</span>
+          <span className="mono">AGPL-3.0 License</span>
         </div>
       </div>
     </footer>

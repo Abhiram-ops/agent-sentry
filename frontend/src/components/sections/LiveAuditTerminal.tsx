@@ -52,7 +52,7 @@ const COMMAND = "agentsentry scan agents --pro";
 const FINDING_AT = 8;
 
 const SCRIPT: readonly ScriptLine[] = [
-  { kind: "muted", text: "AgentSentry v0.1.5 · Pro license verified (HMAC offline)", delayMs: 300 },
+  { kind: "muted", text: "AgentSentry v0.1.7 · Pro license verified (HMAC offline)", delayMs: 300 },
   { kind: "stdout", text: "Discovering agent frameworks in ./ ...", delayMs: 350 },
   { kind: "stdout", text: "  found: LangChain 0.3.x (AgentExecutor) · 1 graph, 4 tools", delayMs: 420 },
   { kind: "success", text: "✓ chains/rag_chain.py — retrieval only, no tool surface [SAFE]", delayMs: 380 },
