@@ -1,8 +1,12 @@
 import { Resend } from 'resend';
-import type { Tier } from '@/lib/db';
+import type { Tier, ScanReportSummary } from '@/lib/db';
 
 const FROM = 'AgentSentry <noreply@agentsentry.org>';
 const REPLY_TO = 'support@agentsentry.org';
+
+function dashboardUrl(): string {
+  return `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://agent-sentry-beta.vercel.app'}/dashboard`;
+}
 
 function shell(title: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
@@ -180,4 +184,75 @@ export function sendProGuideEmail(email: string): Promise<boolean> {
      </p>`,
   );
   return send(email, 'Your AgentSentry Pro usage guide', html);
+}
+
+/** Automation: emails the summary of a scheduled scan (new NHIs, newly-zombie creds, rotation-due creds). */
+export function sendScanReportEmail(email: string, summary: ScanReportSummary): Promise<boolean> {
+  const target = summary.target.toUpperCase();
+  const sections: string[] = [];
+
+  if (summary.new_nhis.length) {
+    sections.push(`
+     <p style="color:#ff4d4d;font-weight:700;margin:24px 0 8px;">New identities detected (${summary.new_nhis.length})</p>
+     <div style="background:#000;border-radius:6px;padding:12px 16px;">
+       ${summary.new_nhis
+         .map(
+           (n) => `<div style="margin:10px 0;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);">
+             <p style="color:rgba(255,255,255,0.9);margin:0;font-size:0.9rem;"><strong>${n.name}</strong> &mdash; ${n.risk_level} (score ${n.risk_score.toFixed(1)})</p>
+             <p style="color:rgba(255,255,255,0.5);margin:4px 0 0;font-size:0.8rem;">${n.suggestion}</p>
+           </div>`,
+         )
+         .join('')}
+     </div>`);
+  }
+
+  if (summary.newly_zombie.length) {
+    sections.push(`
+     <p style="color:#ffaa00;font-weight:700;margin:24px 0 8px;">Newly zombie credentials (${summary.newly_zombie.length})</p>
+     <div style="background:#000;border-radius:6px;padding:12px 16px;">
+       ${summary.newly_zombie
+         .map(
+           (z) => `<p style="color:rgba(255,255,255,0.8);margin:6px 0;font-size:0.85rem;">${z.name} &mdash; ${z.days_since_use === null ? 'never used' : `unused for ${z.days_since_use} days`}</p>`,
+         )
+         .join('')}
+     </div>
+     <p style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin:8px 0 0;">Consider revoking these credentials if they're no longer needed.</p>`);
+  }
+
+  if (summary.rotation_due.length) {
+    sections.push(`
+     <p style="color:#ffaa00;font-weight:700;margin:24px 0 8px;">Rotation due (${summary.rotation_due.length})</p>
+     <div style="background:#000;border-radius:6px;padding:12px 16px;">
+       ${summary.rotation_due
+         .map(
+           (r) => `<p style="color:rgba(255,255,255,0.8);margin:6px 0;font-size:0.85rem;">${r.name} &mdash; ${r.days_since_rotation === null ? 'rotation date unknown' : `last rotated ${r.days_since_rotation} days ago`}</p>`,
+         )
+         .join('')}
+     </div>
+     <p style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin:8px 0 0;">Target rotation interval: 90 days for service accounts.</p>`);
+  }
+
+  const body = sections.length
+    ? sections.join('')
+    : `<p style="color:rgba(255,255,255,0.7);">No new risks were found in this scan. Your environment looks clean.</p>`;
+
+  const scanDate = new Date(summary.scan_timestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+  const html = shell(
+    `Scheduled scan report — ${target}`,
+    `<p style="color:rgba(255,255,255,0.9);font-size:1rem;">Your scheduled <strong>${target}</strong> scan finished at ${scanDate}.</p>
+     ${body}
+     ${buttonBlock('View dashboard', dashboardUrl())}`,
+  );
+  return send(email, `AgentSentry scan report — ${target}`, html);
+}
+
+/** Automation: reminds active subscribers to rotate their AgentSentry API key (90-day cadence). */
+export function sendApiKeyRotationReminderEmail(email: string): Promise<boolean> {
+  const html = shell(
+    'API key rotation reminder',
+    `<p style="color:rgba(255,255,255,0.9);font-size:1rem;">Your AgentSentry API key hasn't been rotated in over 90 days.</p>
+     <p style="color:rgba(255,255,255,0.7);">Regenerating it periodically limits the damage if a key is ever leaked. Generate a new one from your dashboard — scheduled scans will keep working once the new key is saved to <code style="color:#00ff88;">~/.agentsentry/schedules.json</code> (re-run <code style="color:#00ff88;">agentsentry schedule add --notify-email</code> to update it).</p>
+     ${buttonBlock('Regenerate API key', dashboardUrl())}`,
+  );
+  return send(email, 'Rotate your AgentSentry API key', html);
 }

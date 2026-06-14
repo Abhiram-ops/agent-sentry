@@ -6,7 +6,7 @@ import { NavbarWeb3 as Navbar } from '@/components/layout/NavbarWeb3';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import type { CreditTransaction, Tier } from '@/lib/db';
+import type { CreditTransaction, Tier, ScanReport, SubscriptionStatus } from '@/lib/db';
 import { Copy, Check, Mail, KeyRound, RefreshCw, Zap } from 'lucide-react';
 
 const PRO_BENEFITS = [
@@ -26,6 +26,8 @@ interface Profile {
   activation_code: string | null;
   is_cli_activated: boolean;
   created_at: string;
+  subscription_status: SubscriptionStatus;
+  subscription_current_period_end: string | null;
 }
 
 const CREDIT_PACKAGES = [
@@ -33,6 +35,8 @@ const CREDIT_PACKAGES = [
   { id: 2, name: 'Growth', credits: 40, priceUsd: 15 },
   { id: 3, name: 'Scale', credits: 150, priceUsd: 50 },
 ];
+
+const SCHEDULE_CMD = 'agentsentry schedule add --target aws --interval daily --output-dir ~/agentsentry-reports --notify-email';
 
 function formatAction(action: string): string {
   return action.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -62,6 +66,11 @@ export default function DashboardPage() {
   const [regenBusy, setRegenBusy] = useState(false);
   const [buyingId, setBuyingId] = useState<number | null>(null);
 
+  // Automated scans
+  const [scanReports, setScanReports] = useState<ScanReport[]>([]);
+  const [subBusy, setSubBusy] = useState(false);
+  const [copiedCmd, setCopiedCmd] = useState(false);
+
   const load = useCallback(async () => {
     try {
       const res = await fetch('/api/user/profile', { cache: 'no-store' });
@@ -76,6 +85,12 @@ export default function DashboardPage() {
       if (txRes.ok) {
         const json = (await txRes.json()) as { transactions: CreditTransaction[] };
         setTransactions(json.transactions);
+      }
+
+      const reportsRes = await fetch('/api/user/scan-reports', { cache: 'no-store' });
+      if (reportsRes.ok) {
+        const json = (await reportsRes.json()) as { reports: ScanReport[] };
+        setScanReports(json.reports);
       }
     } catch {
       router.replace('/login');
@@ -97,6 +112,10 @@ export default function DashboardPage() {
       setBanner({ kind: 'success', text: 'Payment received — your credits will appear shortly.' });
     } else if (params.get('checkout') === 'cancelled') {
       setBanner({ kind: 'error', text: 'Checkout was cancelled.' });
+    } else if (params.get('subscription') === 'success') {
+      setBanner({ kind: 'success', text: 'Automation subscription activated — it may take a moment to sync.' });
+    } else if (params.get('subscription') === 'cancelled') {
+      setBanner({ kind: 'error', text: 'Subscription checkout was cancelled.' });
     }
     if (params.toString()) {
       window.history.replaceState({}, '', '/dashboard');
@@ -188,6 +207,58 @@ export default function DashboardPage() {
       setBanner({ kind: 'error', text: 'Network error — please try again.' });
       setBuyingId(null);
     }
+  }
+
+  async function handleSubscribe() {
+    if (!profile) return;
+    setSubBusy(true);
+    setBanner(null);
+    try {
+      const res = await fetch('/api/billing/subscribe', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${profile.api_key}` },
+      });
+      const json = await res.json();
+      if (res.ok && json.checkout_url) {
+        window.location.assign(json.checkout_url);
+        return;
+      }
+      setBanner({ kind: 'error', text: json.error ?? 'Failed to start checkout.' });
+      setSubBusy(false);
+    } catch {
+      setBanner({ kind: 'error', text: 'Network error — please try again.' });
+      setSubBusy(false);
+    }
+  }
+
+  async function handleManageSubscription() {
+    if (!profile) return;
+    setSubBusy(true);
+    setBanner(null);
+    try {
+      const res = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${profile.api_key}` },
+      });
+      const json = await res.json();
+      if (res.ok && json.portal_url) {
+        window.location.assign(json.portal_url);
+        return;
+      }
+      setBanner({ kind: 'error', text: json.error ?? 'Failed to open billing portal.' });
+      setSubBusy(false);
+    } catch {
+      setBanner({ kind: 'error', text: 'Network error — please try again.' });
+      setSubBusy(false);
+    }
+  }
+
+  async function handleCopyCmd() {
+    try {
+      await navigator.clipboard.writeText(SCHEDULE_CMD);
+      setCopiedCmd(true);
+      setTimeout(() => setCopiedCmd(false), 1500);
+    } catch { /* clipboard unavailable */ }
   }
 
   return (
@@ -331,6 +402,80 @@ export default function DashboardPage() {
                       </tbody>
                     </table>
                   </div>
+                )}
+              </section>
+
+              {/* Automated scans */}
+              <section className="dash-card">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Automated scans</h2>
+                  <Badge variant={profile.subscription_status === 'active' ? 'green' : profile.subscription_status === 'past_due' ? 'yellow' : 'neutral'} dot={profile.subscription_status === 'active'}>
+                    {profile.subscription_status === 'active' ? 'Active' : profile.subscription_status === 'past_due' ? 'Past due' : 'Not subscribed'}
+                  </Badge>
+                </div>
+
+                {profile.subscription_status === 'active' ? (
+                  <>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 16 }}>
+                      Register a local scheduled scan with the CLI below. Reports are written to a directory you choose, and — with <code style={{ fontFamily: 'var(--font-mono)' }}>--notify-email</code> — a summary is emailed here after each run.
+                    </p>
+                    <div className="copy-field-row" style={{ marginBottom: 16 }}>
+                      <code className="copy-field-code">{SCHEDULE_CMD}</code>
+                      <button type="button" onClick={handleCopyCmd} aria-label="Copy command" className={`copy-field-btn ${copiedCmd ? 'copied' : ''}`}>
+                        {copiedCmd ? <Check style={{ width: 16, height: 16 }} /> : <Copy style={{ width: 16, height: 16 }} />}
+                      </button>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={handleManageSubscription} disabled={subBusy}>
+                      {subBusy ? 'Opening…' : 'Manage subscription'}
+                    </Button>
+
+                    <div style={{ marginTop: 24 }}>
+                      <div className="dash-label" style={{ marginBottom: 10 }}>Recent scan reports</div>
+                      {scanReports.length === 0 ? (
+                        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No scheduled scans reported yet.</p>
+                      ) : (
+                        <div style={{ overflowX: 'auto' }}>
+                          <table className="dash-table">
+                            <thead>
+                              <tr>
+                                <th>Target</th>
+                                <th>New NHIs</th>
+                                <th>Newly zombie</th>
+                                <th style={{ textAlign: 'right' }}>Rotation due</th>
+                                <th>Date</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scanReports.map(r => (
+                                <tr key={r.id}>
+                                  <td style={{ textTransform: 'uppercase' }}>{r.target}</td>
+                                  <td style={{ fontFamily: 'var(--font-mono)', color: r.new_nhi_count > 0 ? '#dc2626' : 'var(--text)' }}>{r.new_nhi_count}</td>
+                                  <td style={{ fontFamily: 'var(--font-mono)' }}>{r.new_zombie_count}</td>
+                                  <td style={{ fontFamily: 'var(--font-mono)', textAlign: 'right' }}>{r.rotation_due_count}</td>
+                                  <td style={{ color: 'var(--text-faint)' }}>{formatDate(r.created_at)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 16 }}>
+                      Run scans on a schedule from your own machine — no credentials leave your environment. Each run diffs
+                      against the previous scan and alerts you to new identities (with remediation suggestions), newly-zombie
+                      credentials, and credentials due for rotation.
+                    </p>
+                    {profile.tier === 'pro' ? (
+                      <Button onClick={handleSubscribe} disabled={subBusy}>
+                        {subBusy ? 'Redirecting…' : 'Subscribe — $9/mo'}
+                      </Button>
+                    ) : (
+                      <p style={{ color: 'var(--text-faint)', fontSize: 13 }}>Requires an active Pro license.</p>
+                    )}
+                  </>
                 )}
               </section>
 

@@ -75,6 +75,22 @@ section { overflow-x: hidden; }
 .section-alt { background: var(--bg-subtle); }
 .section-dark { background: var(--bg-dark); color: white; }
 
+/* ── LAZY-LOAD SKELETON (used by next/dynamic loading fallbacks) ── */
+.section-skeleton {
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, var(--border-subtle) 25%, var(--border) 37%, var(--border-subtle) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+.section-dark .section-skeleton {
+  background: linear-gradient(90deg, var(--border-dark) 25%, var(--bg-dark-raised) 37%, var(--border-dark) 63%);
+  background-size: 400% 100%;
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
 /* ── LABELS ── */
 .section-label {
   display: flex; align-items: center; gap: 10px;
@@ -379,7 +395,7 @@ section { overflow-x: hidden; }
   border-bottom: 1px solid #1a2f47; margin-bottom: 22px;
 }
 .prea-score-num {
-  font-family: var(--font-serif); font-size: 84px;
+  font-family: var(--font-serif); font-size: clamp(48px, 14vw, 84px);
   font-weight: 900; line-height: 1; margin-bottom: 14px;
   transition: color 0.4s ease; letter-spacing: -0.03em;
 }
@@ -448,7 +464,7 @@ section { overflow-x: hidden; }
 }
 .formula-text { position: relative; font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
 .formula-sub { position: relative; font-family: var(--font-mono); font-size: 12.5px; color: var(--text-muted); }
-.factors-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 28px 0; }
+.factors-table { width: 100%; min-width: 460px; border-collapse: collapse; font-size: 14px; margin: 28px 0; }
 .factors-table thead th {
   text-align: left; padding: 10px 16px;
   font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
@@ -496,6 +512,15 @@ section { overflow-x: hidden; }
 .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 14px; }
 .pricing-feature { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--text-muted); line-height: 1.5; }
 .check-wrap { flex-shrink: 0; width: 18px; height: 18px; background: var(--accent-subtle); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.pricing-addon {
+  max-width: 860px; margin: 24px auto 0; border: 1px solid var(--border); border-radius: var(--radius-xl);
+  padding: 36px 44px; background: var(--bg); display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 32px; align-items: center;
+}
+.pricing-addon-price { display: flex; align-items: baseline; gap: 6px; margin: 8px 0; }
+.pricing-addon-price .price-sym { font-size: 20px; margin-top: 0; }
+.pricing-addon-price .price-num { font-size: 40px; }
+.pricing-addon-features { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.pricing-addon-cta { white-space: nowrap; padding: 14px 28px; border-radius: var(--radius-lg); font-size: 15px; justify-content: center; }
 
 /* ── NEWSLETTER ── */
 .newsletter-inner { max-width: 540px; margin: 0 auto; text-align: center; }
@@ -719,6 +744,8 @@ section { overflow-x: hidden; }
   .step-card { border-right: none; border-bottom: 1px solid var(--border); }
   .step-card:last-child { border-bottom: none; }
   .providers-grid, .features-grid, .pricing-grid, .contact-grid, .footer-grid { grid-template-columns: 1fr; }
+  .pricing-addon { grid-template-columns: 1fr; text-align: left; }
+  .pricing-addon-cta { width: 100%; }
   .prea-breakdown { grid-template-columns: repeat(2, 1fr); }
   .newsletter-form { flex-direction: column; }
   .hero h1 { font-size: 34px; }

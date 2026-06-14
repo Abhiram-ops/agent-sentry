@@ -1,16 +1,35 @@
+import dynamic from 'next/dynamic';
 import { NavbarWeb3 } from '@/components/layout/NavbarWeb3';
 import { HeroWeb3 } from '@/components/sections/HeroWeb3';
 import HowItWorks from '@/components/sections/HowItWorks';
 import Providers from '@/components/sections/Providers';
-import LiveAuditTerminal from '@/components/sections/LiveAuditTerminal';
 import Features from '@/components/sections/Features';
-import AttackGraphVisualizer from '@/components/sections/AttackGraphVisualizer';
-import RiskCalculator from '@/components/sections/RiskCalculator';
-import MethodologySection from '@/components/sections/MethodologySection';
-import Pricing from '@/components/sections/Pricing';
-import { NewsletterSignup } from '@/components/sections/NewsletterSignup';
-import Contact from '@/components/sections/Contact';
 import Footer from '@/components/layout/Footer';
+
+// Below-the-fold, animation-heavy sections — code-split so their JS
+// (framer-motion, SVG/graph rendering) only loads as the user scrolls.
+const LiveAuditTerminal = dynamic(() => import('@/components/sections/LiveAuditTerminal'), {
+  loading: () => <div className="section-skeleton" style={{ height: 420 }} />,
+});
+const AttackGraphVisualizer = dynamic(() => import('@/components/sections/AttackGraphVisualizer'), {
+  loading: () => <div className="section-skeleton" style={{ height: 480 }} />,
+});
+const RiskCalculator = dynamic(() => import('@/components/sections/RiskCalculator'), {
+  loading: () => <div className="section-skeleton" style={{ height: 420 }} />,
+});
+const MethodologySection = dynamic(() => import('@/components/sections/MethodologySection'), {
+  loading: () => <div className="section-skeleton" style={{ height: 320 }} />,
+});
+const Pricing = dynamic(() => import('@/components/sections/Pricing'), {
+  loading: () => <div className="section-skeleton" style={{ height: 420 }} />,
+});
+const NewsletterSignup = dynamic(
+  () => import('@/components/sections/NewsletterSignup').then((mod) => mod.NewsletterSignup),
+  { loading: () => <div className="section-skeleton" style={{ height: 180 }} /> }
+);
+const Contact = dynamic(() => import('@/components/sections/Contact'), {
+  loading: () => <div className="section-skeleton" style={{ height: 320 }} />,
+});
 
 export default function Home() {
   return (

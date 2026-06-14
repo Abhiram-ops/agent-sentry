@@ -1,7 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
-import { addCredits } from '@/lib/db';
+import {
+  addCredits,
+  setSubscriptionActive,
+  updateSubscriptionStatus,
+  type SubscriptionStatus,
+} from '@/lib/db';
 import { getStripe } from '@/lib/stripe';
+
+function mapSubscriptionStatus(status: Stripe.Subscription.Status): SubscriptionStatus {
+  switch (status) {
+    case 'active':
+    case 'trialing':
+      return 'active';
+    case 'past_due':
+    case 'unpaid':
+    case 'incomplete':
+      return 'past_due';
+    default:
+      return 'canceled';
+  }
+}
+
+function subscriptionPeriodEnd(subscription: Stripe.Subscription): Date | null {
+  const ts = subscription.items.data[0]?.current_period_end;
+  return ts ? new Date(ts * 1000) : null;
+}
 
 export async function POST(req: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -27,23 +51,61 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
 
-      const userId = session.metadata?.user_id;
-      const credits = session.metadata?.credits;
+        if (session.mode === 'subscription') {
+          const userId = session.metadata?.user_id;
+          const customerId = session.customer;
+          const subscriptionId = session.subscription;
 
-      if (!userId || !credits) {
-        console.error('[/api/billing/webhook] missing metadata on session', session.id);
-        return NextResponse.json({ received: true });
+          if (!userId || typeof customerId !== 'string' || typeof subscriptionId !== 'string') {
+            console.error('[/api/billing/webhook] missing subscription data on session', session.id);
+            break;
+          }
+
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const periodEnd = subscriptionPeriodEnd(subscription) ?? new Date();
+          await setSubscriptionActive(Number(userId), customerId, subscriptionId, periodEnd);
+          break;
+        }
+
+        const userId = session.metadata?.user_id;
+        const credits = session.metadata?.credits;
+
+        if (!userId || !credits) {
+          console.error('[/api/billing/webhook] missing metadata on session', session.id);
+          break;
+        }
+
+        const costUsd = session.amount_total !== null ? session.amount_total / 100 : 0;
+        const result = await addCredits(Number(userId), Number(credits), costUsd, session.id);
+
+        if (result.alreadyProcessed) {
+          console.log('[/api/billing/webhook] duplicate event, skipping', session.id);
+        }
+        break;
       }
 
-      const costUsd = session.amount_total !== null ? session.amount_total / 100 : 0;
-      const result = await addCredits(Number(userId), Number(credits), costUsd, session.id);
-
-      if (result.alreadyProcessed) {
-        console.log('[/api/billing/webhook] duplicate event, skipping', session.id);
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription;
+        await updateSubscriptionStatus(
+          subscription.id,
+          mapSubscriptionStatus(subscription.status),
+          subscriptionPeriodEnd(subscription),
+        );
+        break;
       }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription;
+        await updateSubscriptionStatus(subscription.id, 'canceled', null);
+        break;
+      }
+
+      default:
+        break;
     }
 
     return NextResponse.json({ received: true });

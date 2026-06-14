@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateApiKey } from '@/lib/db';
+import { generateApiKey, touchApiKeyRotation } from '@/lib/db';
 import { getSessionUser, regenerateApiKey } from '@/lib/auth';
 import { sendApiKeyEmail } from '@/lib/email';
 
@@ -17,6 +17,7 @@ export async function POST() {
 
     const newKey = generateApiKey();
     await regenerateApiKey(user.id, newKey);
+    await touchApiKeyRotation(user.id);
     await sendApiKeyEmail(user.email, newKey);
 
     return NextResponse.json({

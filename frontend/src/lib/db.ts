@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import type { NextRequest } from 'next/server';
 
 export type Tier = 'free' | 'pro';
+export type SubscriptionStatus = 'none' | 'active' | 'past_due' | 'canceled';
 
 export interface User {
   id: number;
@@ -14,6 +15,12 @@ export interface User {
   is_cli_activated: boolean;
   created_at: string;
   updated_at: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: SubscriptionStatus;
+  subscription_current_period_end: string | null;
+  api_key_rotated_at: string;
+  api_key_reminder_sent_at: string | null;
 }
 
 export interface CreditPackage {
@@ -45,6 +52,12 @@ interface UserRow {
   is_cli_activated: boolean;
   created_at: string;
   updated_at: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: SubscriptionStatus;
+  subscription_current_period_end: string | null;
+  api_key_rotated_at: string;
+  api_key_reminder_sent_at: string | null;
 }
 
 interface CreditPackageRow {
@@ -100,14 +113,18 @@ export async function createUser(email: string): Promise<User> {
   const { rows } = await sql<UserRow>`
     INSERT INTO users (email, api_key, credits_balance, tier, activation_code, is_cli_activated)
     VALUES (${email.toLowerCase()}, ${apiKey}, 0, 'free', ${activationCode}, FALSE)
-    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
+    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
+              stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
+              api_key_rotated_at, api_key_reminder_sent_at
   `;
   return mapUser(rows[0]);
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   const { rows } = await sql<UserRow>`
-    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
+    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
+           stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
+           api_key_rotated_at, api_key_reminder_sent_at
     FROM users WHERE email = ${email.toLowerCase()}
   `;
   return rows[0] ? mapUser(rows[0]) : null;
@@ -115,7 +132,9 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 
 export async function getUserByApiKey(apiKey: string): Promise<User | null> {
   const { rows } = await sql<UserRow>`
-    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
+    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
+           stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
+           api_key_rotated_at, api_key_reminder_sent_at
     FROM users WHERE api_key = ${apiKey}
   `;
   return rows[0] ? mapUser(rows[0]) : null;
@@ -123,7 +142,9 @@ export async function getUserByApiKey(apiKey: string): Promise<User | null> {
 
 export async function getUserById(id: number): Promise<User | null> {
   const { rows } = await sql<UserRow>`
-    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
+    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
+           stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
+           api_key_rotated_at, api_key_reminder_sent_at
     FROM users WHERE id = ${id}
   `;
   return rows[0] ? mapUser(rows[0]) : null;
@@ -131,7 +152,9 @@ export async function getUserById(id: number): Promise<User | null> {
 
 export async function getUserByActivationCode(code: string): Promise<User | null> {
   const { rows } = await sql<UserRow>`
-    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
+    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
+           stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
+           api_key_rotated_at, api_key_reminder_sent_at
     FROM users WHERE activation_code = ${code}
   `;
   return rows[0] ? mapUser(rows[0]) : null;
@@ -155,7 +178,9 @@ export async function upgradeUserToPro(userId: number): Promise<User | null> {
     UPDATE users
     SET tier = 'pro', activation_code = ${proCode}, is_cli_activated = FALSE, updated_at = NOW()
     WHERE id = ${userId}
-    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
+    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
+              stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
+              api_key_rotated_at, api_key_reminder_sent_at
   `;
   return rows[0] ? mapUser(rows[0]) : null;
 }
@@ -243,7 +268,9 @@ export async function addCredits(
     UPDATE users
     SET credits_balance = credits_balance + ${amount}, updated_at = NOW()
     WHERE id = ${userId}
-    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
+    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
+              stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
+              api_key_rotated_at, api_key_reminder_sent_at
   `;
 
   return { alreadyProcessed: false, user: rows[0] ? mapUser(rows[0]) : null };
@@ -274,4 +301,160 @@ export async function getTransactionHistory(userId: number, limit = 50): Promise
     LIMIT ${limit}
   `;
   return rows.map(mapCreditTransaction);
+}
+
+// ---------------------------------------------------------------------------
+// Automation subscription (Stripe recurring "Automation" add-on)
+// ---------------------------------------------------------------------------
+
+/** Looks up a user by their Stripe subscription ID (used by the billing webhook). */
+export async function getUserByStripeSubscriptionId(subscriptionId: string): Promise<User | null> {
+  const { rows } = await sql<UserRow>`
+    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
+           stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
+           api_key_rotated_at, api_key_reminder_sent_at
+    FROM users WHERE stripe_subscription_id = ${subscriptionId}
+  `;
+  return rows[0] ? mapUser(rows[0]) : null;
+}
+
+/** Records a newly-created Automation subscription (Stripe Checkout `checkout.session.completed`). */
+export async function setSubscriptionActive(
+  userId: number,
+  customerId: string,
+  subscriptionId: string,
+  currentPeriodEnd: Date,
+): Promise<User | null> {
+  const { rows } = await sql<UserRow>`
+    UPDATE users
+    SET stripe_customer_id = ${customerId},
+        stripe_subscription_id = ${subscriptionId},
+        subscription_status = 'active',
+        subscription_current_period_end = ${currentPeriodEnd.toISOString()},
+        updated_at = NOW()
+    WHERE id = ${userId}
+    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
+              stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
+              api_key_rotated_at, api_key_reminder_sent_at
+  `;
+  return rows[0] ? mapUser(rows[0]) : null;
+}
+
+/** Applies a `customer.subscription.updated`/`deleted` event from the billing webhook. */
+export async function updateSubscriptionStatus(
+  subscriptionId: string,
+  status: SubscriptionStatus,
+  currentPeriodEnd: Date | null,
+): Promise<User | null> {
+  const { rows } = await sql<UserRow>`
+    UPDATE users
+    SET subscription_status = ${status},
+        subscription_current_period_end = ${currentPeriodEnd ? currentPeriodEnd.toISOString() : null},
+        updated_at = NOW()
+    WHERE stripe_subscription_id = ${subscriptionId}
+    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
+              stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
+              api_key_rotated_at, api_key_reminder_sent_at
+  `;
+  return rows[0] ? mapUser(rows[0]) : null;
+}
+
+/** Resets the API-key rotation clock — called after a key is regenerated. */
+export async function touchApiKeyRotation(userId: number): Promise<void> {
+  await sql`
+    UPDATE users
+    SET api_key_rotated_at = NOW(), api_key_reminder_sent_at = NULL, updated_at = NOW()
+    WHERE id = ${userId}
+  `;
+}
+
+export interface RotationReminderUser {
+  id: number;
+  email: string;
+}
+
+/** Active-subscription users whose API key is 90+ days old and haven't been reminded recently. */
+export async function getUsersDueForRotationReminder(): Promise<RotationReminderUser[]> {
+  const { rows } = await sql<RotationReminderUser>`
+    SELECT id, email FROM users
+    WHERE subscription_status = 'active'
+      AND api_key_rotated_at < NOW() - INTERVAL '90 days'
+      AND (api_key_reminder_sent_at IS NULL OR api_key_reminder_sent_at < NOW() - INTERVAL '90 days')
+  `;
+  return rows;
+}
+
+/** Marks that a rotation-reminder email was just sent, so it isn't repeated for 90 days. */
+export async function markRotationReminderSent(userId: number): Promise<void> {
+  await sql`UPDATE users SET api_key_reminder_sent_at = NOW() WHERE id = ${userId}`;
+}
+
+// ---------------------------------------------------------------------------
+// Scan reports (uploaded by `agentsentry _run-scheduled` when --notify-email)
+// ---------------------------------------------------------------------------
+
+export interface ScanReportSummary {
+  schedule_id: string;
+  target: string;
+  scan_timestamp: string;
+  new_nhis: Array<{ id: string; name: string; risk_score: number; risk_level: string; suggestion: string }>;
+  newly_zombie: Array<{ id: string; name: string; days_since_use: number | null }>;
+  rotation_due: Array<{ id: string; name: string; days_since_rotation: number | null }>;
+}
+
+export interface ScanReport {
+  id: number;
+  user_id: number;
+  schedule_id: string;
+  target: string;
+  new_nhi_count: number;
+  new_zombie_count: number;
+  rotation_due_count: number;
+  summary: ScanReportSummary;
+  created_at: string;
+}
+
+interface ScanReportRow {
+  id: number;
+  user_id: number;
+  schedule_id: string;
+  target: string;
+  new_nhi_count: number;
+  new_zombie_count: number;
+  rotation_due_count: number;
+  summary: ScanReportSummary;
+  created_at: string;
+}
+
+/** Persists a scan-report summary uploaded by the CLI's scheduled-scan runner. */
+export async function insertScanReport(
+  userId: number,
+  summary: ScanReportSummary,
+): Promise<ScanReport> {
+  const { rows } = await sql<ScanReportRow>`
+    INSERT INTO scan_reports (user_id, schedule_id, target, new_nhi_count, new_zombie_count, rotation_due_count, summary)
+    VALUES (
+      ${userId},
+      ${summary.schedule_id},
+      ${summary.target},
+      ${summary.new_nhis.length},
+      ${summary.newly_zombie.length},
+      ${summary.rotation_due.length},
+      ${JSON.stringify(summary)}::jsonb
+    )
+    RETURNING id, user_id, schedule_id, target, new_nhi_count, new_zombie_count, rotation_due_count, summary, created_at
+  `;
+  return rows[0];
+}
+
+/** Returns the most recent scan reports for a user (newest first). */
+export async function getScanReports(userId: number, limit = 20): Promise<ScanReport[]> {
+  const { rows } = await sql<ScanReportRow>`
+    SELECT id, user_id, schedule_id, target, new_nhi_count, new_zombie_count, rotation_due_count, summary, created_at
+    FROM scan_reports
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows;
 }

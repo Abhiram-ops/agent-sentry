@@ -87,24 +87,26 @@ export default function MethodologySection() {
               <div className="research-sec-id">§4 — Factor reference</div>
               <h3>Scoring factors</h3>
               <p>Each term is bounded and derived from statically observable evidence — no runtime instrumentation required.</p>
-              <table className="factors-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Term</th>
-                    <th scope="col">Range</th>
-                    <th scope="col">Measures</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {FACTORS.map((f) => (
-                    <tr key={f.symbol}>
-                      <td>{f.symbol} <span style={{ color: "var(--text-faint)", fontFamily: "var(--font-sans)" }}>{f.name}</span></td>
-                      <td>{f.range}</td>
-                      <td>{f.measures}</td>
+              <div style={{ overflowX: "auto" }}>
+                <table className="factors-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Term</th>
+                      <th scope="col">Range</th>
+                      <th scope="col">Measures</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {FACTORS.map((f) => (
+                      <tr key={f.symbol}>
+                        <td>{f.symbol} <span style={{ color: "var(--text-faint)", fontFamily: "var(--font-sans)" }}>{f.name}</span></td>
+                        <td>{f.range}</td>
+                        <td>{f.measures}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <div id="example-4-1" className="research-sec">

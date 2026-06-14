@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
-      from: 'AgentSentry <noreply@agentsentry.tool>',
+      from: 'AgentSentry <noreply@agentsentry.org>',
       to: email,
       subject: `Your AgentSentry free key — ${freeKey}`,
       html: emailHtml(name, freeKey),

@@ -22,6 +22,8 @@ export async function GET() {
       activation_code: user.activation_code,
       is_cli_activated: user.is_cli_activated,
       created_at: new Date(user.created_at).toISOString(),
+      subscription_status: user.subscription_status,
+      subscription_current_period_end: user.subscription_current_period_end,
     });
   } catch (err) {
     console.error('[/api/user/profile]', err);

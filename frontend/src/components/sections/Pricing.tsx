@@ -23,6 +23,14 @@ const PRO = [
   "Priority email support",
 ];
 
+const AUTOMATION = [
+  "Local OS-scheduled recurring scans (cron / Task Scheduler) — your machine, your cadence",
+  "Diff-based alerts for newly-detected identities, with least-privilege remediation suggestions",
+  "Zombie-credential alerts (180-day inactivity threshold)",
+  "Credential rotation-due reminders (90-day cadence) — for cloud creds and your AgentSentry API key",
+  "Reports saved to a directory you choose — no credential upload, ever",
+];
+
 function CheckIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -91,6 +99,31 @@ export default function Pricing() {
             </ul>
           </motion.div>
         </div>
+
+        <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.16 }}
+          className="pricing-addon">
+          <div>
+            <div className="pricing-tier">Automation add-on · requires Pro</div>
+            <div className="pricing-addon-price">
+              <span className="price-sym">$</span>
+              <span className="price-num">9</span>
+              <span className="pricing-billing" style={{ marginBottom: 0 }}>/month</span>
+            </div>
+            <div className="pricing-desc" style={{ minHeight: "auto", marginBottom: 0 }}>
+              Hands-off, scheduled audits of your environment — set it up once from the CLI.
+            </div>
+          </div>
+          <ul className="pricing-addon-features">
+            {AUTOMATION.map((f) => (
+              <li key={f} className="pricing-feature">
+                <span className="check-wrap"><CheckIcon /></span>
+                {f}
+              </li>
+            ))}
+          </ul>
+          <Link href="/dashboard" className="btn btn-outline pricing-addon-cta">Manage in dashboard</Link>
+        </motion.div>
 
         <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
           viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.3 }}
