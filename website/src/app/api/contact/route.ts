@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
 export async function POST(req: NextRequest) {
-  const { name, email, message } = await req.json();
+  const { name, email, mobile, message } = await req.json();
 
   if (!name || !email || !message)
-    return NextResponse.json({ error: "All fields are required." }, { status: 400 });
+    return NextResponse.json({ error: "Name, email, and message are required." }, { status: 400 });
   if (!email.includes("@"))
     return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
 
@@ -18,20 +18,26 @@ export async function POST(req: NextRequest) {
     service: "gmail", auth: { user: gmailUser, pass: gmailPass },
   });
 
+  const mobileRow = mobile ? `<p><strong>Mobile:</strong> ${mobile}</p>` : "";
+  const mobileText = mobile ? `Mobile: ${mobile}\n` : "";
+
   try {
+    // Forward to inbox
     await transporter.sendMail({
       from: `"AgentSentry Contact" <${gmailUser}>`,
       to: gmailUser, replyTo: email,
       subject: `[Contact] ${name} — AgentSentry`,
-      text: `Name: ${name}\nEmail: ${email}\n\n${message}`,
+      text: `Name: ${name}\nEmail: ${email}\n${mobileText}\n${message}`,
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;padding:24px;background:#fff;color:#333">
 <h2 style="color:#111;margin-top:0">New contact from ${name}</h2>
 <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+${mobileRow}
 <hr style="border-color:#eee"/>
 <p style="white-space:pre-wrap;line-height:1.6">${message}</p>
 </div>`,
     });
 
+    // Auto-reply to sender
     await transporter.sendMail({
       from: `"AgentSentry" <${gmailUser}>`,
       to: email,

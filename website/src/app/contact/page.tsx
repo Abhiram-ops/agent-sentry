@@ -25,7 +25,7 @@ const channels = [
 ];
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", mobile: "", message: "" });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -45,7 +45,7 @@ export default function ContactPage() {
         setStatus("error");
       } else {
         setStatus("success");
-        setForm({ name: "", email: "", message: "" });
+        setForm({ name: "", email: "", mobile: "", message: "" });
       }
     } catch {
       setErrorMsg("Network error. Please try again.");
@@ -101,6 +101,7 @@ export default function ContactPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Row 1: Name + Email */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-xs text-[#555] font-mono mb-2 tracking-widest">NAME</label>
@@ -126,6 +127,21 @@ export default function ContactPage() {
                   </div>
                 </div>
 
+                {/* Row 2: Mobile (full width) */}
+                <div>
+                  <label className="block text-xs text-[#555] font-mono mb-2 tracking-widest">
+                    MOBILE <span style={{ opacity: 0.5 }}>(optional)</span>
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="+91 98765 43210"
+                    value={form.mobile}
+                    onChange={(e) => setForm({ ...form, mobile: e.target.value })}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-4 py-3 text-sm text-white placeholder-[#333] focus:outline-none focus:border-[#00ff88]/40 transition-colors"
+                  />
+                </div>
+
+                {/* Row 3: Message */}
                 <div>
                   <label className="block text-xs text-[#555] font-mono mb-2 tracking-widest">MESSAGE</label>
                   <textarea
