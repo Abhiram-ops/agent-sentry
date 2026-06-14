@@ -40,7 +40,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; font-size: 16px; }
+html { scroll-behavior: smooth; scroll-padding-top: 5rem; font-size: 16px; }
 body {
   font-family: var(--font-sans);
   color: var(--text);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { motion } from "framer-motion";
 
 interface FactorRow {
   symbol: string;
@@ -45,7 +46,9 @@ export default function MethodologySection() {
   return (
     <section id="research" className="section section-alt" aria-labelledby="research-heading">
       <div className="container">
-        <div className="section-header">
+        <motion.div className="section-header"
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.5 }}>
           <div className="section-label">§4 · Scoring methodology</div>
           <h2 id="research-heading">The PREA risk model</h2>
           <p>
@@ -53,7 +56,7 @@ export default function MethodologySection() {
             deliberately auditable: each factor is computed from statically observable evidence, and
             the final score decomposes into the exact terms shown in scan output.
           </p>
-        </div>
+        </motion.div>
 
         <div className="research-layout">
           <div className="research-toc">

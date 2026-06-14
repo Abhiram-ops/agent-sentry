@@ -1,6 +1,7 @@
 "use client";
 
 import { Code2, Mail, MessageSquare } from "lucide-react";
+import { motion } from "framer-motion";
 
 const contacts = [
   {
@@ -30,11 +31,13 @@ export default function Contact() {
   return (
     <section id="contact" className="section section-alt">
       <div className="container">
-        <div className="section-header centered">
+        <motion.div className="section-header centered"
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.5 }}>
           <div className="section-label" style={{ justifyContent: "center" }}>Contact</div>
           <h2>Get in touch</h2>
           <p>Choose the channel that works best for you.</p>
-        </div>
+        </motion.div>
         <div className="contact-grid">
           {contacts.map(({ icon: Icon, platform, handle, href, description }) => (
             <a key={platform} href={href} target="_blank" rel="noopener noreferrer" className="contact-card">
