@@ -75,10 +75,15 @@ export default function ChatBot() {
   }, []);
 
   // Pop the launcher into view and auto-open the chat 2s after load.
+  // On mobile the panel covers the whole screen, so just surface the
+  // launcher with an unread badge instead of taking over the page.
   useEffect(() => {
     const timer = setTimeout(() => {
       setVisible(true);
-      setOpen(true);
+      // .chatbot-panel goes full-screen below 680px (see globals.css) —
+      // don't auto-open a full-screen takeover on those viewports.
+      if (window.innerWidth < 680) setUnread(1);
+      else setOpen(true);
     }, 2000);
     return () => clearTimeout(timer);
   }, []);
