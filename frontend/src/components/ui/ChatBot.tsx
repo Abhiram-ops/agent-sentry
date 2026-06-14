@@ -2,17 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Bot, ChevronDown, Code2 } from "lucide-react";
-
-function ShieldFAB() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-      stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      <path d="M9 12l2 2 4-4" />
-    </svg>
-  );
-}
+import { X, Send, Bot, ChevronDown, Code2, MessageCircle } from "lucide-react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -75,6 +65,8 @@ export default function ChatBot() {
   const [loading, setLoading] = useState(false);
   const [unread, setUnread] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -82,6 +74,17 @@ export default function ChatBot() {
     const check = () => setIsMobile(window.innerWidth < 520);
     check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check);
   }, []);
+
+  // Pop the launcher into view 2s after load, with a "Chat with us" tooltip
+  // so it's unmistakably a chatbot rather than a stray button.
+  useEffect(() => {
+    const showFab = setTimeout(() => setVisible(true), 2000);
+    const showTip = setTimeout(() => setShowTooltip(true), 2400);
+    const hideTip = setTimeout(() => setShowTooltip(false), 7000);
+    return () => { clearTimeout(showFab); clearTimeout(showTip); clearTimeout(hideTip); };
+  }, []);
+
+  useEffect(() => { if (open) setShowTooltip(false); }, [open]);
 
   useEffect(() => {
     if (open) { setUnread(0); setTimeout(() => inputRef.current?.focus(), 200); }
@@ -132,26 +135,44 @@ export default function ChatBot() {
 
   return (
     <>
-      {/* FAB */}
-      <motion.button
-        onClick={() => setOpen(o => !o)}
-        whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-        aria-label="Open AgentSentry assistant"
-        className="chatbot-fab"
-        style={{ zIndex: 9001 }}
-      >
-        <AnimatePresence mode="wait">
-          {open
-            ? <motion.span key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><ChevronDown color="#fff" size={22} /></motion.span>
-            : <motion.span key="s" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}><ShieldFAB /></motion.span>
-          }
-        </AnimatePresence>
-        {unread > 0 && !open && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="chatbot-fab-badge">
-            {unread}
+      {/* "It's a chatbot" tooltip */}
+      <AnimatePresence>
+        {visible && !open && showTooltip && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 8 }}
+            transition={{ duration: 0.2 }} className="chatbot-tooltip"
+          >
+            💬 Chat with the AgentSentry assistant
           </motion.div>
         )}
-      </motion.button>
+      </AnimatePresence>
+
+      {/* FAB */}
+      <AnimatePresence>
+        {visible && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 18 }}
+            onClick={() => setOpen(o => !o)}
+            whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+            aria-label="Open AgentSentry assistant"
+            className="chatbot-fab"
+            style={{ zIndex: 9001 }}
+          >
+            <AnimatePresence mode="wait">
+              {open
+                ? <motion.span key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><ChevronDown color="#fff" size={22} /></motion.span>
+                : <motion.span key="s" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}><MessageCircle color="#fff" size={22} /></motion.span>
+              }
+            </AnimatePresence>
+            {unread > 0 && !open && (
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="chatbot-fab-badge">
+                {unread}
+              </motion.div>
+            )}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Panel */}
       <AnimatePresence>
