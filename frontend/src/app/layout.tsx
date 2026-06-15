@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ClientOnlyOverlays } from "@/components/ui/ClientOnlyOverlays";
+import { BetaBanner } from "@/components/layout/BetaBanner";
 
 const playfairDisplay = Playfair_Display({
   variable: "--font-playfair", subsets: ["latin"],
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${playfairDisplay.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased">
+        <BetaBanner />
         {children}
         <ClientOnlyOverlays />
       </body>

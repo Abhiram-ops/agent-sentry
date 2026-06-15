@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCreditPackageById, getUserFromRequest } from '@/lib/db';
-import { getStripe } from '@/lib/stripe';
+import { getStripe, BILLING_PAUSED, BILLING_PAUSED_MESSAGE } from '@/lib/stripe';
 
 interface CreateCheckoutBody {
   package_id?: number;
@@ -8,6 +8,10 @@ interface CreateCheckoutBody {
 
 export async function POST(req: NextRequest) {
   try {
+    if (BILLING_PAUSED) {
+      return NextResponse.json({ error: BILLING_PAUSED_MESSAGE }, { status: 503 });
+    }
+
     const user = await getUserFromRequest(req);
     if (!user) {
       return NextResponse.json({ error: 'Invalid or missing API key.' }, { status: 401 });
