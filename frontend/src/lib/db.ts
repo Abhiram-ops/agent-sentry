@@ -52,6 +52,16 @@ interface UserRow {
   is_cli_activated: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Automation-subscription columns (migration 005) are queried separately via
+ * `mapUser` defaults until that migration has been applied in production —
+ * see [[agentsentry-db-migration-005]]. Keeping them out of the core
+ * SELECT/RETURNING lists below avoids breaking login/signup/session lookups
+ * ("column does not exist") on databases that predate the migration.
+ */
+interface AutomationUserRow {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   subscription_status: SubscriptionStatus;
@@ -79,8 +89,22 @@ interface CreditTransactionRow {
   created_at: string;
 }
 
-function mapUser(row: UserRow): User {
-  return { ...row, credits_balance: Number(row.credits_balance) };
+const AUTOMATION_USER_DEFAULTS: AutomationUserRow = {
+  stripe_customer_id: null,
+  stripe_subscription_id: null,
+  subscription_status: 'none',
+  subscription_current_period_end: null,
+  api_key_rotated_at: new Date(0).toISOString(),
+  api_key_reminder_sent_at: null,
+};
+
+function mapUser(row: UserRow, automation: Partial<AutomationUserRow> = {}): User {
+  return {
+    ...row,
+    credits_balance: Number(row.credits_balance),
+    ...AUTOMATION_USER_DEFAULTS,
+    ...automation,
+  };
 }
 
 /** Generates a tier-prefixed activation code, e.g. AS-FREE-1A2B-3C4D-5E6F-7A8B. */
@@ -113,18 +137,14 @@ export async function createUser(email: string): Promise<User> {
   const { rows } = await sql<UserRow>`
     INSERT INTO users (email, api_key, credits_balance, tier, activation_code, is_cli_activated)
     VALUES (${email.toLowerCase()}, ${apiKey}, 0, 'free', ${activationCode}, FALSE)
-    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
-              stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
-              api_key_rotated_at, api_key_reminder_sent_at
+    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
   `;
   return mapUser(rows[0]);
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   const { rows } = await sql<UserRow>`
-    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
-           stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
-           api_key_rotated_at, api_key_reminder_sent_at
+    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
     FROM users WHERE email = ${email.toLowerCase()}
   `;
   return rows[0] ? mapUser(rows[0]) : null;
@@ -132,9 +152,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 
 export async function getUserByApiKey(apiKey: string): Promise<User | null> {
   const { rows } = await sql<UserRow>`
-    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
-           stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
-           api_key_rotated_at, api_key_reminder_sent_at
+    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
     FROM users WHERE api_key = ${apiKey}
   `;
   return rows[0] ? mapUser(rows[0]) : null;
@@ -142,9 +160,7 @@ export async function getUserByApiKey(apiKey: string): Promise<User | null> {
 
 export async function getUserById(id: number): Promise<User | null> {
   const { rows } = await sql<UserRow>`
-    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
-           stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
-           api_key_rotated_at, api_key_reminder_sent_at
+    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
     FROM users WHERE id = ${id}
   `;
   return rows[0] ? mapUser(rows[0]) : null;
@@ -152,9 +168,7 @@ export async function getUserById(id: number): Promise<User | null> {
 
 export async function getUserByActivationCode(code: string): Promise<User | null> {
   const { rows } = await sql<UserRow>`
-    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
-           stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
-           api_key_rotated_at, api_key_reminder_sent_at
+    SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
     FROM users WHERE activation_code = ${code}
   `;
   return rows[0] ? mapUser(rows[0]) : null;
@@ -178,9 +192,7 @@ export async function upgradeUserToPro(userId: number): Promise<User | null> {
     UPDATE users
     SET tier = 'pro', activation_code = ${proCode}, is_cli_activated = FALSE, updated_at = NOW()
     WHERE id = ${userId}
-    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
-              stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
-              api_key_rotated_at, api_key_reminder_sent_at
+    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
   `;
   return rows[0] ? mapUser(rows[0]) : null;
 }
@@ -268,9 +280,7 @@ export async function addCredits(
     UPDATE users
     SET credits_balance = credits_balance + ${amount}, updated_at = NOW()
     WHERE id = ${userId}
-    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
-              stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
-              api_key_rotated_at, api_key_reminder_sent_at
+    RETURNING id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at
   `;
 
   return { alreadyProcessed: false, user: rows[0] ? mapUser(rows[0]) : null };
@@ -309,13 +319,13 @@ export async function getTransactionHistory(userId: number, limit = 50): Promise
 
 /** Looks up a user by their Stripe subscription ID (used by the billing webhook). */
 export async function getUserByStripeSubscriptionId(subscriptionId: string): Promise<User | null> {
-  const { rows } = await sql<UserRow>`
+  const { rows } = await sql<UserRow & AutomationUserRow>`
     SELECT id, email, api_key, credits_balance, tier, activation_code, is_cli_activated, created_at, updated_at,
            stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
            api_key_rotated_at, api_key_reminder_sent_at
     FROM users WHERE stripe_subscription_id = ${subscriptionId}
   `;
-  return rows[0] ? mapUser(rows[0]) : null;
+  return rows[0] ? mapUser(rows[0], rows[0]) : null;
 }
 
 /** Records a newly-created Automation subscription (Stripe Checkout `checkout.session.completed`). */
@@ -325,7 +335,7 @@ export async function setSubscriptionActive(
   subscriptionId: string,
   currentPeriodEnd: Date,
 ): Promise<User | null> {
-  const { rows } = await sql<UserRow>`
+  const { rows } = await sql<UserRow & AutomationUserRow>`
     UPDATE users
     SET stripe_customer_id = ${customerId},
         stripe_subscription_id = ${subscriptionId},
@@ -337,7 +347,7 @@ export async function setSubscriptionActive(
               stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
               api_key_rotated_at, api_key_reminder_sent_at
   `;
-  return rows[0] ? mapUser(rows[0]) : null;
+  return rows[0] ? mapUser(rows[0], rows[0]) : null;
 }
 
 /** Applies a `customer.subscription.updated`/`deleted` event from the billing webhook. */
@@ -346,7 +356,7 @@ export async function updateSubscriptionStatus(
   status: SubscriptionStatus,
   currentPeriodEnd: Date | null,
 ): Promise<User | null> {
-  const { rows } = await sql<UserRow>`
+  const { rows } = await sql<UserRow & AutomationUserRow>`
     UPDATE users
     SET subscription_status = ${status},
         subscription_current_period_end = ${currentPeriodEnd ? currentPeriodEnd.toISOString() : null},
@@ -356,7 +366,7 @@ export async function updateSubscriptionStatus(
               stripe_customer_id, stripe_subscription_id, subscription_status, subscription_current_period_end,
               api_key_rotated_at, api_key_reminder_sent_at
   `;
-  return rows[0] ? mapUser(rows[0]) : null;
+  return rows[0] ? mapUser(rows[0], rows[0]) : null;
 }
 
 /** Resets the API-key rotation clock — called after a key is regenerated. */
