@@ -8,10 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { motion } from "framer-motion";
 import { CheckCircle, Copy, Check, Mail } from "lucide-react";
 
-const STORAGE_KEY = "agentsentry_api_key";
-
 interface SignupResult {
-  api_key: string;
   activation_code: string | null;
 }
 
@@ -87,8 +84,7 @@ export default function SignupPage() {
         return;
       }
 
-      localStorage.setItem(STORAGE_KEY, json.api_key);
-      setResult({ api_key: json.api_key, activation_code: json.activation_code });
+      setResult({ activation_code: json.activation_code });
       setStatus("success");
     } catch {
       setStatus("error");
@@ -109,7 +105,7 @@ export default function SignupPage() {
           <div className="auth-header">
             <div className="auth-eyebrow">Get started</div>
             <h1>Create your free account</h1>
-            <p>Get an API key and a free CLI activation code — no password, no credit card.</p>
+            <p>Get a free CLI activation code — no password, no credit card.</p>
           </div>
 
           {status === "success" && result ? (
@@ -121,10 +117,9 @@ export default function SignupPage() {
               <div style={{ textAlign: "center" }}>
                 <CheckCircle style={{ width: 40, height: 40, color: "var(--accent)", margin: "0 auto 12px" }} />
                 <p>Account created!</p>
-                <p>Save these now — they won&apos;t be shown again. We&apos;ve also emailed them to {email.trim().toLowerCase()}.</p>
+                <p>Save this now — it won&apos;t be shown again. We&apos;ve also emailed it to {email.trim().toLowerCase()}.</p>
               </div>
 
-              <CopyField label="API key" value={result.api_key} />
               {result.activation_code && <CopyField label="CLI activation code" value={result.activation_code} />}
 
               <div className="next-step-box">
@@ -144,7 +139,7 @@ export default function SignupPage() {
             >
               <p>You already have an account</p>
               <p style={{ marginBottom: 20 }}>
-                An account for {email.trim().toLowerCase()} already exists. Sign in with your API key instead.
+                An account for {email.trim().toLowerCase()} already exists. Sign in with your email instead.
               </p>
               <Button href="/login" fullWidth>Go to login</Button>
             </motion.div>
@@ -176,7 +171,7 @@ export default function SignupPage() {
                 </button>
 
                 <p className="auth-footnote">
-                  Already have a key?{" "}
+                  Already have an account?{" "}
                   <Link href="/login">Sign in</Link>
                 </p>
               </form>
