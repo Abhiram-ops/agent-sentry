@@ -738,7 +738,7 @@ section { overflow-x: hidden; }
 @media (max-width: 680px) {
   :root { --section-pad: 64px; }
   .container { padding: 0 20px; }
-  .nav-links, .nav-sep { display: none; }
+  .nav-links, .nav-sep, .nav-actions { display: none; }
   .nav-burger { display: flex; }
   .steps-grid { grid-template-columns: 1fr; }
   .step-card { border-right: none; border-bottom: 1px solid var(--border); }
