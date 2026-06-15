@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Send, CheckCircle, Mail, Phone, User, MessageSquare } from "lucide-react";
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", mobile: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", mobile: "", message: "", website: "" });
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -21,7 +21,7 @@ export default function ContactPage() {
       });
       if (!res.ok) throw new Error("Failed");
       setStatus("sent");
-      setForm({ name: "", email: "", mobile: "", message: "" });
+      setForm({ name: "", email: "", mobile: "", message: "", website: "" });
     } catch {
       setStatus("error");
     }
@@ -57,6 +57,16 @@ export default function ContactPage() {
             <div className="auth-card">
               <div className="auth-card-top" />
               <form onSubmit={handleSubmit} className="auth-form">
+                {/* Honeypot field — hidden from real users, bots tend to fill every input */}
+                <input type="text"
+                  name="website"
+                  value={form.website}
+                  onChange={e => setForm(f => ({ ...f, website: e.target.value }))}
+                  autoComplete="off"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  style={{ position: "absolute", width: 1, height: 1, padding: 0, border: 0, opacity: 0, pointerEvents: "none" }}
+                />
                 <div>
                   <label className="auth-label">
                     <User style={{ width: 12, height: 12 }} /> Name

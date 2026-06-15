@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createUser, getUserByEmail } from '@/lib/db';
 import { sendActivationCodeEmail } from '@/lib/email';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { isDisposableEmail } from '@/lib/disposableEmail';
 import {
   createSession,
   SESSION_COOKIE,
@@ -30,6 +31,13 @@ export async function POST(req: NextRequest) {
 
     if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: 'A valid email is required.' }, { status: 400 });
+    }
+
+    if (isDisposableEmail(email)) {
+      return NextResponse.json(
+        { error: 'Please use a permanent email address.' },
+        { status: 400 },
+      );
     }
 
     const existing = await getUserByEmail(email);

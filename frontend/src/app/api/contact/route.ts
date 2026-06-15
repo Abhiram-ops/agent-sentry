@@ -13,7 +13,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  const { name, email, mobile, message } = await req.json();
+  const { name, email, mobile, message, website } = await req.json();
+
+  // Honeypot: hidden field that legitimate users never fill in.
+  // Bots that auto-fill every field trip this — pretend success so they
+  // don't learn to avoid it, but skip sending any email.
+  if (typeof website === "string" && website.trim() !== "") {
+    return NextResponse.json({ success: true });
+  }
+
   if (!name || !email || !message)
     return NextResponse.json({ error: "Name, email, and message are required." }, { status: 400 });
   if (!isValidEmail(email))
