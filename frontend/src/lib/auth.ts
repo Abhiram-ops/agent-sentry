@@ -9,6 +9,7 @@ export const SESSION_COOKIE = 'agentsentry_session';
 const SESSION_TTL_DAYS = 7;
 const LOGIN_TOKEN_TTL_HOURS = 24;
 const EMAIL_CHANGE_TTL_HOURS = 24;
+const ACCOUNT_DELETION_TTL_HOURS = 24;
 
 export const SESSION_MAX_AGE_SECONDS = SESSION_TTL_DAYS * 24 * 60 * 60;
 
@@ -175,4 +176,58 @@ export async function regenerateApiKey(userId: number, newKey: string): Promise<
     UPDATE users SET api_key = ${newKey}, updated_at = NOW()
     WHERE id = ${userId}
   `;
+}
+
+export interface AccountDeletionRequestRow {
+  id: number;
+  user_id: number;
+  token: string;
+  expires_at: string;
+}
+
+/** Creates a pending account-deletion request and returns its confirmation token. */
+export async function createAccountDeletionRequest(userId: number): Promise<string> {
+  const token = generateToken();
+  const expiresAt = new Date(Date.now() + ACCOUNT_DELETION_TTL_HOURS * 3600 * 1000).toISOString();
+  // Clear any earlier pending request so only the latest link is valid.
+  await sql`DELETE FROM account_deletion_requests WHERE user_id = ${userId}`;
+  await sql`
+    INSERT INTO account_deletion_requests (user_id, token, expires_at)
+    VALUES (${userId}, ${token}, ${expiresAt})
+  `;
+  return token;
+}
+
+/** Looks up a pending account-deletion request by its confirmation token. */
+export async function getAccountDeletionRequest(
+  token: string,
+): Promise<AccountDeletionRequestRow | null> {
+  const { rows } = await sql<AccountDeletionRequestRow>`
+    SELECT id, user_id, token, expires_at
+    FROM account_deletion_requests WHERE token = ${token}
+  `;
+  return rows[0] ?? null;
+}
+
+/**
+ * Anonymizes a user's account: replaces the email and API key with
+ * non-reversible placeholders, marks the account disabled, and removes all
+ * sessions/tokens. Credit transactions are retained (tax record retention).
+ */
+export async function anonymizeUser(userId: number): Promise<void> {
+  const placeholderEmail = `deleted-user-${userId}@agentsentry.invalid`;
+  const placeholderKey = generateToken();
+  await sql`
+    UPDATE users
+    SET email = ${placeholderEmail},
+        api_key = ${placeholderKey},
+        activation_code = NULL,
+        disabled_at = NOW(),
+        updated_at = NOW()
+    WHERE id = ${userId}
+  `;
+  await sql`DELETE FROM sessions WHERE user_id = ${userId}`;
+  await sql`DELETE FROM login_tokens WHERE user_id = ${userId}`;
+  await sql`DELETE FROM pending_email_changes WHERE user_id = ${userId}`;
+  await sql`DELETE FROM account_deletion_requests WHERE user_id = ${userId}`;
 }

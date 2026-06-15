@@ -7,7 +7,7 @@ import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import type { CreditTransaction, Tier, ScanReport, SubscriptionStatus } from '@/lib/db';
-import { Copy, Check, Mail, KeyRound, RefreshCw, Zap } from 'lucide-react';
+import { Copy, Check, Mail, KeyRound, RefreshCw, Zap, Download, Trash2 } from 'lucide-react';
 
 const PRO_BENEFITS = [
   'All cloud scanners — AWS, Azure, GCP, GitHub, and Kubernetes',
@@ -29,6 +29,10 @@ interface Profile {
   subscription_status: SubscriptionStatus;
   subscription_current_period_end: string | null;
 }
+
+// AgentSentry is in beta — new purchases/subscriptions are paused. Keep this
+// in sync with BILLING_PAUSED in src/lib/stripe.ts.
+const PAYMENTS_PAUSED = true;
 
 const CREDIT_PACKAGES = [
   { id: 1, name: 'Starter', credits: 10, priceUsd: 5 },
@@ -65,6 +69,7 @@ export default function DashboardPage() {
   const [emailBusy, setEmailBusy] = useState(false);
   const [regenBusy, setRegenBusy] = useState(false);
   const [buyingId, setBuyingId] = useState<number | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   // Automated scans
   const [scanReports, setScanReports] = useState<ScanReport[]>([]);
@@ -250,6 +255,29 @@ export default function DashboardPage() {
     } catch {
       setBanner({ kind: 'error', text: 'Network error — please try again.' });
       setSubBusy(false);
+    }
+  }
+
+  function handleExportData() {
+    window.location.assign('/api/user/export');
+  }
+
+  async function handleDeleteAccount() {
+    if (!confirm('Request account deletion? We\'ll email you a confirmation link — your account is only deleted after you click it.')) return;
+    setDeleteBusy(true);
+    setBanner(null);
+    try {
+      const res = await fetch('/api/user/delete', { method: 'POST' });
+      const json = await res.json();
+      if (res.ok) {
+        setBanner({ kind: 'success', text: json.message ?? 'Check your email to confirm account deletion.' });
+      } else {
+        setBanner({ kind: 'error', text: json.error ?? 'Could not start account deletion.' });
+      }
+    } catch {
+      setBanner({ kind: 'error', text: 'Network error — please try again.' });
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -469,9 +497,17 @@ export default function DashboardPage() {
                       credentials, and credentials due for rotation.
                     </p>
                     {profile.tier === 'pro' ? (
-                      <Button onClick={handleSubscribe} disabled={subBusy}>
-                        {subBusy ? 'Redirecting…' : 'Subscribe — $9/mo'}
-                      </Button>
+                      PAYMENTS_PAUSED ? (
+                        <p style={{ color: 'var(--text-faint)', fontSize: 13 }}>
+                          New subscriptions are paused during beta. Email{' '}
+                          <a href="mailto:support@agentsentry.org" style={{ color: 'var(--accent)' }}>support@agentsentry.org</a>{' '}
+                          if you&apos;d like early access to automated scans.
+                        </p>
+                      ) : (
+                        <Button onClick={handleSubscribe} disabled={subBusy}>
+                          {subBusy ? 'Redirecting…' : 'Subscribe — $9/mo'}
+                        </Button>
+                      )
                     ) : (
                       <p style={{ color: 'var(--text-faint)', fontSize: 13 }}>Requires an active Pro license.</p>
                     )}
@@ -483,6 +519,13 @@ export default function DashboardPage() {
               <section className="dash-card">
                 <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: 'var(--text)' }}>Buy credits</h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>Pay-as-you-go. Credits never expire.</p>
+                {PAYMENTS_PAUSED && (
+                  <p style={{ color: 'var(--text-faint)', fontSize: 13, marginBottom: 16 }}>
+                    AgentSentry is in beta and credit purchases are temporarily paused. Email{' '}
+                    <a href="mailto:support@agentsentry.org" style={{ color: 'var(--accent)' }}>support@agentsentry.org</a>{' '}
+                    if you need more credits.
+                  </p>
+                )}
                 <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
                   {CREDIT_PACKAGES.map(pkg => (
                     <div key={pkg.id} className="dash-pkg-card">
@@ -491,11 +534,27 @@ export default function DashboardPage() {
                         <p style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 700, marginTop: 4, color: 'var(--text)' }}>${pkg.priceUsd}</p>
                         <p style={{ color: 'var(--text-faint)', fontSize: 13, marginTop: 2 }}>{pkg.credits} credits</p>
                       </div>
-                      <Button onClick={() => handleBuy(pkg.id)} disabled={buyingId !== null} fullWidth>
-                        {buyingId === pkg.id ? 'Redirecting…' : 'Buy'}
+                      <Button onClick={() => handleBuy(pkg.id)} disabled={PAYMENTS_PAUSED || buyingId !== null} fullWidth>
+                        {PAYMENTS_PAUSED ? 'Paused' : buyingId === pkg.id ? 'Redirecting…' : 'Buy'}
                       </Button>
                     </div>
                   ))}
+                </div>
+              </section>
+
+              {/* Privacy & data */}
+              <section className="dash-card">
+                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: 'var(--text)' }}>Privacy & data</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 18 }}>
+                  Export everything we hold about your account, or permanently delete it.
+                </p>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <Button variant="outline" size="sm" onClick={handleExportData}>
+                    <Download style={{ width: 13, height: 13, marginRight: 6 }} /> Export my data
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleDeleteAccount} disabled={deleteBusy}>
+                    <Trash2 style={{ width: 13, height: 13, marginRight: 6 }} /> {deleteBusy ? 'Sending…' : 'Delete my account'}
+                  </Button>
                 </div>
               </section>
 

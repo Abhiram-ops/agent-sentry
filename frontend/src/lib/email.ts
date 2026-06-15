@@ -147,6 +147,20 @@ export function sendEmailChangeVerification(newEmail: string, link: string): Pro
   return send(newEmail, 'Confirm your new AgentSentry email', html);
 }
 
+/** Account deletion: emails a confirmation link to permanently delete the account. */
+export function sendAccountDeletionEmail(email: string, link: string): Promise<boolean> {
+  const html = shell(
+    'Confirm account deletion',
+    `<p style="color:rgba(255,255,255,0.9);font-size:1rem;">We received a request to delete your AgentSentry account.</p>
+     <p style="color:rgba(255,255,255,0.7);font-size:0.9rem;">Confirming will anonymize your profile, sign you out everywhere, and disable your API key. Billing records are retained as required for tax purposes.</p>
+     ${buttonBlock('Confirm account deletion', link)}
+     <p style="color:rgba(255,255,255,0.5);font-size:0.85rem;">
+       This link expires in 24 hours and can only be used once. If you didn't request this, ignore this email and your account stays as-is.
+     </p>`,
+  );
+  return send(email, 'Confirm deletion of your AgentSentry account', html);
+}
+
 /** Key rotation: emails the user their freshly-generated API key. */
 export function sendApiKeyEmail(email: string, apiKey: string): Promise<boolean> {
   const html = shell(
