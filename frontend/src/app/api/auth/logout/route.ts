@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteSession, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth';
+import { isSameOrigin } from '@/lib/origin';
 
 /**
  * Logout. Deletes the server session and clears the cookie. Called via fetch
@@ -7,6 +8,10 @@ import { deleteSession, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth'
  */
 export async function POST(req: NextRequest) {
   try {
+    if (!isSameOrigin(req)) {
+      return NextResponse.json({ error: 'Invalid origin.' }, { status: 403 });
+    }
+
     const token = req.cookies.get(SESSION_COOKIE)?.value;
     if (token) {
       await deleteSession(token);

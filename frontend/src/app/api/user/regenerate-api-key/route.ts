@@ -1,15 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { generateApiKey, touchApiKeyRotation } from '@/lib/db';
 import { getSessionUser, regenerateApiKey } from '@/lib/auth';
 import { sendApiKeyEmail } from '@/lib/email';
+import { isSameOrigin } from '@/lib/origin';
 
 /**
  * Rotates the signed-in user's API key. The key is stored in plaintext (the CLI
  * and Bearer-token billing/usage routes look it up directly), and the new key is
  * both emailed and returned so the dashboard can keep making authorized calls.
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
+    if (!isSameOrigin(req)) {
+      return NextResponse.json({ error: 'Invalid origin.' }, { status: 403 });
+    }
+
     const user = await getSessionUser();
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });

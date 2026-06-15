@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserByEmail } from '@/lib/db';
 import { getSessionUser, createEmailChange } from '@/lib/auth';
 import { sendEmailChangeVerification } from '@/lib/email';
+import { isSameOrigin } from '@/lib/origin';
 
 interface CredentialsBody {
   new_email?: string;
@@ -26,6 +27,10 @@ function baseUrl(req: NextRequest): string {
  */
 export async function POST(req: NextRequest) {
   try {
+    if (!isSameOrigin(req)) {
+      return NextResponse.json({ error: 'Invalid origin.' }, { status: 403 });
+    }
+
     const user = await getSessionUser();
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
