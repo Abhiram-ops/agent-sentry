@@ -80,6 +80,12 @@ PERMISSION_WEIGHTS: dict[str, float] = {
     "roles/viewer": 1.5,
     # ── Local-machine privilege markers ───────────────────────────────
     "docker:root_equivalent": 10.0,
+    "github:admin": 8.0,          # gh CLI OAuth token — broad repo + org scope
+    "k8s:cluster-admin": 9.0,     # kubeconfig with cluster-admin binding
+    "terraform:token": 6.0,       # Terraform Cloud/Enterprise token
+    "npm:token": 4.0,             # npm publish token
+    "pypi:token": 4.0,            # PyPI upload token
+    "netrc:credentials": 5.0,     # plaintext .netrc (unknown scope)
 }
 
 

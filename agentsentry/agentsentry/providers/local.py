@@ -91,6 +91,34 @@ DEV_CREDENTIAL_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Consumer/OS-managed tokens that match DEV_CREDENTIAL_PATTERN but are not
+# developer NHIs — Xbox Live SSO, Windows Live, Microsoft consumer accounts,
+# and similar auto-managed OS tokens. Filtering these eliminates noise
+# (22/28 findings on a typical Windows developer machine are Xbox tokens).
+CONSUMER_CREDENTIAL_BLOCKLIST = re.compile(
+    r"(XblGrts|XblGameSave|XboxLive|WindowsLive|MicrosoftAccount|MicrosoftOffice"
+    r"|OneDrive|PickerV2|SSO_POP_Device|liveFileStore|OnlineFamilySafety"
+    r"|virtualapp|Microsoft\.AAD\.BrokerPlugin|WinBio|CmApi|bgagent"
+    r"|Microsoft\.Windows\.|LegacyGeneric:target=Xbl)",
+    re.IGNORECASE,
+)
+
+# attached_policies to assign per cloud credential file provider so the PREA
+# scorer gives them realistic Privilege scores rather than the default 1.0.
+# Keys match the provider_label strings in CRED_FILES.
+CRED_FILE_POLICIES: dict[str, list[str]] = {
+    "aws":       ["iam:*"],          # unknown IAM scope — treat as full
+    "gcp":       ["roles/editor"],   # unknown GCP scope — treat as editor
+    "k8s":       ["*"],              # kubeconfig ≈ cluster-admin equivalent
+    "azure":     ["Contributor"],    # unknown Azure scope — treat as Contributor
+    "github":    ["github:admin"],   # gh CLI stores OAuth token with broad scope
+    "docker":    ["docker:root_equivalent"],
+    "terraform": ["terraform:token"],
+    "npm":       ["npm:token"],
+    "pypi":      ["pypi:token"],
+    "netrc":     ["secretsmanager:GetSecretValue"],  # generic plaintext creds
+}
+
 
 class LocalProvider(BaseProvider):
     """
@@ -398,6 +426,7 @@ class LocalProvider(BaseProvider):
                     source_file=str(path),
                     created_date=mtime,
                     last_rotated=mtime,
+                    attached_policies=CRED_FILE_POLICIES.get(provider_label, []),
                     findings=[
                         Finding(
                             finding_id=f"local-credfile-{provider_label}-{_sid}",
@@ -667,7 +696,11 @@ class LocalProvider(BaseProvider):
             if not line.lower().startswith("target:"):
                 continue
             value = line.split(":", 1)[1].strip()
-            if value and DEV_CREDENTIAL_PATTERN.search(value):
+            if (
+                value
+                and DEV_CREDENTIAL_PATTERN.search(value)
+                and not CONSUMER_CREDENTIAL_BLOCKLIST.search(value)
+            ):
                 targets.add(value)
 
         for target in sorted(targets)[:50]:

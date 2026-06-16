@@ -23,6 +23,7 @@ from datetime import datetime
 from typing import NamedTuple
 
 from rich.console import Console
+from rich.markup import escape as markup_escape
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
@@ -75,7 +76,7 @@ DIFF_HARD     = Difficulty("HARD",     "bold green",    "Days+",        "Require
 
 def _what_is_this(nhi: NonHumanIdentity) -> str:
     t = nhi.type
-    src = f" (found in [bold]{nhi.source_file}[/bold])" if nhi.source_file else ""
+    src = f" (found in [bold]{markup_escape(nhi.source_file)}[/bold])" if nhi.source_file else ""
 
     if t == NHIType.IAM_USER_KEY:
         return (
@@ -665,7 +666,7 @@ RISK_LABEL = {
     RiskLevel.CRITICAL: "[on red][bold white] CRITICAL [/bold white][/on red]",
     RiskLevel.HIGH:     "[on orange1][bold white] HIGH [/bold white][/on orange1]",
     RiskLevel.MEDIUM:   "[on yellow][bold black] MEDIUM [/bold black][/on yellow]",
-    RiskLevel.LOW:      "[on green][bold black] LOW [/bold black][/on low]",
+    RiskLevel.LOW:      "[on green][bold black] LOW [/bold black][/on green]",
     RiskLevel.INFO:     "[dim] INFO [/dim]",
 }
 
@@ -708,18 +709,19 @@ def _print_nhi_pro(nhi: NonHumanIdentity) -> None:
     badge  = RISK_LABEL.get(nhi.risk_level, "")
 
     # ── 1. Identity Profile ──────────────────────────────────────────
+    _border = RISK_BORDER.get(nhi.risk_level, 'white')
     profile_lines = [
-        f"  {badge}  [bold]{nhi.name}[/bold]\n",
-        f"  [dim]type        [/dim] {nhi.type.value}",
-        f"  [dim]provider    [/dim] {nhi.provider.value}",
-        f"  [dim]risk score  [/dim] [{RISK_BORDER.get(nhi.risk_level,'white')}]{nhi.risk_score:.1f}[/{RISK_BORDER.get(nhi.risk_level,'white')}]",
+        f"  {badge}  [bold]{markup_escape(nhi.name)}[/bold]\n",
+        f"  [dim]type        [/dim] {markup_escape(nhi.type.value)}",
+        f"  [dim]provider    [/dim] {markup_escape(nhi.provider.value)}",
+        f"  [dim]risk score  [/dim] [{_border}]{nhi.risk_score:.1f}[/{_border}]",
     ]
     if nhi.source_file:
-        profile_lines.append(f"  [dim]location    [/dim] {nhi.source_file}")
+        profile_lines.append(f"  [dim]location    [/dim] {markup_escape(nhi.source_file)}")
     if nhi.arn:
-        profile_lines.append(f"  [dim]arn         [/dim] [dim]{nhi.arn}[/dim]")
+        profile_lines.append(f"  [dim]arn         [/dim] [dim]{markup_escape(nhi.arn)}[/dim]")
     if nhi.attached_policies:
-        profile_lines.append(f"  [dim]policies    [/dim] [bold]{', '.join(nhi.attached_policies[:6])}[/bold]")
+        profile_lines.append(f"  [dim]policies    [/dim] [bold]{markup_escape(', '.join(nhi.attached_policies[:6]))}[/bold]")
     if nhi.last_used:
         age = (datetime.now(nhi.last_used.tzinfo) - nhi.last_used).days
         profile_lines.append(f"  [dim]last used   [/dim] {age} days ago")
@@ -733,9 +735,9 @@ def _print_nhi_pro(nhi: NonHumanIdentity) -> None:
     if nhi.is_internet_facing:
         profile_lines.append("  [bold red]⚠  internet-facing[/bold red]")
     if nhi.type.value == "ai_agent" and nhi.autonomy_level:
-        profile_lines.append(f"  [dim]autonomy    [/dim] [bold]{nhi.autonomy_level.value}[/bold]")
+        profile_lines.append(f"  [dim]autonomy    [/dim] [bold]{markup_escape(nhi.autonomy_level.value)}[/bold]")
     if nhi.agent_tools:
-        profile_lines.append(f"  [dim]tools       [/dim] {', '.join(nhi.agent_tools[:8])}")
+        profile_lines.append(f"  [dim]tools       [/dim] {markup_escape(', '.join(nhi.agent_tools[:8]))}")
 
     console.print(Panel(
         "\n".join(profile_lines),
@@ -794,8 +796,8 @@ def _print_nhi_pro(nhi: NonHumanIdentity) -> None:
         for f in nhi.findings:
             risk_color = RISK_BORDER.get(f.risk_level, "white")
             finding_lines.append(
-                f"  [{risk_color}]●[/{risk_color}]  [bold]{f.title}[/bold]  [dim]({f.finding_id})[/dim]\n"
-                f"     {f.description}\n"
+                f"  [{risk_color}]●[/{risk_color}]  [bold]{markup_escape(f.title)}[/bold]  [dim]({markup_escape(f.finding_id)})[/dim]\n"
+                f"     {markup_escape(f.description)}\n"
             )
         console.print(Panel(
             "\n".join(finding_lines),
