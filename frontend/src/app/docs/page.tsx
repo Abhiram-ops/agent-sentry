@@ -5,7 +5,7 @@ import type { ReactNode, ElementType } from "react";
 import { NavbarWeb3 as Navbar } from "@/components/layout/NavbarWeb3";
 import Footer from "@/components/layout/Footer";
 import { motion } from "framer-motion";
-import { Copy, Check, Terminal, Package, Cpu, Cloud, Layers } from "lucide-react";
+import { Copy, Check, Terminal, Package, Cpu, Cloud, Layers, Key, Sparkles } from "lucide-react";
 
 /* ── Copy button ────────────────────────────────────────────────── */
 function CopyBtn({ text }: { text: string }) {
@@ -106,7 +106,14 @@ export default function DocsPage() {
             Open-source NHI scanner — runs locally, zero data upload, one command to audit your entire cloud.
           </p>
           <div className="docs-anchor-nav">
-            {[["#install","Installation"],["#quick-start","Quick start"],["#providers","Providers"],["#output","Output formats"],["#advanced","Advanced"]].map(([href, label]) => (
+            {[
+              ["#whats-new","What's New"],
+              ["#install","Installation"],
+              ["#quick-start","Quick start"],
+              ["#providers","Providers"],
+              ["#output","Output formats"],
+              ["#advanced","Advanced"],
+            ].map(([href, label]) => (
               <a key={href} href={href}>
                 {label}
               </a>
@@ -114,22 +121,69 @@ export default function DocsPage() {
           </div>
         </motion.div>
 
+        {/* 0. What's New */}
+        <Section id="whats-new" icon={Sparkles} accent="#f59e0b" title="What's New">
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+            {/* v0.1.10 */}
+            <div style={{ border: "1px solid #21262d", borderRadius: 10, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, background: "var(--accent)", color: "#fff", padding: "2px 10px", borderRadius: 20 }}>v0.1.10</span>
+                <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Latest</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 14, lineHeight: 2 }}>
+                <li>Fix <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>~/.aws/config</code> being over-scored — it stores profile names, not keys, so it now correctly scores as INFO</li>
+                <li>Fix GCP <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>credentials.db</code> showing wrong &quot;Hardcoded secrets&quot; description</li>
+                <li>Exclude <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>tests/</code> directories from source scanner to eliminate intentional test-fixture false positives</li>
+                <li>Tighten secret regex: now requires 16+ characters with at least one uppercase letter or digit to cut noise from short placeholder values</li>
+              </ul>
+            </div>
+
+            {/* v0.1.9 */}
+            <div style={{ border: "1px solid #21262d", borderRadius: 10, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, background: "#21262d", color: "#e6edf3", padding: "2px 10px", borderRadius: 20 }}>v0.1.9</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 14, lineHeight: 2 }}>
+                <li>Fix <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>agentsentry scan local --pro</code> crash on LOW-risk identities (Rich markup typo)</li>
+                <li>Block Xbox Live / WindowsLive / MicrosoftAccount consumer tokens from Windows Credential Manager scan (was 22 false positives)</li>
+                <li>Cloud credential files now get realistic privilege scores: AWS credentials → HIGH, kubeconfig → CRITICAL</li>
+                <li>Escape all credential names in Rich output to prevent markup injection</li>
+              </ul>
+            </div>
+
+            {/* v0.1.8 */}
+            <div style={{ border: "1px solid #21262d", borderRadius: 10, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, background: "#21262d", color: "#e6edf3", padding: "2px 10px", borderRadius: 20 }}>v0.1.8</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 14, lineHeight: 2 }}>
+                <li>Windows Credential Manager scan (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>cmdkey /list</code>) — no admin required</li>
+                <li>macOS Keychain scan (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>security dump-keychain</code>) — metadata only, never reads secret values</li>
+                <li>Cross-platform Docker detection via subprocess (fixes Windows named-pipe blind spot)</li>
+                <li>Expanded credential file coverage: Azure CLI, GitHub CLI, Terraform Cloud, Windows gcloud path</li>
+              </ul>
+            </div>
+
+          </div>
+        </Section>
+
         {/* 1. Installation */}
         <Section id="install" icon={Package} accent="var(--accent)" title="Installation">
           <p style={{ margin: 0 }}>
-            AgentSentry requires Python 3.9+. Install the base package, then add provider extras for each cloud you want to scan.
+            AgentSentry requires Python 3.10+. The PyPI package is <code style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}>nhi-audit</code>; the CLI command is <code style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}>agentsentry</code>.
           </p>
           <OsTabs tabs={OS_TABS} renderTab={(os) => (
             <CodeBlock lines={[
-              "# Base install",
-              `${prompt(os)} pip install agentsentry`,
+              "# Base install (local scan, no cloud credentials needed)",
+              `${prompt(os)} pip install nhi-audit`,
               "",
               "# With all provider extras",
               os === "Linux / macOS"
-                ? `$ pip install 'agentsentry[aws,azure,gcp,github,k8s]'`
+                ? `$ pip install 'nhi-audit[aws,azure,gcp,github,k8s]'`
                 : os === "Windows"
-                ? `> pip install agentsentry[aws,azure,gcp,github,k8s]`
-                : `PS> pip install 'agentsentry[aws,azure,gcp,github,k8s]'`,
+                ? `> pip install nhi-audit[aws,azure,gcp,github,k8s]`
+                : `PS> pip install 'nhi-audit[aws,azure,gcp,github,k8s]'`,
               "",
               "# Verify",
               `${prompt(os)} agentsentry --version`,
@@ -147,6 +201,9 @@ export default function DocsPage() {
               "# Scan local environment (no credentials needed)",
               `${prompt(os)} agentsentry scan local`,
               "",
+              "# Full analyst report with attack narratives per identity",
+              `${prompt(os)} agentsentry scan local --pro`,
+              "",
               "# Scan everything configured on this machine",
               `${prompt(os)} agentsentry scan all`,
               "",
@@ -159,6 +216,28 @@ export default function DocsPage() {
         {/* 3. Providers */}
         <Section id="providers" icon={Cloud} accent="#0099ff" title="Provider setup &amp; scan commands">
 
+          {/* Local / Credential Manager */}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <div className="docs-provider-dot" style={{ background: "#3fb950" }} />
+              <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}>Local Machine (free, no credentials)</span>
+            </div>
+            <p style={{ margin: "0 0 12px", color: "var(--text-muted)", fontSize: 13, lineHeight: 1.7 }}>
+              Scans environment variables, .env files, SSH keys, cloud credential files, source code, and OS credential stores.
+              On Windows it reads <strong>Windows Credential Manager</strong> (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>cmdkey /list</code>) — consumer tokens (Xbox Live, MicrosoftAccount) are automatically filtered.
+              On macOS it reads <strong>Keychain</strong> metadata (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>security dump-keychain</code>) — secret values are never read.
+            </p>
+            <OsTabs tabs={OS_TABS} renderTab={(os) => (
+              <CodeBlock lines={[
+                "# Quick scan",
+                `${prompt(os)} agentsentry scan local`,
+                "",
+                "# Full analyst report (--pro): attack narratives + MITRE mappings + remediation steps",
+                `${prompt(os)} agentsentry scan local --pro`,
+              ]} />
+            )} />
+          </div>
+
           {/* AWS */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -168,7 +247,7 @@ export default function DocsPage() {
             <OsTabs tabs={OS_TABS} renderTab={(os) => (
               <CodeBlock lines={[
                 "# Install AWS extra",
-                os === "Windows" ? `> pip install agentsentry[aws]` : `${prompt(os)} pip install 'agentsentry[aws]'`,
+                os === "Windows" ? `> pip install nhi-audit[aws]` : `${prompt(os)} pip install 'nhi-audit[aws]'`,
                 "",
                 "# Configure credentials",
                 os === "Linux / macOS" ? "$ export AWS_PROFILE=my-profile" : os === "Windows" ? "> set AWS_PROFILE=my-profile" : "PS> $env:AWS_PROFILE = 'my-profile'",
@@ -187,7 +266,7 @@ export default function DocsPage() {
             </div>
             <OsTabs tabs={OS_TABS} renderTab={(os) => (
               <CodeBlock lines={[
-                os === "Windows" ? `> pip install agentsentry[azure]` : `${prompt(os)} pip install 'agentsentry[azure]'`,
+                os === "Windows" ? `> pip install nhi-audit[azure]` : `${prompt(os)} pip install 'nhi-audit[azure]'`,
                 `${prompt(os)} az login`,
                 `${prompt(os)} agentsentry scan azure`,
               ]} />
@@ -202,7 +281,7 @@ export default function DocsPage() {
             </div>
             <OsTabs tabs={OS_TABS} renderTab={(os) => (
               <CodeBlock lines={[
-                os === "Windows" ? `> pip install agentsentry[gcp]` : `${prompt(os)} pip install 'agentsentry[gcp]'`,
+                os === "Windows" ? `> pip install nhi-audit[gcp]` : `${prompt(os)} pip install 'nhi-audit[gcp]'`,
                 `${prompt(os)} gcloud auth application-default login`,
                 `${prompt(os)} agentsentry scan gcp`,
               ]} />
@@ -217,7 +296,7 @@ export default function DocsPage() {
             </div>
             <OsTabs tabs={OS_TABS} renderTab={(os) => (
               <CodeBlock lines={[
-                `${prompt(os)} pip install agentsentry`,
+                `${prompt(os)} pip install nhi-audit`,
                 os === "Linux / macOS" ? "$ export GITHUB_TOKEN=<your-pat>" : os === "Windows" ? "> set GITHUB_TOKEN=<your-pat>" : "PS> $env:GITHUB_TOKEN = '<your-pat>'",
                 `${prompt(os)} agentsentry scan github`,
               ]} />
@@ -232,7 +311,7 @@ export default function DocsPage() {
             </div>
             <OsTabs tabs={OS_TABS} renderTab={(os) => (
               <CodeBlock lines={[
-                os === "Windows" ? `> pip install agentsentry[k8s]` : `${prompt(os)} pip install 'agentsentry[k8s]'`,
+                os === "Windows" ? `> pip install nhi-audit[k8s]` : `${prompt(os)} pip install 'nhi-audit[k8s]'`,
                 `${prompt(os)} kubectl config use-context <your-cluster>`,
                 `${prompt(os)} agentsentry scan k8s`,
               ]} />
@@ -249,6 +328,9 @@ export default function DocsPage() {
             "# Default: rich terminal table",
             "$ agentsentry scan all",
             "",
+            "# --pro: full analyst report per identity (attack narrative + MITRE + remediation)",
+            "$ agentsentry scan local --pro",
+            "",
             "# JSON (for SIEM / automation)",
             "$ agentsentry scan all --output json > findings.json",
             "",
@@ -261,6 +343,17 @@ export default function DocsPage() {
             "# Save graph as HTML file",
             "$ agentsentry visualize --save report.html",
           ]} />
+
+          {/* --pro callout */}
+          <div style={{ border: "1px solid #a855f733", borderRadius: 10, background: "#a855f708", padding: "16px 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <Key style={{ width: 15, height: 15, color: "#a855f7" }} />
+              <span style={{ color: "#a855f7", fontWeight: 600, fontSize: 14 }}>--pro analyst report</span>
+            </div>
+            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 13, lineHeight: 1.7 }}>
+              Pass <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>--pro</code> to get a full analyst-grade breakdown for each identity: a plain-English &quot;WHAT IS THIS?&quot; explanation, step-by-step attacker exploit narrative with real commands, MITRE ATT&amp;CK technique mappings, and numbered remediation steps. Works with <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>agentsentry scan local</code> today.
+            </p>
+          </div>
         </Section>
 
         {/* 5. Advanced */}
@@ -291,7 +384,7 @@ export default function DocsPage() {
             <CodeBlock lang="yaml" lines={[
               "- name: AgentSentry NHI Scan",
               "  run: |",
-              "    pip install agentsentry[aws]",
+              "    pip install nhi-audit[aws]",
               "    agentsentry scan aws --output json --fail-on CRITICAL",
               "  env:",
               "    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}",

@@ -8,6 +8,7 @@ const FILES: Record<string, string> = {
   "Models":        `${RAW}/agentsentry/agentsentry/core/models.py`,
   "BaseProvider":  `${RAW}/agentsentry/agentsentry/providers/base.py`,
   "LocalProvider": `${RAW}/agentsentry/agentsentry/providers/local.py`,
+  "ProOutput":     `${RAW}/agentsentry/agentsentry/core/pro_output.py`,
 };
 
 let cachedContext = "";
@@ -37,23 +38,76 @@ const STATIC_SYSTEM = `You are AgentSentry Assistant — an expert helper for th
 Use the source code files provided to give precise, accurate answers.
 Only reference open-source files. Never reveal secrets or credentials.
 
+## Current Version
+nhi-audit 0.1.10 (pip install nhi-audit). CLI command: agentsentry.
+
 ## Risk Scoring: P×R×E×A
 Risk = Privilege × Reachability × Exposure × AI-Amplification
-CRITICAL >100, HIGH 50-100, MEDIUM 20-50, LOW <20
+CRITICAL >100, HIGH 50-100, MEDIUM 20-50, LOW 5-20, INFO <5
 
 ## CLI Reference
-agentsentry scan local / aws / azure / gcp / github / k8s / all
-agentsentry providers | agentsentry interactive
+agentsentry scan local            # scan local machine — no credentials needed (free)
+agentsentry scan local --pro      # full analyst report per identity with attack narratives
+agentsentry scan aws / azure / gcp / github / k8s
+agentsentry scan all              # auto-detects all configured providers
+agentsentry scan all --output json > findings.json
+agentsentry scan all --min-risk HIGH
+agentsentry scan all --fail-on CRITICAL
+agentsentry visualize             # open attack graph in browser
+agentsentry providers             # list detected providers
 
 ## Install
-pip install nhi-audit
-pip install nhi-audit[aws|azure|gcp|github|k8s|all-clouds]
+pip install nhi-audit                              # base (local scan, free)
+pip install nhi-audit[aws]                         # + AWS
+pip install nhi-audit[azure]                       # + Azure
+pip install nhi-audit[gcp]                         # + GCP
+pip install nhi-audit[github]                      # + GitHub
+pip install nhi-audit[k8s]                         # + Kubernetes
+pip install nhi-audit[aws,azure,gcp,github,k8s]   # everything
 
 ## Auth
-AWS: aws configure | Azure: az login | GCP: gcloud auth application-default login
-GitHub: GITHUB_TOKEN env var | Local: no setup needed
+AWS: aws configure (or AWS_PROFILE env var)
+Azure: az login
+GCP: gcloud auth application-default login
+GitHub: set GITHUB_TOKEN env var
+Local: no setup needed
 
-GitHub: https://github.com/Abhiram-ops/agent-sentry
+## Local Scanner (v0.1.10)
+Scans with zero credentials — reads only files the current user can access:
+- Environment variables matching secret patterns (AWS keys, GitHub tokens, etc.)
+- .env files in current + parent directories
+- SSH private keys in ~/.ssh/ (checks for missing passphrase)
+- Cloud credential files: ~/.aws/credentials, ~/.kube/config, ~/.config/gcloud/, ~/.azure/, ~/.docker/config.json, ~/.terraform.d/, ~/.npmrc, ~/.pypirc, ~/.netrc, GitHub CLI hosts.yml
+- Windows Credential Manager (cmdkey /list) — filters out consumer tokens (Xbox Live, WindowsLive, MicrosoftAccount) to eliminate noise
+- macOS Keychain (security dump-keychain) — metadata only, never reads secret values
+- Git credential store and OS credential manager helper
+- Source files up to 4 dirs deep for hardcoded secrets (tests/ excluded to avoid false positives)
+
+## --pro Flag
+agentsentry scan local --pro gives a full analyst-grade report for each identity:
+- Identity profile with PREA scores
+- Plain-English "WHAT IS THIS?" explanation
+- Step-by-step attacker exploit narrative with real commands
+- MITRE ATT&CK technique mappings
+- Numbered remediation steps with exact commands
+
+## Scoring Details
+Cloud credential files get realistic privilege scores (not 1.0 default):
+- ~/.aws/credentials → iam:* (P=9.0)
+- ~/.kube/config → * (P=10.0)
+- ~/.config/gcloud/ → roles/editor (P=9.0)
+- ~/.azure/ → Contributor (P=9.0)
+- ~/.docker/config.json → docker:root_equivalent (P=10.0)
+- ~/.aws/config → no policy (P=1.0, it's profile config not a key file)
+
+## Changelog
+v0.1.10: Fix ~/.aws/config over-scoring, fix GCP credential "WHAT IS THIS?" description, exclude tests/ from source scanner, tighten secret pattern to reduce false positives
+v0.1.9: Fix --pro crash (Rich markup typo on LOW risk NHIs), escape all credential names in Rich output, block Xbox/Windows consumer tokens from Windows Credential Manager scan, add cloud credential file privilege policies so AWS/GCP/k8s files score correctly instead of flat 2.0 INFO
+v0.1.8: Windows Credential Manager + macOS Keychain scan, cross-platform Docker detection, expanded CRED_FILES (Azure, gh CLI, Terraform), preserve provider findings through scorer
+v0.1.7: Initial public release — local + cloud scanning, PREA scoring, attack graph, --pro mode
+
+## GitHub
+https://github.com/Abhiram-ops/agent-sentry
 Be concise and direct. Use code blocks for commands.`;
 
 export async function POST(req: Request) {
