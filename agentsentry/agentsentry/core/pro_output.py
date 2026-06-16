@@ -185,7 +185,36 @@ def _what_is_this(nhi: NonHumanIdentity) -> str:
                 "usernames and tokens for every git remote you've authenticated to. "
                 "This commonly includes GitHub, GitLab, Bitbucket, and internal SCMs."
             )
-        if "file:" in name:
+        if "gcloud" in name or "google" in name:
+            return (
+                f"A [bold]Google Cloud credential[/bold]{src}. "
+                "Stored by the gcloud CLI, this file contains OAuth2 tokens or "
+                "service account keys that authenticate to GCP APIs. "
+                "Compromised GCP credentials can expose Cloud Storage, BigQuery, "
+                "Compute Engine, and any other GCP services the account can access."
+            )
+        if "azure" in name or "msal" in name:
+            return (
+                f"An [bold]Azure credential[/bold]{src}. "
+                "Stored by the Azure CLI or MSAL, this file contains access tokens "
+                "that authenticate to Azure services. Depending on the role assigned, "
+                "this can grant access to VMs, storage accounts, Key Vault, and more."
+            )
+        if "terraform" in name or ".tfrc" in name:
+            return (
+                f"A [bold]Terraform Cloud/Enterprise token[/bold]{src}. "
+                "This token authenticates to Terraform Cloud or Enterprise, granting "
+                "access to state files, variables (including secrets), and the ability "
+                "to trigger infrastructure deployments — potentially across all workspaces."
+            )
+        if "credential file:" in name:
+            return (
+                f"A [bold]cloud credential file[/bold]{src}. "
+                "This file stores authentication tokens or keys for a cloud platform. "
+                "If this machine is compromised, an attacker can use it to authenticate "
+                "to the associated cloud services with the stored identity's permissions."
+            )
+        if name.startswith("file:"):
             return (
                 f"[bold]Hardcoded secrets detected in source code[/bold]{src}. "
                 "One or more files in your codebase contain strings matching "

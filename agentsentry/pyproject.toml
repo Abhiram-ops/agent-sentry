@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nhi-audit"
-version = "0.1.9"
+version = "0.1.10"
 description = "Open-source auditor for Non-Human Identities and AI Agent attack surfaces in cloud environments"
 authors = [{ name = "Abhiram Lanka", email = "hello@agentsentry.org" }]
 license = { text = "AGPL-3.0-or-later" }

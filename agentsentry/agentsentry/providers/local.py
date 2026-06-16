@@ -60,7 +60,7 @@ SECRET_RE = re.compile(r"[A-Za-z0-9/+=]{40}")
 # Cloud cred file locations
 CRED_FILES = [
     ("~/.aws/credentials", "aws", RiskLevel.HIGH),
-    ("~/.aws/config", "aws", RiskLevel.MEDIUM),
+    ("~/.aws/config", "aws-config", RiskLevel.MEDIUM),  # profile/region config, not a key file
     ("~/.kube/config", "k8s", RiskLevel.HIGH),
     ("~/.config/gcloud/credentials.db", "gcp", RiskLevel.HIGH),
     ("~/.config/gcloud/application_default_credentials.json", "gcp", RiskLevel.HIGH),
@@ -107,16 +107,17 @@ CONSUMER_CREDENTIAL_BLOCKLIST = re.compile(
 # scorer gives them realistic Privilege scores rather than the default 1.0.
 # Keys match the provider_label strings in CRED_FILES.
 CRED_FILE_POLICIES: dict[str, list[str]] = {
-    "aws":       ["iam:*"],          # unknown IAM scope — treat as full
-    "gcp":       ["roles/editor"],   # unknown GCP scope — treat as editor
-    "k8s":       ["*"],              # kubeconfig ≈ cluster-admin equivalent
-    "azure":     ["Contributor"],    # unknown Azure scope — treat as Contributor
-    "github":    ["github:admin"],   # gh CLI stores OAuth token with broad scope
-    "docker":    ["docker:root_equivalent"],
-    "terraform": ["terraform:token"],
-    "npm":       ["npm:token"],
-    "pypi":      ["pypi:token"],
-    "netrc":     ["secretsmanager:GetSecretValue"],  # generic plaintext creds
+    "aws":        ["iam:*"],          # unknown IAM scope — treat as full
+    "aws-config": [],                 # profile/region config, not an actual key file
+    "gcp":        ["roles/editor"],   # unknown GCP scope — treat as editor
+    "k8s":        ["*"],              # kubeconfig ≈ cluster-admin equivalent
+    "azure":      ["Contributor"],    # unknown Azure scope — treat as Contributor
+    "github":     ["github:admin"],   # gh CLI stores OAuth token with broad scope
+    "docker":     ["docker:root_equivalent"],
+    "terraform":  ["terraform:token"],
+    "npm":        ["npm:token"],
+    "pypi":       ["pypi:token"],
+    "netrc":      ["secretsmanager:GetSecretValue"],  # generic plaintext creds
 }
 
 
@@ -768,7 +769,10 @@ class LocalProvider(BaseProvider):
             ),
             (
                 re.compile(
-                    r"""(?:secret|password|passwd)\s*[=:]\s*["']([^"']{8,})["']""", re.I
+                    # Require 16+ chars and at least one digit or uppercase — excludes
+                    # short enum labels like GITHUB_SECRET = "github_secret"
+                    r"""(?:secret|password|passwd)\s*[=:]\s*["'](?=[^"']*[A-Z0-9])([^"']{16,})["']""",
+                    re.I,
                 ),
                 "Hardcoded secret/password",
                 RiskLevel.CRITICAL,
@@ -812,6 +816,8 @@ class LocalProvider(BaseProvider):
             "Windows",
             "Program Files",
             "Program Files (x86)",
+            "tests",      # test files intentionally contain fake credentials
+            "test",
         }
 
         def iter_files(base, max_depth):
