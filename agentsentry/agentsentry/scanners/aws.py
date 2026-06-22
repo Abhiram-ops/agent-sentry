@@ -59,6 +59,9 @@ class AWSScanner:
         self.lambda_ = session.client("lambda")
         self.region = region
         self._last_result = None  # populated by scan() for build_access_edges()
+        # Cache managed policy documents by ARN — same policy is often attached
+        # to dozens of roles; fetching it once and reusing saves many API calls.
+        self._policy_doc_cache: dict[str, list[dict]] = {}
 
     def scan(self) -> ScanResult:
         print("[AgentSentry] Connecting to AWS...")
@@ -115,15 +118,21 @@ class AWSScanner:
         if role_name.startswith("AWSServiceRole"):
             return None
 
-        # Get attached policies
+        # Get attached policies — capture full metadata (name + ARN)
+        attached_meta: list[dict] = []
         try:
-            attached = self.iam.list_attached_role_policies(RoleName=role_name)
-            policy_names = [p["PolicyName"] for p in attached["AttachedPolicies"]]
+            resp = self.iam.list_attached_role_policies(RoleName=role_name)
+            attached_meta = resp["AttachedPolicies"]
         except ClientError:
-            policy_names = []
+            pass
+        policy_names = [p["PolicyName"] for p in attached_meta]
+
+        # Fetch actual policy documents for managed policies and merge with inline.
+        # Scoring and edge-derivation both operate on inline_policies, so managed
+        # policy documents land here too — no scorer changes needed.
+        inline_policies = self._fetch_managed_policy_docs(attached_meta)
 
         # Get inline policies
-        inline_policies = []
         try:
             inline_names = self.iam.list_role_policies(RoleName=role_name)["PolicyNames"]
             for pname in inline_names:
@@ -197,11 +206,23 @@ class AWSScanner:
     def _build_key_nhi(self, user: dict, key: dict) -> NonHumanIdentity:
         username = user["UserName"]
 
+        attached_meta: list[dict] = []
         try:
-            attached = self.iam.list_attached_user_policies(UserName=username)
-            policy_names = [p["PolicyName"] for p in attached["AttachedPolicies"]]
+            resp = self.iam.list_attached_user_policies(UserName=username)
+            attached_meta = resp["AttachedPolicies"]
         except ClientError:
-            policy_names = []
+            pass
+        policy_names = [p["PolicyName"] for p in attached_meta]
+
+        # Fetch managed policy documents + user inline policies
+        inline_policies = self._fetch_managed_policy_docs(attached_meta)
+        try:
+            inline_names = self.iam.list_user_policies(UserName=username)["PolicyNames"]
+            for pname in inline_names:
+                doc = self.iam.get_user_policy(UserName=username, PolicyName=pname)
+                inline_policies.append(doc["PolicyDocument"])
+        except ClientError:
+            pass
 
         # Last used info for the specific key
         try:
@@ -226,6 +247,7 @@ class AWSScanner:
             last_used=last_used,
             last_rotated=last_rotated,
             attached_policies=policy_names,
+            inline_policies=inline_policies,
             is_internet_facing=True,  # Access keys are by nature external credentials
         )
 
@@ -316,6 +338,44 @@ class AWSScanner:
     # Helpers
     # ------------------------------------------------------------------
 
+    def _fetch_managed_policy_docs(
+        self, attached_policies: list[dict]
+    ) -> list[dict]:
+        """
+        Fetch the actual policy document for each managed policy.
+
+        AWS managed policies (e.g. "DataPipelineAccess") are just names
+        until you call get_policy_version — the document is what contains
+        the real actions. Results are cached by PolicyArn so the same
+        AWS-managed policy (attached to 50 roles) is only fetched once.
+
+        Returns a list of PolicyDocument dicts ready to append to
+        inline_policies so the scorer and build_access_edges() pick them up
+        without any further changes.
+        """
+        docs: list[dict] = []
+        for policy in attached_policies:
+            arn = policy.get("PolicyArn", "")
+            if not arn:
+                continue
+            if arn in self._policy_doc_cache:
+                docs.extend(self._policy_doc_cache[arn])
+                continue
+            try:
+                default_version = self.iam.get_policy(PolicyArn=arn)["Policy"][
+                    "DefaultVersionId"
+                ]
+                version_resp = self.iam.get_policy_version(
+                    PolicyArn=arn, VersionId=default_version
+                )
+                doc = version_resp["PolicyVersion"]["Document"]
+                self._policy_doc_cache[arn] = [doc]
+                docs.append(doc)
+            except ClientError:
+                # No permission to read this policy — skip, don't crash
+                self._policy_doc_cache[arn] = []
+        return docs
+
     def _get_account_id(self) -> str:
         try:
             return self.sts.get_caller_identity()["Account"]
@@ -397,7 +457,9 @@ class AWSScanner:
                     virtual_id = f"virtual-{res_prefix.rstrip('-') or 'all'}"
                     edges.append((from_id, virtual_id, label, weight))
 
-            # ── Inline policies ─────────────────────────────────────────────
+            # ── Policy documents (inline + fetched managed) ─────────────────
+            # Managed policy docs are now in inline_policies too — one loop
+            # handles both. Weight = attack-path cost: lower = easier pivot.
             for policy_doc in nhi.inline_policies:
                 for stmt in policy_doc.get("Statement", []):
                     if stmt.get("Effect") != "Allow":
@@ -406,12 +468,24 @@ class AWSScanner:
                     if isinstance(actions, str):
                         actions = [actions]
                     for action in actions:
-                        prefix = action.split(":")[0].lower()
-                        res_prefix = SERVICE_RESOURCE_PREFIX.get(prefix, "")
-                        matched = [rid for rid in resource_ids if rid.startswith(res_prefix)] if res_prefix else []
-                        weight = 10.0 if action in ("*", "*:*") else 5.0
-                        for to_id in matched:
-                            edges.append((from_id, to_id, action, weight))
+                        if action in ("*", "*:*"):
+                            # Full wildcard — touches everything scanned
+                            for to_id in resource_ids:
+                                edges.append((from_id, to_id, action, 1.0))
+                        elif action.endswith(":*"):
+                            # Service wildcard e.g. s3:* — touches all resources of that service
+                            prefix = action.split(":")[0].lower()
+                            res_prefix = SERVICE_RESOURCE_PREFIX.get(prefix, "")
+                            matched = [r for r in resource_ids if r.startswith(res_prefix)] if res_prefix else []
+                            for to_id in matched:
+                                edges.append((from_id, to_id, action, 1.5))
+                        else:
+                            # Specific action e.g. s3:GetObject
+                            prefix = action.split(":")[0].lower()
+                            res_prefix = SERVICE_RESOURCE_PREFIX.get(prefix, "")
+                            matched = [r for r in resource_ids if r.startswith(res_prefix)] if res_prefix else []
+                            for to_id in matched:
+                                edges.append((from_id, to_id, action, 4.0))
 
         # Deduplicate (same from/to/permission)
         seen: set[tuple[str, str, str]] = set()
