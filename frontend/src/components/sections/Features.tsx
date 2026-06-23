@@ -41,7 +41,8 @@ export function Features() {
         position: 'relative',
       }}
     >
-      <GlowLine variant="primary" position="top" />
+      ```tsx
+   <GlowLine position="top" />
 
       <Container>
         <div style={{ marginBottom: '80px', textAlign: 'center' }}>
