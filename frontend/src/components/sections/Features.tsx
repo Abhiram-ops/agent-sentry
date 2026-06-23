@@ -1,145 +1,57 @@
-'use client';
+import React from 'react';
 
-import { motion, useInView } from 'framer-motion';
-import { useRef } from 'react';
-import { Container } from '@/components/ui/Container';
-import { GlowLine } from '@/components/graphics/GlowLine';
-import { Shield, Brain, Zap } from 'lucide-react';
+/**
+ * GlowLine
+ * A 1px horizontal line with a radial gradient glow effect.
+ * Accepts 'color' or 'variant' to ensure backward compatibility 
+ * across the Next.js component tree.
+ */
 
-export function Features() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
+interface GlowLineProps {
+  color?: "green" | "red" | "dim";
+  position?: "top" | "bottom";
+  variant?: string; // Added to resolve the TypeScript error
+  style?: React.CSSProperties;
+}
 
-  const features = [
-    {
-      icon: Shield,
-      title: 'NHI Discovery',
-      description: 'Automatically discover every service account, API key, and machine credential in your cloud.',
-      color: '#00ff88',
-    },
-    {
-      icon: Brain,
-      title: 'AI Agent Scoring',
-      description: 'Analyze autonomous AI agents. Calculate attack blast radius with the AI-Amplification Factor.',
-      color: '#ffcc00',
-    },
-    {
-      icon: Zap,
-      title: 'CISA KEV Intel',
-      description: 'Correlate findings against active exploits. Know which vulnerabilities are being exploited right now.',
-      color: '#ff3366',
-    },
-  ];
+const GRADIENTS = {
+  green: "linear-gradient(90deg, transparent 0%, rgba(0,255,136,0.35) 50%, transparent 100%)",
+  red:   "linear-gradient(90deg, transparent 0%, rgba(255,51,102,0.25) 50%, transparent 100%)",
+  dim:   "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 50%, transparent 100%)",
+};
+
+export function GlowLine({
+  color,
+  position = "top",
+  variant,
+  style = {},
+}: GlowLineProps) {
+  // Map legacy 'variant' props to the correct gradient color
+  let activeColor: "green" | "red" | "dim" = "dim";
+
+  if (color) {
+    activeColor = color;
+  } else if (variant === "primary") {
+    activeColor = "green";
+  } else if (variant === "danger" || variant === "destructive") {
+    activeColor = "red";
+  } else {
+    activeColor = "dim"; // Fallback for 'secondary' or undefined
+  }
 
   return (
-    <section
-      ref={ref}
+    <div
+      aria-hidden="true"
       style={{
-        paddingTop: '100px',
-        paddingBottom: '100px',
-        background: '#000',
-        position: 'relative',
+        position: "absolute",
+        left: 0,
+        right: 0,
+        ...(position === "top" ? { top: 0 } : { bottom: 0 }),
+        height: 1,
+        background: GRADIENTS[activeColor],
+        pointerEvents: "none",
+        ...style,
       }}
-    >
-      ```tsx
-   <GlowLine position="top" />
-
-      <Container>
-        <div style={{ marginBottom: '80px', textAlign: 'center' }}>
-          <h2
-            style={{
-              fontSize: '42px',
-              fontWeight: 700,
-              color: '#fff',
-              marginBottom: '16px',
-              fontFamily: 'var(--font-geist-sans)',
-            }}
-          >
-            Core Capabilities
-          </h2>
-          <p
-            style={{
-              fontSize: '18px',
-              color: '#888',
-              fontFamily: 'var(--font-geist-sans)',
-            }}
-          >
-            Everything you need to govern non-human identities
-          </p>
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '32px',
-          }}
-        >
-          {features.map((feature, i) => {
-            const Icon = feature.icon;
-            return (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                transition={{ duration: 0.6, delay: i * 0.15 }}
-                whileHover={{ y: -4 }}
-                style={{
-                  padding: '32px',
-                  background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
-                  border: '1px solid #1a1a1a',
-                  borderRadius: '12px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                }}
-              >
-                {/* Hover glow */}
-                <motion.div
-                  style={{
-                    position: 'absolute',
-                    top: '-50%',
-                    left: '-50%',
-                    width: '200%',
-                    height: '200%',
-                    background: `radial-gradient(circle, ${feature.color}20 0%, transparent 70%)`,
-                    opacity: 0,
-                  }}
-                  whileHover={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                />
-
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                  <Icon size={32} color={feature.color} style={{ marginBottom: '16px' }} />
-
-                  <h3
-                    style={{
-                      fontSize: '20px',
-                      fontWeight: 600,
-                      color: '#fff',
-                      marginBottom: '12px',
-                      fontFamily: 'var(--font-geist-sans)',
-                    }}
-                  >
-                    {feature.title}
-                  </h3>
-
-                  <p
-                    style={{
-                      fontSize: '14px',
-                      color: '#888',
-                      lineHeight: 1.6,
-                      fontFamily: 'var(--font-geist-sans)',
-                    }}
-                  >
-                    {feature.description}
-                  </p>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      </Container>
-    </section>
+    />
   );
 }
