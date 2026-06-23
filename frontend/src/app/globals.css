@@ -602,6 +602,39 @@ section { overflow-x: hidden; }
 .auth-footnote { text-align: center; font-size: 13px; color: var(--text-faint); margin: 0; }
 .auth-footnote a { color: var(--accent); text-decoration: none; }
 .auth-footnote a:hover { text-decoration: underline; }
+
+/* ── CONSENT (signup) ── */
+.consent-row { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.consent-checkbox { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
+.consent-text { font-size: 12.5px; line-height: 1.55; color: var(--text-muted); }
+.consent-text a { color: var(--accent); text-decoration: none; }
+.consent-text a:hover { text-decoration: underline; }
+.consent-short { display: block; margin-top: 6px; color: var(--text-faint); font-size: 11.5px; line-height: 1.5; }
+
+/* ── CONSENT MODAL ── */
+.consent-modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(8, 15, 30, 0.55); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.consent-modal {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 16px; max-width: 460px; width: 100%;
+  padding: 28px; box-shadow: 0 24px 60px rgba(8, 15, 30, 0.3);
+}
+.consent-modal-title { font-size: 20px; letter-spacing: -0.01em; margin: 0 0 8px; }
+.consent-modal-lead { font-size: 13.5px; line-height: 1.55; color: var(--text-muted); margin: 0 0 18px; }
+.consent-modal-body {
+  border: 1px solid var(--border); background: var(--bg-subtle);
+  border-radius: 12px; padding: 16px 18px; margin: 0 0 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.consent-modal-body p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+.consent-modal-body strong { color: var(--text); }
+.consent-modal-check { margin: 0 0 22px; }
+.consent-modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+.btn-ghost { background: transparent; color: var(--text-muted); border-color: var(--border); }
+.btn-ghost:hover { background: var(--bg-subtle); color: var(--text); }
 .auth-result-card { border-radius: var(--radius-xl); border: 1px solid var(--accent-muted); background: var(--accent-subtle); padding: 40px; display: flex; flex-direction: column; gap: 20px; }
 .auth-result-card.centered { text-align: center; }
 .auth-error-card { border-radius: var(--radius-xl); border: 1px solid #fecaca; background: #fef2f2; padding: 40px; text-align: center; }

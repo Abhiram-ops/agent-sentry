@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByActivationCode, markCliActivated } from '@/lib/db';
+import { getUserByActivationCode, markCliActivated, recordConsent } from '@/lib/db';
 import { sendProGuideEmail } from '@/lib/email';
+import { POLICY_VERSION } from '@/lib/policy';
 
 interface ActivateBody {
   activation_code?: string;
+  consent?: {
+    document?: string;
+    version?: string;
+    accepted_at?: string;
+    source?: string;
+  };
 }
 
 /**
@@ -23,6 +30,23 @@ export async function POST(req: NextRequest) {
     const user = await getUserByActivationCode(code);
     if (!user) {
       return NextResponse.json({ error: 'Invalid activation code.' }, { status: 404 });
+    }
+
+    // Record the CLI consent the user gave at the activation prompt. Best-effort:
+    // a consent-logging failure must not block a valid activation.
+    if (body.consent) {
+      const ip = req.headers.get('x-forwarded-for');
+      try {
+        await recordConsent(
+          user.id,
+          'cli_activation',
+          body.consent.version || POLICY_VERSION,
+          ip,
+          body.consent.document || 'terms_and_privacy',
+        );
+      } catch (e) {
+        console.error('[/api/cli/activate] consent log failed', e);
+      }
     }
 
     const firstActivation = await markCliActivated(user.id);

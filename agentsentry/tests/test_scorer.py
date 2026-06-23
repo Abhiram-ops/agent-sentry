@@ -632,3 +632,115 @@ class TestFindings:
         ids = self._ids(scored)
         assert "local-x" in ids
         assert "NHI-002" in ids
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Least-privilege gap (AWS Access Advisor / service_last_accessed)
+# ═══════════════════════════════════════════════════════════════════
+
+
+def _svc(namespace: str, used: bool) -> dict:
+    """One access-advisor entry; used=False means granted-but-never-authenticated."""
+    return {
+        "namespace": namespace,
+        "service": namespace.upper(),
+        "last_authenticated": days_ago(10) if used else None,
+    }
+
+
+class TestPrivilegeGapModel:
+    def test_no_data_returns_none(self):
+        nhi = make_nhi()
+        assert nhi.privilege_gap_ratio() is None
+        assert nhi.granted_service_count() == 0
+        assert nhi.unused_services() == []
+
+    def test_gap_ratio_and_unused_list(self):
+        nhi = make_nhi(
+            service_last_accessed=[
+                _svc("s3", used=True),
+                _svc("ec2", used=False),
+                _svc("rds", used=False),
+                _svc("lambda", used=False),
+            ]
+        )
+        assert nhi.granted_service_count() == 4
+        assert nhi.used_service_count() == 1
+        assert nhi.privilege_gap_ratio() == 0.75
+        assert sorted(nhi.unused_services()) == ["ec2", "lambda", "rds"]
+
+    def test_all_used_zero_gap(self):
+        nhi = make_nhi(
+            service_last_accessed=[_svc("s3", used=True), _svc("ec2", used=True)]
+        )
+        assert nhi.privilege_gap_ratio() == 0.0
+        assert nhi.unused_services() == []
+
+
+class TestLeastPrivilegeFinding:
+    def _ids(self, nhi):
+        return [f.finding_id for f in nhi.findings]
+
+    def test_excessive_unused_permissions_finding(self, scorer):
+        nhi = scorer.score(
+            make_nhi(
+                service_last_accessed=[
+                    _svc("s3", used=True),
+                    _svc("ec2", used=False),
+                    _svc("rds", used=False),
+                    _svc("dynamodb", used=False),
+                ]
+            )
+        )
+        assert "NHI-006" in self._ids(nhi)
+        f = next(f for f in nhi.findings if f.finding_id == "NHI-006")
+        assert "ec2" in f.remediation and "rds" in f.remediation
+        assert f.evidence["unused_services"]
+
+    def test_no_finding_when_gap_below_threshold(self, scorer):
+        # 1 of 4 unused = 0.25 gap, below the 0.5 trigger
+        nhi = scorer.score(
+            make_nhi(
+                service_last_accessed=[
+                    _svc("s3", used=True),
+                    _svc("ec2", used=True),
+                    _svc("rds", used=True),
+                    _svc("dynamodb", used=False),
+                ]
+            )
+        )
+        assert "NHI-006" not in self._ids(nhi)
+
+    def test_no_finding_when_too_few_grants(self, scorer):
+        # High gap but only 2 grants — below the 4-service noise floor
+        nhi = scorer.score(
+            make_nhi(
+                service_last_accessed=[_svc("s3", used=False), _svc("ec2", used=False)]
+            )
+        )
+        assert "NHI-006" not in self._ids(nhi)
+
+    def test_high_privilege_escalates_to_high(self, scorer):
+        nhi = scorer.score(
+            make_nhi(
+                attached_policies=["iam:*"],  # privilege 9.0
+                service_last_accessed=[
+                    _svc("s3", used=False),
+                    _svc("ec2", used=False),
+                    _svc("rds", used=False),
+                    _svc("lambda", used=False),
+                ],
+            )
+        )
+        f = next(f for f in nhi.findings if f.finding_id == "NHI-006")
+        assert f.risk_level == RiskLevel.HIGH
+
+    def test_severe_gap_bumps_exposure(self, scorer):
+        """A severe unused-permission gap raises the exposure score (calibration)."""
+        base = scorer.score(make_nhi())
+        gapped = scorer.score(
+            make_nhi(
+                service_last_accessed=[_svc(f"svc{i}", used=False) for i in range(4)]
+            )
+        )
+        assert gapped.exposure_score > base.exposure_score

@@ -112,6 +112,12 @@ class NonHumanIdentity(BaseModel):
     is_cross_account: bool = False
     is_internet_facing: bool = False
 
+    # Access-advisor / least-privilege data (populated when usage analysis is on).
+    # Each entry: {"namespace": str, "service": str, "last_authenticated": datetime|None}.
+    # last_authenticated is None when the service was granted but never used —
+    # that gap between *granted* and *used* is the data-driven least-privilege signal.
+    service_last_accessed: list[dict[str, Any]] = Field(default_factory=list)
+
     # AI Agent specific (populated by LangChain scanner)
     autonomy_level: AutonomyLevel | None = None
     agent_tools: list[str] = Field(default_factory=list)
@@ -152,6 +158,45 @@ class NonHumanIdentity(BaseModel):
         """
         days = self.days_since_last_use()
         return days is not None and days > threshold_days
+
+    # -- Least-privilege gap (AWS Access Advisor) --------------------------
+
+    def granted_service_count(self) -> int:
+        """Number of services this identity is granted access to (access advisor)."""
+        return len(self.service_last_accessed)
+
+    def used_service_count(self) -> int:
+        """Number of granted services actually authenticated against at least once."""
+        return sum(
+            1 for s in self.service_last_accessed if s.get("last_authenticated")
+        )
+
+    def unused_services(self) -> list[str]:
+        """
+        Service namespaces granted to this identity but never used.
+
+        These are pure attack surface with zero operational value — the
+        concrete list an operator can paste into a least-privilege cleanup.
+        """
+        return [
+            s.get("namespace", s.get("service", "unknown"))
+            for s in self.service_last_accessed
+            if not s.get("last_authenticated")
+        ]
+
+    def privilege_gap_ratio(self) -> float | None:
+        """
+        Fraction of granted services that have never been used (0.0–1.0).
+
+        Returns None when no access-advisor data is available (usage analysis
+        was off, or the identity has no service grants). A ratio near 1.0
+        means almost everything granted is unused — a strong over-provisioning
+        signal independent of how dangerous the granted permissions look.
+        """
+        granted = self.granted_service_count()
+        if granted == 0:
+            return None
+        return len(self.unused_services()) / granted
 
 
 # ---------------------------------------------------------------------------

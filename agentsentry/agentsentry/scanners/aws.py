@@ -51,14 +51,31 @@ class AWSScanner:
       - Known high-value resources (S3 buckets, RDS, Secrets Manager)
     """
 
-    def __init__(self, profile: str | None = None, region: str = "us-east-1"):
+    def __init__(
+        self,
+        profile: str | None = None,
+        region: str = "us-east-1",
+        analyze_usage: bool = False,
+    ):
         session = boto3.Session(profile_name=profile, region_name=region)
         self.iam    = session.client("iam")
         self.sts    = session.client("sts")
         self.s3     = session.client("s3")
         self.lambda_ = session.client("lambda")
+        self.secrets   = session.client("secretsmanager")
+        self.rds       = session.client("rds")
+        self.dynamodb  = session.client("dynamodb")
         self.region = region
         self._last_result = None  # populated by scan() for build_access_edges()
+        # Cache managed policy documents by ARN — same policy is often attached
+        # to dozens of roles; fetching it once and reusing saves many API calls.
+        self._policy_doc_cache: dict[str, list[dict]] = {}
+        # Opt-in least-privilege analysis via IAM Access Advisor. Off by default
+        # because it runs an async job per principal (slow on large accounts).
+        self.analyze_usage = analyze_usage
+        # Cache access-advisor results by principal ARN — a user with multiple
+        # access keys would otherwise trigger an identical job per key.
+        self._usage_cache: dict[str, list[dict]] = {}
 
     def scan(self) -> ScanResult:
         print("[AgentSentry] Connecting to AWS...")
@@ -79,6 +96,15 @@ class AWSScanner:
 
         print("[AgentSentry] Scanning Lambda functions...")
         resources.extend(self._scan_lambda_functions())
+
+        print("[AgentSentry] Scanning Secrets Manager secrets...")
+        resources.extend(self._scan_secrets())
+
+        print("[AgentSentry] Scanning RDS instances...")
+        resources.extend(self._scan_rds_instances())
+
+        print("[AgentSentry] Scanning DynamoDB tables...")
+        resources.extend(self._scan_dynamodb_tables())
 
         print(f"[AgentSentry] Done. Found {len(nhis)} NHIs, {len(resources)} resources.")
 
@@ -115,15 +141,21 @@ class AWSScanner:
         if role_name.startswith("AWSServiceRole"):
             return None
 
-        # Get attached policies
+        # Get attached policies — capture full metadata (name + ARN)
+        attached_meta: list[dict] = []
         try:
-            attached = self.iam.list_attached_role_policies(RoleName=role_name)
-            policy_names = [p["PolicyName"] for p in attached["AttachedPolicies"]]
+            resp = self.iam.list_attached_role_policies(RoleName=role_name)
+            attached_meta = resp["AttachedPolicies"]
         except ClientError:
-            policy_names = []
+            pass
+        policy_names = [p["PolicyName"] for p in attached_meta]
+
+        # Fetch actual policy documents for managed policies and merge with inline.
+        # Scoring and edge-derivation both operate on inline_policies, so managed
+        # policy documents land here too — no scorer changes needed.
+        inline_policies = self._fetch_managed_policy_docs(attached_meta)
 
         # Get inline policies
-        inline_policies = []
         try:
             inline_names = self.iam.list_role_policies(RoleName=role_name)["PolicyNames"]
             for pname in inline_names:
@@ -150,6 +182,13 @@ class AWSScanner:
             for kw in ["public", "external", "internet", "api", "web", "lambda"]
         )
 
+        # Least-privilege analysis (opt-in) — which granted services go unused.
+        service_last_accessed = (
+            self._fetch_service_last_accessed(role["Arn"])
+            if self.analyze_usage
+            else []
+        )
+
         return NonHumanIdentity(
             id=role["RoleId"],
             name=role_name,
@@ -164,6 +203,7 @@ class AWSScanner:
             trust_policy=trust_policy,
             is_cross_account=is_cross_account,
             is_internet_facing=is_internet_facing,
+            service_last_accessed=service_last_accessed,
         )
 
     # ------------------------------------------------------------------
@@ -197,11 +237,23 @@ class AWSScanner:
     def _build_key_nhi(self, user: dict, key: dict) -> NonHumanIdentity:
         username = user["UserName"]
 
+        attached_meta: list[dict] = []
         try:
-            attached = self.iam.list_attached_user_policies(UserName=username)
-            policy_names = [p["PolicyName"] for p in attached["AttachedPolicies"]]
+            resp = self.iam.list_attached_user_policies(UserName=username)
+            attached_meta = resp["AttachedPolicies"]
         except ClientError:
-            policy_names = []
+            pass
+        policy_names = [p["PolicyName"] for p in attached_meta]
+
+        # Fetch managed policy documents + user inline policies
+        inline_policies = self._fetch_managed_policy_docs(attached_meta)
+        try:
+            inline_names = self.iam.list_user_policies(UserName=username)["PolicyNames"]
+            for pname in inline_names:
+                doc = self.iam.get_user_policy(UserName=username, PolicyName=pname)
+                inline_policies.append(doc["PolicyDocument"])
+        except ClientError:
+            pass
 
         # Last used info for the specific key
         try:
@@ -216,6 +268,14 @@ class AWSScanner:
         # Keys are "rotated" when they're recreated — creation date is the rotation date
         last_rotated = created_date
 
+        # Least-privilege analysis (opt-in) — access advisor is per-user, so the
+        # cache means a user's second key reuses the first key's job result.
+        service_last_accessed = (
+            self._fetch_service_last_accessed(user["Arn"])
+            if self.analyze_usage
+            else []
+        )
+
         return NonHumanIdentity(
             id=key["AccessKeyId"],
             name=f"{username} / {key['AccessKeyId'][:8]}...",
@@ -226,7 +286,9 @@ class AWSScanner:
             last_used=last_used,
             last_rotated=last_rotated,
             attached_policies=policy_names,
+            inline_policies=inline_policies,
             is_internet_facing=True,  # Access keys are by nature external credentials
+            service_last_accessed=service_last_accessed,
         )
 
     # ------------------------------------------------------------------
@@ -312,9 +374,177 @@ class AWSScanner:
 
         return resources
 
+    def _scan_secrets(self) -> list[Resource]:
+        """
+        Secrets Manager secrets — the highest-value crown jewels in an NHI
+        attack (API keys, DB passwords, tokens). Resource ids use the ``secret-``
+        prefix so the secretsmanager:* access edges in build_access_edges()
+        connect to real nodes.
+        """
+        resources = []
+        try:
+            paginator = self.secrets.get_paginator("list_secrets")
+            for page in paginator.paginate():
+                for secret in page.get("SecretList", []):
+                    name = secret.get("Name", "")
+                    resources.append(Resource(
+                        id=f"secret-{name}",
+                        name=name,
+                        resource_type="secretsmanager_secret",
+                        provider=CloudProvider.AWS,
+                        arn=secret.get("ARN"),
+                        is_crown_jewel=True,  # secrets are crown jewels by definition
+                        sensitivity_tags=["SECRET"],
+                    ))
+        except ClientError:
+            pass
+        return resources
+
+    def _scan_rds_instances(self) -> list[Resource]:
+        """RDS database instances — crown jewels by data sensitivity."""
+        resources = []
+        try:
+            paginator = self.rds.get_paginator("describe_db_instances")
+            for page in paginator.paginate():
+                for db in page.get("DBInstances", []):
+                    identifier = db.get("DBInstanceIdentifier", "")
+                    is_public = bool(db.get("PubliclyAccessible", False))
+                    resources.append(Resource(
+                        id=f"rds-{identifier}",
+                        name=identifier,
+                        resource_type="rds_instance",
+                        provider=CloudProvider.AWS,
+                        arn=db.get("DBInstanceArn"),
+                        is_crown_jewel=True,
+                        is_public=is_public,
+                        sensitivity_tags=["PUBLIC"] if is_public else [],
+                    ))
+        except ClientError:
+            pass
+        return resources
+
+    def _scan_dynamodb_tables(self) -> list[Resource]:
+        """DynamoDB tables — flagged as crown jewels by name heuristic."""
+        resources = []
+        try:
+            paginator = self.dynamodb.get_paginator("list_tables")
+            for page in paginator.paginate():
+                for name in page.get("TableNames", []):
+                    is_crown_jewel = any(
+                        kw in name.lower()
+                        for kw in ["prod", "customer", "user", "pii", "payment",
+                                   "order", "account", "secret", "token"]
+                    )
+                    resources.append(Resource(
+                        id=f"dynamodb-{name}",
+                        name=name,
+                        resource_type="dynamodb_table",
+                        provider=CloudProvider.AWS,
+                        arn=f"arn:aws:dynamodb:{self.region}:*:table/{name}",
+                        is_crown_jewel=is_crown_jewel,
+                    ))
+        except ClientError:
+            pass
+        return resources
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _fetch_managed_policy_docs(
+        self, attached_policies: list[dict]
+    ) -> list[dict]:
+        """
+        Fetch the actual policy document for each managed policy.
+
+        AWS managed policies (e.g. "DataPipelineAccess") are just names
+        until you call get_policy_version — the document is what contains
+        the real actions. Results are cached by PolicyArn so the same
+        AWS-managed policy (attached to 50 roles) is only fetched once.
+
+        Returns a list of PolicyDocument dicts ready to append to
+        inline_policies so the scorer and build_access_edges() pick them up
+        without any further changes.
+        """
+        docs: list[dict] = []
+        for policy in attached_policies:
+            arn = policy.get("PolicyArn", "")
+            if not arn:
+                continue
+            if arn in self._policy_doc_cache:
+                docs.extend(self._policy_doc_cache[arn])
+                continue
+            try:
+                default_version = self.iam.get_policy(PolicyArn=arn)["Policy"][
+                    "DefaultVersionId"
+                ]
+                version_resp = self.iam.get_policy_version(
+                    PolicyArn=arn, VersionId=default_version
+                )
+                doc = version_resp["PolicyVersion"]["Document"]
+                self._policy_doc_cache[arn] = [doc]
+                docs.append(doc)
+            except ClientError:
+                # No permission to read this policy — skip, don't crash
+                self._policy_doc_cache[arn] = []
+        return docs
+
+    def _fetch_service_last_accessed(self, arn: str) -> list[dict]:
+        """
+        Fetch IAM Access Advisor data for a principal: which services it is
+        *granted* and when each was *last used*.
+
+        AWS returns this via an async job: generate_service_last_accessed_details
+        kicks off the analysis, then get_service_last_accessed_details is polled
+        until the job completes. We cap the polling so a slow/stuck job can't hang
+        the whole scan — a principal that doesn't return in time just yields no
+        usage data (treated as "unknown", never as "unused").
+
+        Returns a list of dicts shaped for NonHumanIdentity.service_last_accessed:
+            {"namespace": "s3", "service": "Amazon S3", "last_authenticated": dt|None}
+        """
+        import time
+
+        if arn in self._usage_cache:
+            return self._usage_cache[arn]
+
+        try:
+            job_id = self.iam.generate_service_last_accessed_details(Arn=arn)["JobId"]
+        except ClientError:
+            self._usage_cache[arn] = []
+            return []
+
+        services: list[dict] = []
+        for _ in range(10):  # ~ up to 10 polls; jobs usually finish in 1–2
+            try:
+                resp = self.iam.get_service_last_accessed_details(JobId=job_id)
+            except ClientError:
+                self._usage_cache[arn] = []
+                return []
+
+            status = resp.get("JobStatus")
+            if status == "IN_PROGRESS":
+                time.sleep(0.5)
+                continue
+            if status != "COMPLETED":
+                self._usage_cache[arn] = []
+                return []  # FAILED or unknown — no usable data
+
+            for entry in resp.get("ServicesLastAccessed", []):
+                services.append(
+                    {
+                        "namespace": entry.get("ServiceNamespace", ""),
+                        "service": entry.get("ServiceName", ""),
+                        # Absent LastAuthenticated == granted but never used.
+                        "last_authenticated": entry.get("LastAuthenticated"),
+                    }
+                )
+            self._usage_cache[arn] = services
+            return services
+
+        # Polling exhausted — cache empty so we don't re-run the job for this ARN.
+        self._usage_cache[arn] = []
+        return []
 
     def _get_account_id(self) -> str:
         try:
@@ -373,6 +603,7 @@ class AWSScanner:
             "lambda":          "lambda-",
             "rds":             "rds-",
             "secretsmanager":  "secret-",
+            "dynamodb":        "dynamodb-",
             "ec2":             "ec2-",
             "iam":             "iam-",
         }
@@ -397,7 +628,9 @@ class AWSScanner:
                     virtual_id = f"virtual-{res_prefix.rstrip('-') or 'all'}"
                     edges.append((from_id, virtual_id, label, weight))
 
-            # ── Inline policies ─────────────────────────────────────────────
+            # ── Policy documents (inline + fetched managed) ─────────────────
+            # Managed policy docs are now in inline_policies too — one loop
+            # handles both. Weight = attack-path cost: lower = easier pivot.
             for policy_doc in nhi.inline_policies:
                 for stmt in policy_doc.get("Statement", []):
                     if stmt.get("Effect") != "Allow":
@@ -406,12 +639,24 @@ class AWSScanner:
                     if isinstance(actions, str):
                         actions = [actions]
                     for action in actions:
-                        prefix = action.split(":")[0].lower()
-                        res_prefix = SERVICE_RESOURCE_PREFIX.get(prefix, "")
-                        matched = [rid for rid in resource_ids if rid.startswith(res_prefix)] if res_prefix else []
-                        weight = 10.0 if action in ("*", "*:*") else 5.0
-                        for to_id in matched:
-                            edges.append((from_id, to_id, action, weight))
+                        if action in ("*", "*:*"):
+                            # Full wildcard — touches everything scanned
+                            for to_id in resource_ids:
+                                edges.append((from_id, to_id, action, 1.0))
+                        elif action.endswith(":*"):
+                            # Service wildcard e.g. s3:* — touches all resources of that service
+                            prefix = action.split(":")[0].lower()
+                            res_prefix = SERVICE_RESOURCE_PREFIX.get(prefix, "")
+                            matched = [r for r in resource_ids if r.startswith(res_prefix)] if res_prefix else []
+                            for to_id in matched:
+                                edges.append((from_id, to_id, action, 1.5))
+                        else:
+                            # Specific action e.g. s3:GetObject
+                            prefix = action.split(":")[0].lower()
+                            res_prefix = SERVICE_RESOURCE_PREFIX.get(prefix, "")
+                            matched = [r for r in resource_ids if r.startswith(res_prefix)] if res_prefix else []
+                            for to_id in matched:
+                                edges.append((from_id, to_id, action, 4.0))
 
         # Deduplicate (same from/to/permission)
         seen: set[tuple[str, str, str]] = set()

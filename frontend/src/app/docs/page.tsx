@@ -5,7 +5,7 @@ import type { ReactNode, ElementType } from "react";
 import { NavbarWeb3 as Navbar } from "@/components/layout/NavbarWeb3";
 import Footer from "@/components/layout/Footer";
 import { motion } from "framer-motion";
-import { Copy, Check, Terminal, Package, Cpu, Cloud, Layers, Key, Sparkles } from "lucide-react";
+import { Copy, Check, Terminal, Package, Cpu, Cloud, Layers, Key, Sparkles, CheckCircle } from "lucide-react";
 
 /* ── Copy button ────────────────────────────────────────────────── */
 function CopyBtn({ text }: { text: string }) {
@@ -125,11 +125,24 @@ export default function DocsPage() {
         <Section id="whats-new" icon={Sparkles} accent="#f59e0b" title="What's New">
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
+            {/* v0.2.0 */}
+            <div style={{ border: "1px solid #21262d", borderRadius: 10, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, background: "var(--accent)", color: "#fff", padding: "2px 10px", borderRadius: 20 }}>v0.2.0</span>
+                <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Latest</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 14, lineHeight: 2 }}>
+                <li><strong>Data-driven least-privilege</strong> — <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>scan aws --analyze-usage</code> pulls IAM Access Advisor data and names the exact granted-but-unused services that are safe to revoke (finding NHI-006)</li>
+                <li><strong>Continuous monitoring</strong> — <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>scan --save</code> records to a local history store; <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>agentsentry diff aws</code> shows what changed since the last scan (new identities, newly-zombie, rotation-due)</li>
+                <li><strong>Deeper AWS coverage</strong> — Secrets Manager, RDS, and DynamoDB now scanned as crown-jewel resources, so the attack graph reaches your most sensitive targets</li>
+                <li><strong>Real policy documents</strong> — managed policies are now fetched and analyzed by their actual permissions, not just their names (a custom policy with <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>&quot;Action&quot;: &quot;*&quot;</code> no longer hides as INFO)</li>
+              </ul>
+            </div>
+
             {/* v0.1.10 */}
             <div style={{ border: "1px solid #21262d", borderRadius: 10, padding: "16px 20px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, background: "var(--accent)", color: "#fff", padding: "2px 10px", borderRadius: 20 }}>v0.1.10</span>
-                <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Latest</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, background: "#21262d", color: "#e6edf3", padding: "2px 10px", borderRadius: 20 }}>v0.1.10</span>
               </div>
               <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 14, lineHeight: 2 }}>
                 <li>Fix <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>~/.aws/config</code> being over-scored — it stores profile names, not keys, so it now correctly scores as INFO</li>
@@ -390,6 +403,84 @@ export default function DocsPage() {
               "    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}",
               "    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}",
             ]} />
+          </div>
+        </Section>
+
+        {/* Testing v0.2.0 */}
+        <Section id="testing" icon={CheckCircle} accent="#10b981" title="Testing v0.2.0">
+          <p style={{ margin: "0 0 16px", color: "var(--text-muted)", fontSize: 13, lineHeight: 1.7 }}>
+            New features in 0.2.0: explicit consent gates, continuous scan history, data-driven least-privilege via AWS Access Advisor, and deeper resource coverage (Secrets Manager, RDS, DynamoDB). Here's what to test.
+          </p>
+
+          <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "16px 18px", marginBottom: 16, background: "var(--bg-subtle)" }}>
+            <strong style={{ fontSize: 13, display: "block", marginBottom: 10 }}>Step 1 — Version &amp; Consent (30 seconds, no setup)</strong>
+            <p style={{ margin: "0 0 10px", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.6 }}>
+              Verify the version and test the new consent gate:
+            </p>
+            <OsTabs tabs={OS_TABS} renderTab={(os) => (
+              <CodeBlock lines={[
+                "# Verify version",
+                `${prompt(os)} agentsentry --version`,
+                "",
+                "# Activate (use your activation code)",
+                `${prompt(os)} agentsentry activate YOUR-CODE`,
+                "",
+                "# → Expect: consent panel asking 'Do you accept Terms & Privacy?' — type 'y'",
+              ]} />
+            )} />
+            <p style={{ margin: "12px 0 0", color: "var(--text-faint)", fontSize: 11 }}>
+              This is the new consent gate. Answering <code style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>n</code> should cancel with exit 1.
+            </p>
+          </div>
+
+          <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "16px 18px", marginBottom: 16, background: "var(--bg-subtle)" }}>
+            <strong style={{ fontSize: 13, display: "block", marginBottom: 10 }}>Step 2 — Continuous Monitoring (1 minute, no AWS needed)</strong>
+            <p style={{ margin: "0 0 10px", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.6 }}>
+              Test the new scan history + diff feature (uses mock data):
+            </p>
+            <OsTabs tabs={OS_TABS} renderTab={(os) => (
+              <CodeBlock lines={[
+                "# Save a mock scan to history",
+                `${prompt(os)} agentsentry scan mock --save`,
+                "",
+                "# List past scans",
+                `${prompt(os)} agentsentry history`,
+                "",
+                "# Compare current scan to baseline (should show 'no changes')",
+                `${prompt(os)} agentsentry diff mock`,
+              ]} />
+            )} />
+            <p style={{ margin: "12px 0 0", color: "var(--text-faint)", fontSize: 11 }}>
+              <code style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>--save</code> writes to a local SQLite store; <code style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>diff</code> scans again and shows what changed.
+            </p>
+          </div>
+
+          <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "16px 18px", background: "var(--bg-subtle)" }}>
+            <strong style={{ fontSize: 13, display: "block", marginBottom: 10 }}>Step 3 — Least-Privilege Analysis (AWS, the headline feature)</strong>
+            <p style={{ margin: "0 0 10px", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.6 }}>
+              Before running this, ensure your AWS read-only role has these 4 new permissions:
+            </p>
+            <CodeBlock lines={[
+              "iam:GenerateServiceLastAccessedDetails",
+              "iam:GetServiceLastAccessedDetails",
+              "rds:DescribeDBInstances",
+              "dynamodb:ListTables",
+            ]} />
+            <p style={{ margin: "12px 0 10px", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.6 }}>
+              Then run the new <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>--analyze-usage</code> flag:
+            </p>
+            <OsTabs tabs={OS_TABS} renderTab={(os) => (
+              <CodeBlock lines={[
+                "# Data-driven least-privilege: find unused permissions",
+                `${prompt(os)} agentsentry scan aws --analyze-usage`,
+                "",
+                "# → Expect: NHI-006 'Excessive Unused Permissions' findings",
+                "#   Each shows exact services granted but never used.",
+              ]} />
+            )} />
+            <p style={{ margin: "12px 0 0", color: "var(--text-faint)", fontSize: 11 }}>
+              This queries AWS Access Advisor per identity — runs slower but gives precise, defensible revocation recommendations.
+            </p>
           </div>
         </Section>
 

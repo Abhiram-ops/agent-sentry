@@ -74,10 +74,28 @@ agentsentry scan mock                        # demo, no credentials
 agentsentry scan local --path ./myproject    # scan specific directory
 agentsentry scan aws --visualize             # + interactive HTML attack graph
 agentsentry scan aws --enrich                # + CISA KEV threat intel
+agentsentry scan aws --analyze-usage         # + data-driven least-privilege (Access Advisor)
+agentsentry scan aws --save                  # save to local history for diffing
+agentsentry diff aws                          # what changed since the last saved scan
+agentsentry history                           # past scans with CRIT/HIGH trend
 agentsentry scan all                         # auto-detect + scan everything ready
 agentsentry providers                        # check what's configured
 agentsentry blast "ml-pipeline-executor"     # blast radius analysis
 ```
+
+### Continuous monitoring
+
+`scan --save` records a scan to a local SQLite store (`~/.agentsentry/history.db`).
+`agentsentry diff <target>` then scans again and reports **what changed** — new
+identities, newly-zombie credentials, and newly rotation-due keys — instead of a
+fresh snapshot every time.
+
+### Least-privilege analysis (AWS)
+
+`scan aws --analyze-usage` pulls each identity's IAM Access Advisor data and flags
+the gap between *granted* and *actually-used* services (finding **NHI-006**), naming
+the exact services that are safe to revoke. Requires two extra read-only permissions:
+`iam:GenerateServiceLastAccessedDetails` and `iam:GetServiceLastAccessedDetails`.
 
 ---
 

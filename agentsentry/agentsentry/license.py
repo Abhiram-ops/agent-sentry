@@ -39,8 +39,15 @@ _PRO_SECRET: bytes = b"as-lk-v1-3m9n7q2x4p"  # pro tier
 _DEFAULT_API_BASE = "https://agent-sentry-beta.vercel.app"
 SIGNUP_URL = "https://agent-sentry-beta.vercel.app/signup"
 DASHBOARD_URL = "https://agent-sentry-beta.vercel.app/dashboard"
+TERMS_URL = "https://agentsentry.org/terms"
+PRIVACY_URL = "https://agentsentry.org/privacy"
 # Back-compat alias: the old /claim page was removed; point legacy callers at /signup.
 CLAIM_URL = SIGNUP_URL
+
+# Version of the Terms/Privacy the user consents to at activation. Keep in sync
+# with the "Last updated" date on the web /terms and /privacy pages and with
+# frontend/src/lib/policy.ts POLICY_VERSION.
+POLICY_VERSION = "2026-06-23"
 
 
 def _activate_url() -> str:
@@ -129,10 +136,13 @@ class NetworkError(Exception):
     """Raised when the license server could not be reached (vs. a rejected code)."""
 
 
-def _activate_online(code: str) -> str | None:
+def _activate_online(code: str, consent: dict | None = None) -> str | None:
     """
     POST the code to the license server. Returns the tier ('free'/'pro') on a
     200 response, or None when the server authoritatively rejects the code (404).
+
+    *consent*, when provided, is recorded server-side as the user's CLI consent
+    to the Terms/Privacy (type, version, timestamp) for the legal audit trail.
 
     Raises NetworkError when the server can't be reached or returns a transient
     error (5xx / timeout), retrying a few times first to ride out Vercel cold
@@ -143,10 +153,14 @@ def _activate_online(code: str) -> str | None:
     except ImportError as exc:
         raise NetworkError("httpx is not installed") from exc
 
+    payload: dict = {"activation_code": code}
+    if consent is not None:
+        payload["consent"] = consent
+
     last_error: Exception | None = None
     for attempt in range(3):
         try:
-            resp = httpx.post(_activate_url(), json={"activation_code": code}, timeout=15.0)
+            resp = httpx.post(_activate_url(), json=payload, timeout=15.0)
         except Exception as exc:  # network/DNS/timeout
             last_error = exc
             continue
@@ -170,7 +184,7 @@ def _activate_online(code: str) -> str | None:
     raise NetworkError(str(last_error) if last_error else "could not reach license server")
 
 
-def _store(code: str, tier: str, source: str) -> None:
+def _store(code: str, tier: str, source: str, consent: dict | None = None) -> None:
     directory = _license_dir()
     directory.mkdir(parents=True, exist_ok=True)
     data = {
@@ -183,13 +197,17 @@ def _store(code: str, tier: str, source: str) -> None:
         "source": source,
         "activated_at": datetime.now(timezone.utc).isoformat(),
     }
+    if consent is not None:
+        # Local record of the user's consent (kept even for offline activations
+        # where it can't be recorded server-side).
+        data["consent"] = consent
     path = _license_file()
     path.write_text(json.dumps(data, indent=2))
     os.chmod(path, 0o600)
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
-def activate(code: str) -> tuple[bool, str]:
+def activate(code: str, consent: bool = False) -> tuple[bool, str]:
     """
     Validate and store a license code.
 
@@ -197,23 +215,38 @@ def activate(code: str) -> tuple[bool, str]:
     then falls back to offline HMAC validation for legacy AF-/AS- keys. Returns
     (success, tier) where tier is 'free' or 'pro' on success, and on failure is
     'invalid' (server rejected the code) or 'network' (server unreachable).
+
+    *consent* records that the user accepted the Terms/Privacy at the CLI
+    consent prompt. When True, the consent (version + timestamp) is stored
+    locally and, for online activations, also sent to the license server for
+    the audit trail. The CLI is responsible for obtaining consent before
+    calling this.
     """
     code = code.strip()
 
+    consent_record: dict | None = None
+    if consent:
+        consent_record = {
+            "document": "terms_and_privacy",
+            "version": POLICY_VERSION,
+            "accepted_at": datetime.now(timezone.utc).isoformat(),
+            "source": "cli_activation",
+        }
+
     network_failed = False
     try:
-        tier = _activate_online(code)
+        tier = _activate_online(code, consent=consent_record)
     except NetworkError:
         tier = None
         network_failed = True
 
     if tier:
-        _store(code, tier, source="online")
+        _store(code, tier, source="online", consent=consent_record)
         return True, tier
 
     offline_tier = _validate_key(code)
     if offline_tier:
-        _store(code.upper(), offline_tier, source="offline")
+        _store(code.upper(), offline_tier, source="offline", consent=consent_record)
         return True, offline_tier
 
     return False, "network" if network_failed else "invalid"

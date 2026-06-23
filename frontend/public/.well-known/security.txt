@@ -1,0 +1,6 @@
+# AgentSentry security contact (RFC 9116)
+Contact: mailto:security@agentsentry.org
+Expires: 2027-06-23T00:00:00.000Z
+Policy: https://agentsentry.org/security
+Preferred-Languages: en
+Canonical: https://agentsentry.org/.well-known/security.txt
