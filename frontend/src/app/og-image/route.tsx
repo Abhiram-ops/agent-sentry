@@ -7,58 +7,207 @@ export async function GET() {
     (
       <div
         style={{
-          background: "linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%)",
           width: "100%",
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          alignItems: "flex-start",
-          justifyContent: "flex-start",
-          padding: "60px 80px",
-          fontFamily: "Arial, sans-serif",
+          alignItems: "stretch",
+          justifyContent: "stretch",
+          background: "linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #0f1724 100%)",
+          fontFamily: '"Playfair Display", serif',
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        {/* Glow blobs */}
-        <div style={{ position: "absolute", top: -60, right: -60, width: 300, height: 300, borderRadius: "50%", background: "rgba(0,255,136,0.08)", display: "flex" }} />
-        <div style={{ position: "absolute", bottom: -40, left: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(0,255,136,0.06)", display: "flex" }} />
+        {/* Subtle grid background */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px)",
+            backgroundSize: "50px 50px",
+            opacity: 0.3,
+          }}
+        />
 
-        {/* Logo row */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 48 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 12, background: "rgba(0,255,136,0.1)", border: "1.5px solid rgba(0,255,136,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00ff88" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
+        {/* Accent glow (top right) */}
+        <div
+          style={{
+            position: "absolute",
+            top: "-200px",
+            right: "-200px",
+            width: "500px",
+            height: "500px",
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%)",
+            filter: "blur(40px)",
+          }}
+        />
+
+        {/* Main content */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            padding: "80px",
+            paddingRight: "100px",
+            flex: 1,
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+          {/* Top badge */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              marginBottom: "32px",
+              fontSize: "16px",
+              color: "#3b82f6",
+              fontWeight: "600",
+              fontFamily: '"DM Sans", sans-serif',
+              letterSpacing: "0.5px",
+            }}
+          >
+            <div
+              style={{
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                background: "#3b82f6",
+              }}
+            />
+            Open Source · v0.2.0
           </div>
-          <span style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px" }}>
-            Agent<span style={{ color: "#00ff88" }}>Sentry</span>
-          </span>
+
+          {/* Main heading */}
+          <h1
+            style={{
+              fontSize: "64px",
+              fontWeight: "800",
+              color: "#ffffff",
+              margin: "0 0 20px 0",
+              lineHeight: "1.1",
+              maxWidth: "900px",
+              letterSpacing: "-1px",
+            }}
+          >
+            Find Every Machine Identity Before They Do
+          </h1>
+
+          {/* Subheading */}
+          <p
+            style={{
+              fontSize: "20px",
+              color: "#cbd5e1",
+              margin: "0 0 32px 0",
+              maxWidth: "700px",
+              lineHeight: "1.6",
+              fontFamily: '"DM Sans", sans-serif',
+              fontWeight: "400",
+            }}
+          >
+            Discover ungoverned AI agents and service accounts. Score blast radius. Fix before attackers do.
+          </p>
+
+          {/* Feature list */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "20px 40px",
+              marginTop: "20px",
+            }}
+          >
+            {[
+              "Multi-cloud NHI discovery",
+              "P×R×E×A blast scoring",
+              "Least-privilege analysis",
+              "Attack graph visualization",
+            ].map((feature, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  fontSize: "14px",
+                  color: "#e2e8f0",
+                  fontFamily: '"DM Sans", sans-serif',
+                }}
+              >
+                <span style={{ color: "#3b82f6", fontSize: "18px", fontWeight: "bold" }}>✓</span>
+                {feature}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Title */}
-        <div style={{ fontSize: 64, fontWeight: 800, color: "#ffffff", marginBottom: 18, letterSpacing: "-1.5px", lineHeight: 1.1 }}>
-          Find every Machine<br />Identity before they do.
-        </div>
-
-        {/* Subtitle */}
-        <div style={{ fontSize: 26, color: "#00ff88", fontWeight: 600, marginBottom: 40 }}>
-          NHI &amp; AI Agent Risk Auditor — Free &amp; Open Source
-        </div>
-
-        {/* Feature pills */}
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          {["Multi-cloud NHI discovery", "P×R×E×A blast scoring", "Least-privilege analysis", "Attack graph"].map(f => (
-            <div key={f} style={{ background: "rgba(0,255,136,0.08)", border: "1px solid rgba(0,255,136,0.25)", borderRadius: 999, padding: "8px 20px", fontSize: 18, color: "#e0e6ed", display: "flex" }}>
-              {f}
+        {/* Right side accent panel */}
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: "320px",
+            background: "linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%)",
+            borderLeft: "1px solid rgba(59, 130, 246, 0.2)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-end",
+            alignItems: "flex-end",
+            padding: "60px 40px",
+            zIndex: 1,
+          }}
+        >
+          {/* Bottom right logo/branding */}
+          <div
+            style={{
+              textAlign: "right",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "32px",
+                fontWeight: "800",
+                color: "#ffffff",
+                marginBottom: "8px",
+              }}
+            >
+              Agent<span style={{ color: "#3b82f6" }}>Sentry</span>
             </div>
-          ))}
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#94a3b8",
+                letterSpacing: "0.5px",
+                textTransform: "uppercase",
+                fontFamily: '"DM Sans", sans-serif',
+              }}
+            >
+              NHI Risk Auditor
+            </div>
+          </div>
         </div>
 
-        {/* Bottom row */}
-        <div style={{ position: "absolute", bottom: 44, left: 80, right: 80, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 20, color: "#7a8a9a" }}>agentsentry.org</span>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#00ff88", border: "1.5px solid rgba(0,255,136,0.4)", padding: "8px 22px", borderRadius: 8, display: "flex" }}>
-            v0.2.0
-          </div>
+        {/* Bottom left URL */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "40px",
+            left: "80px",
+            fontSize: "14px",
+            color: "#64748b",
+            zIndex: 2,
+            fontFamily: '"DM Sans", sans-serif',
+          }}
+        >
+          agentsentry.org
         </div>
       </div>
     ),
