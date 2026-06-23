@@ -4,6 +4,7 @@ import { Playfair_Display, DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ClientOnlyOverlays } from "@/components/ui/ClientOnlyOverlays";
 import { BetaBanner } from "@/components/layout/BetaBanner";
+import { JsonLd } from "./schema";
 
 const playfairDisplay = Playfair_Display({
   variable: "--font-playfair", subsets: ["latin"],
@@ -18,27 +19,70 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500", "600", "700"],
 });
 
+const SITE_URL = "https://agentsentry.org";
+const TITLE    = "AgentSentry — NHI & AI Agent Risk Auditor";
+const DESC     =
+  "AgentSentry is an open-source CLI that discovers every Non-Human Identity (NHI) and AI agent across AWS, Azure, GCP, GitHub, and Kubernetes, scores their blast radius, and surfaces the exact permissions to revoke. Free to use.";
+
 export const metadata: Metadata = {
-  title: "AgentSentry — NHI & AI Agent Risk Auditor",
-  description:
-    "Discover every machine identity and AI agent in your cloud. Score blast radius. Fix what matters. Free and open source.",
-  keywords: ["non-human identity", "NHI security", "AI agent security", "cloud security", "IAM audit", "attack graph"],
-  authors: [{ name: "Abhiram Lanka" }],
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default:  TITLE,
+    template: "%s | AgentSentry",
+  },
+  description: DESC,
+  keywords: [
+    "AgentSentry",
+    "non-human identity security",
+    "NHI audit",
+    "AI agent security",
+    "cloud IAM audit",
+    "AWS IAM scanner",
+    "Kubernetes secret scanner",
+    "attack graph",
+    "least privilege",
+    "open source cloud security",
+  ],
+  authors:   [{ name: "Abhiram Lanka", url: SITE_URL }],
+  creator:   "Abhiram Lanka",
+  publisher: "AgentSentry",
+  category:  "cybersecurity",
+  alternates: { canonical: SITE_URL },
   openGraph: {
-    title: "AgentSentry — NHI & AI Agent Risk Auditor",
-    description: "45 machine identities for every 1 human. Almost none governed. AgentSentry finds them all.",
-    type: "website",
+    type:        "website",
+    url:          SITE_URL,
+    siteName:    "AgentSentry",
+    title:        TITLE,
+    description: DESC,
+    images: [{ url: "/og-image", width: 1200, height: 630, alt: "AgentSentry — NHI & AI Agent Risk Auditor" }],
   },
   twitter: {
-    card: "summary_large_image",
-    title: "AgentSentry",
-    description: "Open-source NHI & AI Agent Risk Auditor",
+    card:        "summary_large_image",
+    site:        "@agentsentry",
+    creator:     "@AbhiramLanka",
+    title:        TITLE,
+    description: DESC,
+    images:      ["/og-image"],
+  },
+  robots: {
+    index:  true,
+    follow: true,
+    googleBot: {
+      index:               true,
+      follow:              true,
+      "max-snippet":       -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
   },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${playfairDisplay.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        <JsonLd />
+      </head>
       <body className="antialiased">
         <BetaBanner />
         {children}
