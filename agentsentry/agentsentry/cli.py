@@ -124,12 +124,55 @@ def require_license(func):
 
 @main.command("activate")
 @click.argument("key")
-def cmd_activate(key: str):
+@click.option(
+    "--accept-terms",
+    is_flag=True,
+    help="Accept the Terms of Service and Privacy Policy non-interactively (for CI)",
+)
+def cmd_activate(key: str, accept_terms: bool):
     """Activate AgentSentry with a license key."""
-    from agentsentry.license import activate as do_activate, SIGNUP_URL
+    from agentsentry.license import (
+        activate as do_activate,
+        SIGNUP_URL,
+        TERMS_URL,
+        PRIVACY_URL,
+    )
 
     _print_banner()
-    success, tier = do_activate(key)
+
+    # Consent gate — must accept Terms/Privacy before the CLI is activated.
+    console.print(
+        Panel(
+            "  By activating AgentSentry you agree to the Terms of Service and\n"
+            "  Privacy Policy:\n\n"
+            f"    Terms:    [bold #00ff88]{TERMS_URL}[/bold #00ff88]\n"
+            f"    Privacy:  [bold #00ff88]{PRIVACY_URL}[/bold #00ff88]\n\n"
+            "  [bold]In short:[/bold] scan only systems you own or are authorized to\n"
+            "  audit; your cloud credentials never leave this machine; we store only\n"
+            "  your email, license, and activation status — never your scan results.",
+            title="[bold]Terms & Privacy[/bold]",
+            border_style="#00ff88",
+            padding=(1, 2),
+        )
+    )
+    if not accept_terms:
+        try:
+            accepted = click.confirm(
+                "  Do you accept the Terms of Service and Privacy Policy?",
+                default=False,
+            )
+        except click.Abort:
+            accepted = False
+        if not accepted:
+            console.print(
+                "\n  [yellow]Activation cancelled — the Terms must be accepted to "
+                "use AgentSentry.[/yellow]\n"
+                "  [dim]Re-run with [bold]--accept-terms[/bold] to accept "
+                "non-interactively.[/dim]\n"
+            )
+            sys.exit(1)
+
+    success, tier = do_activate(key, consent=True)
     if success:
         tier_label = (
             "[bold #00ff88]Pro[/bold #00ff88]"

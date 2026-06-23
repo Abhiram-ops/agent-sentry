@@ -15,8 +15,8 @@ from click.testing import CliRunner
 from agentsentry.cli import main
 
 
-def _run(args):
-    return CliRunner().invoke(main, args)
+def _run(args, **kwargs):
+    return CliRunner().invoke(main, args, **kwargs)
 
 
 class TestUnregistered:
@@ -86,10 +86,48 @@ class TestActivateExempt:
         monkeypatch.delenv("AGENTSENTRY_SKIP_LICENSE", raising=False)
         # Force offline-only by pointing the API at an unroutable host.
         monkeypatch.setenv("AGENTSENTRY_API", "http://127.0.0.1:1")
-        result = _run(["activate", "NOT-A-REAL-KEY"])
+        result = _run(["activate", "NOT-A-REAL-KEY", "--accept-terms"])
         # Reaches activation logic (invalid key), not the unregistered gate.
         assert "Unregistered device" not in result.output
         assert result.exit_code == 1
+
+
+class TestActivateConsent:
+    def test_consent_declined_aborts_activation(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("AGENTSENTRY_HOME", str(tmp_path / "empty"))
+        monkeypatch.delenv("AGENTSENTRY_SKIP_LICENSE", raising=False)
+        monkeypatch.setenv("AGENTSENTRY_API", "http://127.0.0.1:1")
+        # Answer "n" to the consent prompt.
+        result = _run(["activate", "AS-FREE-0000-0000"], input="n\n")
+        assert result.exit_code == 1
+        assert "Activation cancelled" in result.output
+
+    def test_consent_notice_is_shown(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("AGENTSENTRY_HOME", str(tmp_path / "empty"))
+        monkeypatch.delenv("AGENTSENTRY_SKIP_LICENSE", raising=False)
+        monkeypatch.setenv("AGENTSENTRY_API", "http://127.0.0.1:1")
+        result = _run(["activate", "NOT-A-REAL-KEY", "--accept-terms"])
+        assert "Terms of Service" in result.output
+        assert "never your scan results" in result.output
+
+    def test_accepted_consent_recorded_in_license_file(self, tmp_path, monkeypatch):
+        import json
+
+        home = tmp_path / "home"
+        monkeypatch.setenv("AGENTSENTRY_HOME", str(home))
+        monkeypatch.delenv("AGENTSENTRY_SKIP_LICENSE", raising=False)
+        monkeypatch.setenv("AGENTSENTRY_API", "http://127.0.0.1:1")
+        # A valid offline HMAC free key so activation succeeds offline.
+        from agentsentry.license import generate_free_key, POLICY_VERSION
+
+        key = generate_free_key("consent@example.com")
+        result = _run(["activate", key, "--accept-terms"])
+        assert result.exit_code == 0, result.output
+
+        data = json.loads((home / "license.json").read_text())
+        assert data["consent"]["version"] == POLICY_VERSION
+        assert data["consent"]["document"] == "terms_and_privacy"
+        assert data["consent"]["accepted_at"]
 
 
 class TestSkipBypass:
