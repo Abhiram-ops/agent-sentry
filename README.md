@@ -4,8 +4,8 @@
 [![PyPI](https://img.shields.io/pypi/v/nhi-audit?label=PyPI&color=00cc6a)](https://pypi.org/project/nhi-audit/)
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-[![Website](https://img.shields.io/badge/website-agent--sentry--beta.vercel.app-brightgreen)](https://agent-sentry-beta.vercel.app)
+![License](https://img.shields.io/badge/license-AGPL--3.0-blue)
+[![Website](https://img.shields.io/badge/website-agentsentry.org-brightgreen)](https://agentsentry.org)
 
 ![AgentSentry Demo](https://raw.githubusercontent.com/Abhiram-ops/agent-sentry/main/demo.gif)
 
