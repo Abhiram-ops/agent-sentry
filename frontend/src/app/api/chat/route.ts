@@ -39,7 +39,7 @@ Use the source code files provided to give precise, accurate answers.
 Only reference open-source files. Never reveal secrets or credentials.
 
 ## Current Version
-nhi-audit 0.1.10 (pip install nhi-audit). CLI command: agentsentry.
+nhi-audit 0.2.0 (pip install nhi-audit). CLI command: agentsentry.
 
 ## Risk Scoring: P×R×E×A
 Risk = Privilege × Reachability × Exposure × AI-Amplification
@@ -53,6 +53,10 @@ agentsentry scan all              # auto-detects all configured providers
 agentsentry scan all --output json > findings.json
 agentsentry scan all --min-risk HIGH
 agentsentry scan all --fail-on CRITICAL
+agentsentry scan aws --analyze-usage  # data-driven least-privilege via IAM Access Advisor (finds unused permissions to revoke)
+agentsentry scan aws --save           # save scan to local history (~/.agentsentry/history.db)
+agentsentry diff aws                  # scan again and show what changed since the last saved scan
+agentsentry history                   # list past saved scans with CRIT/HIGH trend
 agentsentry visualize             # open attack graph in browser
 agentsentry providers             # list detected providers
 
@@ -72,7 +76,7 @@ GCP: gcloud auth application-default login
 GitHub: set GITHUB_TOKEN env var
 Local: no setup needed
 
-## Local Scanner (v0.1.10)
+## Local Scanner
 Scans with zero credentials — reads only files the current user can access:
 - Environment variables matching secret patterns (AWS keys, GitHub tokens, etc.)
 - .env files in current + parent directories
@@ -101,6 +105,7 @@ Cloud credential files get realistic privilege scores (not 1.0 default):
 - ~/.aws/config → no policy (P=1.0, it's profile config not a key file)
 
 ## Changelog
+v0.2.0: Data-driven least-privilege (scan aws --analyze-usage uses IAM Access Advisor to flag granted-but-unused services, finding NHI-006); continuous monitoring (scan --save + agentsentry diff/history via a local SQLite store); deeper AWS coverage (Secrets Manager, RDS, DynamoDB scanned as crown jewels); managed policies now analyzed by their real documents not just names; explicit Terms/Privacy consent required at signup and CLI activation
 v0.1.10: Fix ~/.aws/config over-scoring, fix GCP credential "WHAT IS THIS?" description, exclude tests/ from source scanner, tighten secret pattern to reduce false positives
 v0.1.9: Fix --pro crash (Rich markup typo on LOW risk NHIs), escape all credential names in Rich output, block Xbox/Windows consumer tokens from Windows Credential Manager scan, add cloud credential file privilege policies so AWS/GCP/k8s files score correctly instead of flat 2.0 INFO
 v0.1.8: Windows Credential Manager + macOS Keychain scan, cross-platform Docker detection, expanded CRED_FILES (Azure, gh CLI, Terraform), preserve provider findings through scorer

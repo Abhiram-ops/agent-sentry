@@ -125,11 +125,24 @@ export default function DocsPage() {
         <Section id="whats-new" icon={Sparkles} accent="#f59e0b" title="What's New">
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
+            {/* v0.2.0 */}
+            <div style={{ border: "1px solid #21262d", borderRadius: 10, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, background: "var(--accent)", color: "#fff", padding: "2px 10px", borderRadius: 20 }}>v0.2.0</span>
+                <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Latest</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 14, lineHeight: 2 }}>
+                <li><strong>Data-driven least-privilege</strong> — <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>scan aws --analyze-usage</code> pulls IAM Access Advisor data and names the exact granted-but-unused services that are safe to revoke (finding NHI-006)</li>
+                <li><strong>Continuous monitoring</strong> — <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>scan --save</code> records to a local history store; <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>agentsentry diff aws</code> shows what changed since the last scan (new identities, newly-zombie, rotation-due)</li>
+                <li><strong>Deeper AWS coverage</strong> — Secrets Manager, RDS, and DynamoDB now scanned as crown-jewel resources, so the attack graph reaches your most sensitive targets</li>
+                <li><strong>Real policy documents</strong> — managed policies are now fetched and analyzed by their actual permissions, not just their names (a custom policy with <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>&quot;Action&quot;: &quot;*&quot;</code> no longer hides as INFO)</li>
+              </ul>
+            </div>
+
             {/* v0.1.10 */}
             <div style={{ border: "1px solid #21262d", borderRadius: 10, padding: "16px 20px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, background: "var(--accent)", color: "#fff", padding: "2px 10px", borderRadius: 20 }}>v0.1.10</span>
-                <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Latest</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, background: "#21262d", color: "#e6edf3", padding: "2px 10px", borderRadius: 20 }}>v0.1.10</span>
               </div>
               <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 14, lineHeight: 2 }}>
                 <li>Fix <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>~/.aws/config</code> being over-scored — it stores profile names, not keys, so it now correctly scores as INFO</li>
