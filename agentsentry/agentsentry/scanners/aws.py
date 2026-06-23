@@ -62,6 +62,9 @@ class AWSScanner:
         self.sts    = session.client("sts")
         self.s3     = session.client("s3")
         self.lambda_ = session.client("lambda")
+        self.secrets   = session.client("secretsmanager")
+        self.rds       = session.client("rds")
+        self.dynamodb  = session.client("dynamodb")
         self.region = region
         self._last_result = None  # populated by scan() for build_access_edges()
         # Cache managed policy documents by ARN — same policy is often attached
@@ -93,6 +96,15 @@ class AWSScanner:
 
         print("[AgentSentry] Scanning Lambda functions...")
         resources.extend(self._scan_lambda_functions())
+
+        print("[AgentSentry] Scanning Secrets Manager secrets...")
+        resources.extend(self._scan_secrets())
+
+        print("[AgentSentry] Scanning RDS instances...")
+        resources.extend(self._scan_rds_instances())
+
+        print("[AgentSentry] Scanning DynamoDB tables...")
+        resources.extend(self._scan_dynamodb_tables())
 
         print(f"[AgentSentry] Done. Found {len(nhis)} NHIs, {len(resources)} resources.")
 
@@ -362,6 +374,79 @@ class AWSScanner:
 
         return resources
 
+    def _scan_secrets(self) -> list[Resource]:
+        """
+        Secrets Manager secrets — the highest-value crown jewels in an NHI
+        attack (API keys, DB passwords, tokens). Resource ids use the ``secret-``
+        prefix so the secretsmanager:* access edges in build_access_edges()
+        connect to real nodes.
+        """
+        resources = []
+        try:
+            paginator = self.secrets.get_paginator("list_secrets")
+            for page in paginator.paginate():
+                for secret in page.get("SecretList", []):
+                    name = secret.get("Name", "")
+                    resources.append(Resource(
+                        id=f"secret-{name}",
+                        name=name,
+                        resource_type="secretsmanager_secret",
+                        provider=CloudProvider.AWS,
+                        arn=secret.get("ARN"),
+                        is_crown_jewel=True,  # secrets are crown jewels by definition
+                        sensitivity_tags=["SECRET"],
+                    ))
+        except ClientError:
+            pass
+        return resources
+
+    def _scan_rds_instances(self) -> list[Resource]:
+        """RDS database instances — crown jewels by data sensitivity."""
+        resources = []
+        try:
+            paginator = self.rds.get_paginator("describe_db_instances")
+            for page in paginator.paginate():
+                for db in page.get("DBInstances", []):
+                    identifier = db.get("DBInstanceIdentifier", "")
+                    is_public = bool(db.get("PubliclyAccessible", False))
+                    resources.append(Resource(
+                        id=f"rds-{identifier}",
+                        name=identifier,
+                        resource_type="rds_instance",
+                        provider=CloudProvider.AWS,
+                        arn=db.get("DBInstanceArn"),
+                        is_crown_jewel=True,
+                        is_public=is_public,
+                        sensitivity_tags=["PUBLIC"] if is_public else [],
+                    ))
+        except ClientError:
+            pass
+        return resources
+
+    def _scan_dynamodb_tables(self) -> list[Resource]:
+        """DynamoDB tables — flagged as crown jewels by name heuristic."""
+        resources = []
+        try:
+            paginator = self.dynamodb.get_paginator("list_tables")
+            for page in paginator.paginate():
+                for name in page.get("TableNames", []):
+                    is_crown_jewel = any(
+                        kw in name.lower()
+                        for kw in ["prod", "customer", "user", "pii", "payment",
+                                   "order", "account", "secret", "token"]
+                    )
+                    resources.append(Resource(
+                        id=f"dynamodb-{name}",
+                        name=name,
+                        resource_type="dynamodb_table",
+                        provider=CloudProvider.AWS,
+                        arn=f"arn:aws:dynamodb:{self.region}:*:table/{name}",
+                        is_crown_jewel=is_crown_jewel,
+                    ))
+        except ClientError:
+            pass
+        return resources
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
@@ -518,6 +603,7 @@ class AWSScanner:
             "lambda":          "lambda-",
             "rds":             "rds-",
             "secretsmanager":  "secret-",
+            "dynamodb":        "dynamodb-",
             "ec2":             "ec2-",
             "iam":             "iam-",
         }

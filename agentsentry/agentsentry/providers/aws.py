@@ -9,7 +9,8 @@ Credentials: standard AWS credential chain
 Required permissions (read-only):
   iam:List*, iam:Get*, sts:GetCallerIdentity,
   s3:ListAllMyBuckets, lambda:ListFunctions,
-  secretsmanager:ListSecrets
+  secretsmanager:ListSecrets, rds:DescribeDBInstances,
+  dynamodb:ListTables
 
 Optional (only for --analyze-usage least-privilege analysis):
   iam:GenerateServiceLastAccessedDetails,
@@ -79,6 +80,8 @@ class AWSProvider(BaseProvider):
             "s3:ListAllMyBuckets",
             "lambda:ListFunctions",
             "secretsmanager:ListSecrets",
+            "rds:DescribeDBInstances",
+            "dynamodb:ListTables",
         ]
 
     @property
