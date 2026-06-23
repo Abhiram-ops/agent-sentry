@@ -45,7 +45,8 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "duplicate" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [result, setResult] = useState<SignupResult | null>(null);
@@ -54,7 +55,9 @@ export default function SignupPage() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  // Step 1 — submitting the email opens the consent dialog. No account is
+  // created until the user explicitly grants consent in the dialog.
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = email.trim().toLowerCase();
 
@@ -64,12 +67,15 @@ export default function SignupPage() {
       return;
     }
 
-    if (!acceptedTerms) {
-      setStatus("error");
-      setErrorMsg("Please accept the Terms of Service and Privacy Policy to continue.");
-      return;
-    }
+    setErrorMsg("");
+    setConsentChecked(false);
+    setShowConsent(true);
+  }
 
+  // Step 2 — runs only after the user grants consent in the dialog.
+  async function doSignup() {
+    const trimmed = email.trim().toLowerCase();
+    setShowConsent(false);
     setStatus("submitting");
     setErrorMsg("");
 
@@ -77,7 +83,7 @@ export default function SignupPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed, accepted_terms: acceptedTerms }),
+        body: JSON.stringify({ email: trimmed, accepted_terms: true }),
       });
       const json = await res.json();
 
@@ -166,35 +172,22 @@ export default function SignupPage() {
                   />
                 </div>
 
-                <label className="consent-row">
-                  <input
-                    type="checkbox"
-                    checked={acceptedTerms}
-                    onChange={e => setAcceptedTerms(e.target.checked)}
-                    className="consent-checkbox"
-                  />
-                  <span className="consent-text">
-                    I agree to the{" "}
-                    <Link href="/terms" target="_blank">Terms of Service</Link> and{" "}
-                    <Link href="/privacy" target="_blank">Privacy Policy</Link>.{" "}
-                    <span className="consent-short">
-                      In short: I&apos;ll scan only systems I&apos;m authorized to audit; my cloud
-                      credentials never leave my machine; AgentSentry stores only my email and
-                      account status — never my scan results.
-                    </span>
-                  </span>
-                </label>
-
                 {status === "error" && (
                   <p className="auth-error-text">{errorMsg}</p>
                 )}
 
-                <button type="submit" disabled={status === "submitting" || !acceptedTerms}
+                <button type="submit" disabled={status === "submitting"}
                   className="btn btn-primary btn-lg"
-                  style={{ width: "100%", justifyContent: "center", opacity: (status === "submitting" || !acceptedTerms) ? 0.55 : 1, cursor: (status === "submitting" || !acceptedTerms) ? "not-allowed" : "pointer" }}
+                  style={{ width: "100%", justifyContent: "center", opacity: status === "submitting" ? 0.55 : 1, cursor: status === "submitting" ? "not-allowed" : "pointer" }}
                 >
                   {status === "submitting" ? "Creating account…" : "Create free account"}
                 </button>
+
+                <p className="auth-footnote" style={{ marginTop: -4 }}>
+                  By continuing you&apos;ll be asked to accept our{" "}
+                  <Link href="/terms" target="_blank">Terms</Link> and{" "}
+                  <Link href="/privacy" target="_blank">Privacy Policy</Link>.
+                </p>
 
                 <p className="auth-footnote">
                   Already have an account?{" "}
@@ -205,6 +198,81 @@ export default function SignupPage() {
           )}
         </motion.div>
       </main>
+
+      {showConsent && (
+        <div
+          className="consent-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="consent-title"
+          onClick={() => setShowConsent(false)}
+        >
+          <motion.div
+            className="consent-modal"
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 id="consent-title" className="consent-modal-title">
+              Before you create your account
+            </h2>
+            <p className="consent-modal-lead">
+              AgentSentry is a security tool. To create an account you need to agree to how it may be
+              used and how we handle your data.
+            </p>
+
+            <div className="consent-modal-body">
+              <p>
+                <strong>Authorized use only.</strong> You&apos;ll scan only systems you own or are
+                explicitly authorized to audit.
+              </p>
+              <p>
+                <strong>Your credentials stay with you.</strong> The CLI runs on your machine; your cloud
+                credentials and scan results never reach our servers.
+              </p>
+              <p>
+                <strong>Data we store.</strong> Only your email, account/license status, and a record of
+                this consent (version, time, IP). Nothing else — no scan contents, no extra profile data.
+              </p>
+            </div>
+
+            <label className="consent-row consent-modal-check">
+              <input
+                type="checkbox"
+                className="consent-checkbox"
+                checked={consentChecked}
+                onChange={e => setConsentChecked(e.target.checked)}
+              />
+              <span className="consent-text">
+                I have read and agree to the{" "}
+                <Link href="/terms" target="_blank">Terms of Service</Link> and{" "}
+                <Link href="/privacy" target="_blank">Privacy Policy</Link>.
+              </span>
+            </label>
+
+            <div className="consent-modal-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowConsent(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!consentChecked}
+                style={{ opacity: consentChecked ? 1 : 0.55, cursor: consentChecked ? "pointer" : "not-allowed" }}
+                onClick={doSignup}
+              >
+                Agree &amp; create account
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );

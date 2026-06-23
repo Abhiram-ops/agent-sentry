@@ -61,7 +61,35 @@ export default function PrivacyPage() {
       </ul>
       <p>We do not sell your data, and we do not use it for advertising.</p>
 
-      <h2>5. Subprocessors</h2>
+      <h2>5. Consent &amp; data handling</h2>
+      <p>
+        We ask for your explicit consent at the two points where you start using AgentSentry, and we
+        record it so both you and we have a clear, dated record of what you agreed to.
+      </p>
+      <ul>
+        <li>
+          <strong>At sign-up (web)</strong> — before your account is created, you must actively agree to
+          the Terms of Service and this Privacy Policy in a confirmation dialog. You cannot create an
+          account without granting this consent.
+        </li>
+        <li>
+          <strong>At CLI activation</strong> — the <code>agentsentry activate</code> command shows the
+          same terms and requires explicit acceptance before the tool is activated on your machine.
+        </li>
+      </ul>
+      <p>
+        When you consent, we record only what is needed to prove that consent: the type of consent
+        (sign-up or CLI activation), which documents and version you agreed to, the time, and the IP
+        address the request came from. We do not collect any additional profile information as part of
+        this — no name, company, phone number, or job title is required or stored.
+      </p>
+      <p>
+        If we materially change the Terms or this Policy, we update the version and may ask you to consent
+        again. You can withdraw consent at any time by deleting your account (see the &ldquo;Your
+        rights&rdquo; section below); note that some features cannot operate without it.
+      </p>
+
+      <h2>6. Subprocessors</h2>
       <p>We rely on a small set of trusted providers to run the hosted service:</p>
       <table>
         <thead>
@@ -74,7 +102,7 @@ export default function PrivacyPage() {
         </tbody>
       </table>
 
-      <h2>6. Data retention</h2>
+      <h2>7. Data retention</h2>
       <p>
         We keep account, license, and billing data for as long as your account is active. Request logs are
         retained for a limited period for security purposes and then rotated out. When you delete your
@@ -82,7 +110,7 @@ export default function PrivacyPage() {
         records (e.g. tax/billing) by law.
       </p>
 
-      <h2>7. Your rights</h2>
+      <h2>8. Your rights</h2>
       <p>
         You can request access to, correction of, or deletion of your personal data at any time. If you
         are in the EU/UK, you have rights under the GDPR including access, rectification, erasure, and
@@ -90,13 +118,13 @@ export default function PrivacyPage() {
         <a href="mailto:privacy@agentsentry.org">privacy@agentsentry.org</a>.
       </p>
 
-      <h2>8. Changes to this policy</h2>
+      <h2>9. Changes to this policy</h2>
       <p>
         We&rsquo;ll update this page when our practices change and revise the &ldquo;last updated&rdquo;
         date above. Material changes affecting account holders will be communicated by email.
       </p>
 
-      <h2>9. Contact</h2>
+      <h2>10. Contact</h2>
       <p>
         Questions about privacy? Email{" "}
         <a href="mailto:privacy@agentsentry.org">privacy@agentsentry.org</a>. For security issues, see our{" "}
