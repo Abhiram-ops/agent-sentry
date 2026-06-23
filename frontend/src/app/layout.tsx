@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     description: DESC,
     images: [
       {
-        url:    "/og-image.png",
+        url:    "/og-image",
         width:   1200,
         height:  630,
         alt:    "AgentSentry — NHI & AI Agent Risk Auditor",
@@ -71,7 +71,7 @@ export const metadata: Metadata = {
     creator:     "@AbhiramLanka",
     title:        TITLE,
     description: DESC,
-    images:      ["/og-image.png"],
+    images:      ["/og-image"],
   },
 
   // ── Robots ────────────────────────────────────────────────────────────────
