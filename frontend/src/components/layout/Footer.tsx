@@ -136,6 +136,9 @@ export default function Footer() {
         <div className="footer-bottom">
           <div className="footer-copy">© 2026 AgentSentry · AGPL-3.0 Licensed</div>
           <div className="footer-meta">
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/security">Security</Link>
             <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer">Built by Abhiram Lanka</Link>
           </div>
         </div>
