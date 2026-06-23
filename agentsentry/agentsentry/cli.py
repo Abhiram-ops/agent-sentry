@@ -329,6 +329,11 @@ def cmd_permissions(provider_name: str):
 @click.option("--context", default=None, help="K8s kubeconfig context")
 @click.option("--force", is_flag=True, help="Skip permission check")
 @click.option(
+    "--save",
+    is_flag=True,
+    help="Save this scan to local history (~/.agentsentry/history.db) for later diffing",
+)
+@click.option(
     "--pro",
     is_flag=True,
     help="Pro mode — full attack narratives, MITRE detail, step-by-step remediation",
@@ -348,6 +353,7 @@ def scan(
     namespace,
     context,
     force,
+    save,
     pro,
 ):
     """Scan an environment for NHI and AI agent risks."""
@@ -413,6 +419,7 @@ def scan(
         output=output,
         json_output=json_output,
         pro=pro,
+        save_target=target if save else None,
     )
 
 
@@ -484,6 +491,137 @@ def blast(nhi_name: str, target: str, output_json_file: str | None):
         console.print(f"\n  [red]→ {cj_item}[/red]")
         console.print(f"    [dim]{'  →  '.join(path)}[/dim]")
     console.print()
+
+
+# ── history ───────────────────────────────────────────────────────────────────
+
+
+@main.command("history")
+@click.argument("target", required=False)
+@click.option("--limit", default=20, show_default=True, help="Max scans to show")
+@require_license
+def cmd_history(target: str | None, limit: int):
+    """Show saved scan history (use `scan --save` to record scans)."""
+    from agentsentry.core import store
+
+    records = store.list_scans(target=target, limit=limit)
+    if not records:
+        scope = f" for [bold]{target}[/bold]" if target else ""
+        console.print(
+            f"\n  [dim]no saved scans{scope} yet — run "
+            f"[bold]agentsentry scan {target or '<target>'} --save[/bold] first[/dim]\n"
+        )
+        return
+
+    table = Table(box=None, pad_edge=False, header_style="dim")
+    table.add_column("id", justify="right", style="dim")
+    table.add_column("target")
+    table.add_column("when", style="dim")
+    table.add_column("NHIs", justify="right")
+    table.add_column("CRIT", justify="right", style="red")
+    table.add_column("HIGH", justify="right", style="yellow")
+    for r in records:
+        when = r.timestamp.replace("T", " ")[:19]
+        table.add_row(
+            str(r.id), r.target, when, str(r.total_nhis),
+            str(r.critical_count), str(r.high_count),
+        )
+    console.print()
+    console.print(table)
+    console.print()
+
+
+# ── diff ──────────────────────────────────────────────────────────────────────
+
+
+@main.command("diff")
+@click.argument("target", type=click.Choice(PROVIDER_CHOICES[:-1], case_sensitive=False))
+@click.option("--profile", default=None, help="AWS credential profile")
+@click.option("--region", default="us-east-1", show_default=True)
+@click.option("--org", default=None, help="GitHub org")
+@click.option("--namespace", default=None, help="K8s namespace")
+@click.option("--context", default=None, help="K8s kubeconfig context")
+@click.option("--path", default=".", show_default=True, help="Directory to scan")
+@click.option(
+    "--no-save",
+    is_flag=True,
+    help="Compare against the stored baseline without saving this scan as a new one",
+)
+@require_license
+def cmd_diff(target, profile, region, org, namespace, context, path, no_save):
+    """Scan TARGET and show what changed since the last saved scan."""
+    from agentsentry.core import store
+    from agentsentry.automation.diff import diff_scans
+
+    _print_banner()
+
+    # Baseline = the most recent previously-stored scan (before this run).
+    prev = store.latest(target)
+
+    build_kwargs = {
+        k: v
+        for k, v in {
+            "profile": profile, "region": region, "org": org,
+            "namespace": namespace, "context": context, "path": path,
+        }.items()
+        if v is not None
+    }
+    with Progress(
+        SpinnerColumn(spinner_name="dots2", style="#00ff88"),
+        TextColumn("[bold]{task.description}[/bold]"),
+        console=console,
+        transient=True,
+    ) as progress:
+        progress.add_task(f"scanning {target}…", total=None)
+        result = _run_scan_for_target(target, **build_kwargs)
+
+    if not no_save:
+        store.save_scan(result, target)
+
+    if prev is None:
+        console.print(
+            f"\n  [dim]no previous scan for [bold]{target}[/bold] — "
+            "this run is now the baseline. Run diff again later to see changes.[/dim]\n"
+        )
+        return
+
+    diff = diff_scans(prev, result)
+    _print_diff(target, diff)
+
+
+def _print_diff(target: str, diff) -> None:
+    """Render a DiffResult against the previous baseline."""
+    if diff.is_clean:
+        console.print(
+            f"\n  [bold #00ff88]✓[/bold #00ff88]  no changes since the last "
+            f"[bold]{target}[/bold] scan — no new identities, zombies, or rotation gaps.\n"
+        )
+        return
+
+    console.print()
+    if diff.new_nhis:
+        console.print(f"  [bold yellow]＋ {len(diff.new_nhis)} new identity(ies)[/bold yellow]")
+        for n in diff.new_nhis:
+            console.print(
+                f"    [yellow]→[/yellow] {n['name']}  "
+                f"[dim]{n['risk_level']} · score {n['risk_score']:.1f}[/dim]"
+            )
+        console.print()
+    if diff.newly_zombie:
+        console.print(f"  [bold red]☠ {len(diff.newly_zombie)} newly zombie[/bold red]")
+        for n in diff.newly_zombie:
+            console.print(
+                f"    [red]→[/red] {n['name']}  "
+                f"[dim]unused {n['days_since_use']}d[/dim]"
+            )
+        console.print()
+    if diff.rotation_due:
+        console.print(f"  [bold]⟳ {len(diff.rotation_due)} newly rotation-due[/bold]")
+        for n in diff.rotation_due:
+            days = n["days_since_rotation"]
+            age = "never" if days is None else f"{days}d"
+            console.print(f"    [dim]→ {n['name']}  (last rotated {age})[/dim]")
+        console.print()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -635,6 +773,7 @@ def _finalise_and_print(
     output,
     json_output=None,
     pro=False,
+    save_target=None,
 ):
     """*scanners* may be a single scanner object or a list of scanners."""
     if scanners is None:
@@ -679,6 +818,16 @@ def _finalise_and_print(
         console.print(
             f"  [dim]⛓  {lateral} lateral-movement edge(s) "
             f"(sts:AssumeRole chains) added to attack graph[/dim]\n"
+        )
+
+    # Persist to local history so later runs can diff against this baseline.
+    if save_target:
+        from agentsentry.core import store
+
+        record_id = store.save_scan(result, save_target)
+        console.print(
+            f"  [dim]saved to scan history (id {record_id}) — "
+            f"run [bold]agentsentry diff {save_target}[/bold] later to see changes[/dim]\n"
         )
 
     if json_output == "-":
