@@ -174,6 +174,33 @@ export async function getUserByActivationCode(code: string): Promise<User | null
   return rows[0] ? mapUser(rows[0]) : null;
 }
 
+export type ConsentType = 'web_signup' | 'cli_activation';
+
+/**
+ * Record an explicit consent to the Terms/Privacy.
+ *
+ * Appends an immutable row to consent_events (the legal audit trail) and
+ * updates the user's current consent state. Stores only what's needed to prove
+ * consent: type, document, version, IP, and time.
+ */
+export async function recordConsent(
+  userId: number,
+  consentType: ConsentType,
+  version: string,
+  ip: string | null = null,
+  document = 'terms_and_privacy',
+): Promise<void> {
+  await sql`
+    INSERT INTO consent_events (user_id, consent_type, document, version, ip)
+    VALUES (${userId}, ${consentType}, ${document}, ${version}, ${ip})
+  `;
+  await sql`
+    UPDATE users
+    SET terms_version = ${version}, terms_accepted_at = NOW(), updated_at = NOW()
+    WHERE id = ${userId}
+  `;
+}
+
 /** Marks a user's CLI as activated. Returns whether this was the first activation. */
 export async function markCliActivated(userId: number): Promise<boolean> {
   const { rows } = await sql<{ is_cli_activated: boolean }>`

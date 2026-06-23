@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createUser, getUserByEmail } from '@/lib/db';
+import { createUser, getUserByEmail, recordConsent } from '@/lib/db';
 import { sendActivationCodeEmail } from '@/lib/email';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { isDisposableEmail } from '@/lib/disposableEmail';
+import { POLICY_VERSION } from '@/lib/policy';
 import {
   createSession,
   SESSION_COOKIE,
@@ -12,6 +13,7 @@ import {
 
 interface SignupBody {
   email?: string;
+  accepted_terms?: boolean;
 }
 
 function isValidEmail(email: string): boolean {
@@ -33,6 +35,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'A valid email is required.' }, { status: 400 });
     }
 
+    // Consent gate — explicit agreement to Terms/Privacy is required to sign up.
+    if (body.accepted_terms !== true) {
+      return NextResponse.json(
+        { error: 'You must accept the Terms of Service and Privacy Policy.' },
+        { status: 400 },
+      );
+    }
+
     if (isDisposableEmail(email)) {
       return NextResponse.json(
         { error: 'Please use a permanent email address.' },
@@ -50,6 +60,15 @@ export async function POST(req: NextRequest) {
 
     // Creates the user with tier='free' and a fresh AS-FREE-... activation code.
     const user = await createUser(email);
+
+    // Record the sign-up consent (audit trail + current state). The acceptance
+    // itself is already enforced by the gate above; the audit write is
+    // best-effort so a logging failure never blocks a legitimate sign-up.
+    try {
+      await recordConsent(user.id, 'web_signup', POLICY_VERSION, ip);
+    } catch (e) {
+      console.error('[/api/auth/signup] consent log failed', e);
+    }
 
     // Trigger 1: email the free activation code (best-effort, never blocks signup).
     if (user.activation_code) {

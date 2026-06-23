@@ -602,6 +602,14 @@ section { overflow-x: hidden; }
 .auth-footnote { text-align: center; font-size: 13px; color: var(--text-faint); margin: 0; }
 .auth-footnote a { color: var(--accent); text-decoration: none; }
 .auth-footnote a:hover { text-decoration: underline; }
+
+/* ── CONSENT (signup) ── */
+.consent-row { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.consent-checkbox { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
+.consent-text { font-size: 12.5px; line-height: 1.55; color: var(--text-muted); }
+.consent-text a { color: var(--accent); text-decoration: none; }
+.consent-text a:hover { text-decoration: underline; }
+.consent-short { display: block; margin-top: 6px; color: var(--text-faint); font-size: 11.5px; line-height: 1.5; }
 .auth-result-card { border-radius: var(--radius-xl); border: 1px solid var(--accent-muted); background: var(--accent-subtle); padding: 40px; display: flex; flex-direction: column; gap: 20px; }
 .auth-result-card.centered { text-align: center; }
 .auth-error-card { border-radius: var(--radius-xl); border: 1px solid #fecaca; background: #fef2f2; padding: 40px; text-align: center; }

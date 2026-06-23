@@ -45,6 +45,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "duplicate" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [result, setResult] = useState<SignupResult | null>(null);
@@ -63,6 +64,12 @@ export default function SignupPage() {
       return;
     }
 
+    if (!acceptedTerms) {
+      setStatus("error");
+      setErrorMsg("Please accept the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
+
     setStatus("submitting");
     setErrorMsg("");
 
@@ -70,7 +77,7 @@ export default function SignupPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed }),
+        body: JSON.stringify({ email: trimmed, accepted_terms: acceptedTerms }),
       });
       const json = await res.json();
 
@@ -159,13 +166,32 @@ export default function SignupPage() {
                   />
                 </div>
 
+                <label className="consent-row">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={e => setAcceptedTerms(e.target.checked)}
+                    className="consent-checkbox"
+                  />
+                  <span className="consent-text">
+                    I agree to the{" "}
+                    <Link href="/terms" target="_blank">Terms of Service</Link> and{" "}
+                    <Link href="/privacy" target="_blank">Privacy Policy</Link>.{" "}
+                    <span className="consent-short">
+                      In short: I&apos;ll scan only systems I&apos;m authorized to audit; my cloud
+                      credentials never leave my machine; AgentSentry stores only my email and
+                      account status — never my scan results.
+                    </span>
+                  </span>
+                </label>
+
                 {status === "error" && (
                   <p className="auth-error-text">{errorMsg}</p>
                 )}
 
-                <button type="submit" disabled={status === "submitting"}
+                <button type="submit" disabled={status === "submitting" || !acceptedTerms}
                   className="btn btn-primary btn-lg"
-                  style={{ width: "100%", justifyContent: "center", opacity: status === "submitting" ? 0.7 : 1, cursor: status === "submitting" ? "not-allowed" : "pointer" }}
+                  style={{ width: "100%", justifyContent: "center", opacity: (status === "submitting" || !acceptedTerms) ? 0.55 : 1, cursor: (status === "submitting" || !acceptedTerms) ? "not-allowed" : "pointer" }}
                 >
                   {status === "submitting" ? "Creating account…" : "Create free account"}
                 </button>
