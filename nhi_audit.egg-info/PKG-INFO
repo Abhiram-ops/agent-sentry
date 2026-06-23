@@ -1,0 +1,188 @@
+Metadata-Version: 2.4
+Name: nhi-audit
+Version: 0.1.7
+Summary: Open-source auditor for Non-Human Identities and AI Agent attack surfaces in cloud environments
+Author-email: Abhiram Lanka <hello@agentsentry.org>
+License: AGPL-3.0-or-later
+Project-URL: Homepage, https://agentsentry.tool
+Project-URL: Repository, https://github.com/Abhiram-ops/agent-sentry
+Project-URL: Bug Tracker, https://github.com/Abhiram-ops/agent-sentry/issues
+Project-URL: Documentation, https://agentsentry.tool/docs
+Keywords: security,cloud,iam,ai-agents,non-human-identity,attack-graph
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Information Technology
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Security
+Classifier: Topic :: System :: Systems Administration
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: networkx>=3.2
+Requires-Dist: pyvis>=0.3
+Requires-Dist: click>=8.1
+Requires-Dist: rich>=13.7
+Requires-Dist: jinja2>=3.1
+Requires-Dist: httpx>=0.27
+Requires-Dist: pydantic>=2.6
+Requires-Dist: python-dateutil>=2.9
+Requires-Dist: python-crontab>=3.0
+Provides-Extra: aws
+Requires-Dist: boto3>=1.34; extra == "aws"
+Provides-Extra: azure
+Requires-Dist: azure-identity>=1.16; extra == "azure"
+Requires-Dist: azure-mgmt-authorization>=4.0; extra == "azure"
+Requires-Dist: azure-mgmt-resource>=23.0; extra == "azure"
+Requires-Dist: azure-mgmt-subscription>=3.0; extra == "azure"
+Provides-Extra: gcp
+Requires-Dist: google-auth>=2.28; extra == "gcp"
+Requires-Dist: google-api-python-client>=2.120; extra == "gcp"
+Provides-Extra: github
+Requires-Dist: requests>=2.31; extra == "github"
+Provides-Extra: k8s
+Requires-Dist: kubernetes>=29.0; extra == "k8s"
+Provides-Extra: dashboard
+Requires-Dist: streamlit>=1.32; extra == "dashboard"
+Provides-Extra: all-clouds
+Requires-Dist: nhi-audit[aws]; extra == "all-clouds"
+Requires-Dist: nhi-audit[azure]; extra == "all-clouds"
+Requires-Dist: nhi-audit[gcp]; extra == "all-clouds"
+Requires-Dist: nhi-audit[github]; extra == "all-clouds"
+Requires-Dist: nhi-audit[k8s]; extra == "all-clouds"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+Dynamic: license-file
+
+# AgentSentry 🛡️
+
+![CI](https://github.com/Abhiram-ops/agent-sentry/actions/workflows/ci.yml/badge.svg)
+[![PyPI](https://img.shields.io/pypi/v/nhi-audit?label=PyPI&color=00cc6a)](https://pypi.org/project/nhi-audit/)
+
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-AGPL--3.0-green)
+[![Website](https://img.shields.io/badge/website-agent--sentry--beta.vercel.app-brightgreen)](https://agent-sentry-beta.vercel.app)
+
+![AgentSentry Demo](https://raw.githubusercontent.com/Abhiram-ops/agent-sentry/main/demo.gif)
+
+**Open-source auditor for Non-Human Identities and AI Agent attack surfaces across AWS, Azure, GCP, GitHub, Kubernetes, and your local machine.**
+
+> *"45 machine identities for every 1 human. Almost none of them are governed."*
+
+AgentSentry discovers every IAM role, API key, service account, SSH key, and AI agent in your environment — builds an attack graph of their access relationships — and scores the blast radius if any identity is compromised, using a novel **AI-Amplification Factor** that quantifies how autonomous AI agents multiply attack surface.
+
+---
+
+## Quick Start
+
+```bash
+pip install nhi-audit
+agentsentry interactive
+```
+
+No cloud credentials needed to try it:
+
+```bash
+agentsentry scan mock          # full multi-cloud demo
+agentsentry scan local         # scan this machine now
+```
+
+---
+
+## Installation
+
+```bash
+pip install nhi-audit                   # core (local scanner included)
+pip install nhi-audit[aws]              # + AWS
+pip install nhi-audit[azure]            # + Azure
+pip install nhi-audit[gcp]              # + GCP
+pip install nhi-audit[github]           # + GitHub
+pip install nhi-audit[k8s]             # + Kubernetes
+pip install nhi-audit[all-clouds]       # everything
+```
+
+**Windows PATH fix (run once):**
+```bash
+python -m agentsentry --install-path
+```
+
+---
+
+## Provider Setup
+
+| Provider | Setup | Command |
+|----------|-------|---------|
+| Local | Nothing | `agentsentry scan local` |
+| AWS | `aws configure` | `agentsentry scan aws` |
+| Azure | `az login` | `agentsentry scan azure` |
+| GCP | `gcloud auth application-default login` | `agentsentry scan gcp` |
+| GitHub | `set GITHUB_TOKEN=ghp_...` | `agentsentry scan github` |
+| K8s | `kubectl config use-context` | `agentsentry scan k8s` |
+| AI Agents | Nothing | `agentsentry scan agents --path .` |
+
+---
+
+## All Commands
+
+```bash
+agentsentry interactive                      # guided provider picker (recommended)
+agentsentry scan mock                        # demo, no credentials
+agentsentry scan local --path ./myproject    # scan specific directory
+agentsentry scan aws --visualize             # + interactive HTML attack graph
+agentsentry scan aws --enrich                # + CISA KEV threat intel
+agentsentry scan all                         # auto-detect + scan everything ready
+agentsentry providers                        # check what's configured
+agentsentry blast "ml-pipeline-executor"     # blast radius analysis
+```
+
+---
+
+## Risk Scoring: P×R×E×A
+
+```
+Risk = Privilege × Reachability × Exposure × AI-Amplification
+
+CRITICAL ≥ 100  |  HIGH ≥ 50  |  MEDIUM ≥ 20  |  LOW < 20
+```
+
+The **AI-Amplification Factor** is a novel research contribution — the first formal quantification of how autonomous AI agents multiply the blast radius of a compromised identity.
+
+---
+
+## Standalone Executable
+
+No Python needed. Download from [GitHub Releases](https://github.com/Abhiram-ops/agent-sentry/releases):
+
+| Platform | File |
+|----------|------|
+| Windows | `agentsentry-windows.exe` |
+| macOS | `agentsentry-macos` |
+| Linux | `agentsentry-linux` |
+
+---
+
+## Repository Structure
+
+```
+agent-sentry/
+├── agentsentry/        ← CLI tool (Python, open-source)
+├── website/            ← Marketing site (Next.js, Vercel)
+└── paper/              ← Research paper (IEEE LaTeX)
+```
+
+---
+
+## Links
+
+- **Website & Docs:** [agent-sentry-beta.vercel.app](https://agent-sentry-beta.vercel.app)
+- **PyPI:** [pypi.org/project/nhi-audit](https://pypi.org/project/nhi-audit/)
+- **Issues:** [GitHub Issues](https://github.com/Abhiram-ops/agent-sentry/issues)
+
+**License:** AGPL-3.0 — free forever.
