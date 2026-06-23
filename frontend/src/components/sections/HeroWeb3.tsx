@@ -46,7 +46,7 @@ export function HeroWeb3() {
         <div>
           <div className="hero-badge badge badge-blue">
             <span className="badge-dot" />
-            Open source · v0.1.7
+            Open source · v0.2.0
           </div>
           <h1>
             Find every <em>Machine&apos;s Identity</em> before they do.
