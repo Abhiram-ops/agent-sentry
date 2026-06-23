@@ -308,6 +308,14 @@ class NHIScorer:
         if nhi.created_date is None:
             score *= 1.25
 
+        # Data-driven over-provisioning (AWS Access Advisor): an identity granted
+        # many services it has never used is poorly governed — those unused grants
+        # are latent attack surface. Only fires when usage data is present and the
+        # gap is severe, so identities without analysis are unaffected.
+        gap = nhi.privilege_gap_ratio()
+        if gap is not None and gap >= 0.75 and nhi.granted_service_count() >= 4:
+            score *= 1.5
+
         return min(score, 5.0)
 
     # ------------------------------------------------------------------
@@ -482,6 +490,44 @@ class NHIScorer:
                             t for t in nhi.agent_tools if t in IRREVERSIBLE_TOOLS
                         ],
                         "ai_amplification_factor": nhi.ai_amplification_factor,
+                    },
+                )
+            )
+
+        # Excessive unused permissions (data-driven least-privilege).
+        # Unlike NHI-001 (which scores how *dangerous* the grant looks), this
+        # fires on the gap between granted and actually-used services — the
+        # concrete, defensible list of permissions to remove.
+        gap = nhi.privilege_gap_ratio()
+        if gap is not None and gap >= 0.5 and nhi.granted_service_count() >= 4:
+            unused = nhi.unused_services()
+            # A high-privilege identity hoarding unused grants is worse than a
+            # low-privilege one — escalate the finding accordingly.
+            level = RiskLevel.HIGH if nhi.privilege_score >= 8.0 else RiskLevel.MEDIUM
+            findings.append(
+                Finding(
+                    finding_id="NHI-006",
+                    title="Excessive Unused Permissions",
+                    description=(
+                        f"'{nhi.name}' is granted access to {nhi.granted_service_count()} "
+                        f"services but has used only {nhi.used_service_count()}. "
+                        f"{len(unused)} granted services ({gap:.0%} of its access) have "
+                        "never been authenticated against — unused grants are pure "
+                        "attack surface with no operational value."
+                    ),
+                    risk_level=level,
+                    mitre_techniques=["T1078.004"],
+                    remediation=(
+                        "Remove access to the unused services below — they are safe to "
+                        "revoke because the identity has never used them. Re-grant "
+                        "individually if a future need appears.\n"
+                        f"Unused services: {', '.join(sorted(unused)) or 'none'}"
+                    ),
+                    evidence={
+                        "granted_service_count": nhi.granted_service_count(),
+                        "used_service_count": nhi.used_service_count(),
+                        "privilege_gap_ratio": round(gap, 3),
+                        "unused_services": unused,
                     },
                 )
             )

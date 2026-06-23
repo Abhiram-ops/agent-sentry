@@ -51,7 +51,12 @@ class AWSScanner:
       - Known high-value resources (S3 buckets, RDS, Secrets Manager)
     """
 
-    def __init__(self, profile: str | None = None, region: str = "us-east-1"):
+    def __init__(
+        self,
+        profile: str | None = None,
+        region: str = "us-east-1",
+        analyze_usage: bool = False,
+    ):
         session = boto3.Session(profile_name=profile, region_name=region)
         self.iam    = session.client("iam")
         self.sts    = session.client("sts")
@@ -62,6 +67,12 @@ class AWSScanner:
         # Cache managed policy documents by ARN — same policy is often attached
         # to dozens of roles; fetching it once and reusing saves many API calls.
         self._policy_doc_cache: dict[str, list[dict]] = {}
+        # Opt-in least-privilege analysis via IAM Access Advisor. Off by default
+        # because it runs an async job per principal (slow on large accounts).
+        self.analyze_usage = analyze_usage
+        # Cache access-advisor results by principal ARN — a user with multiple
+        # access keys would otherwise trigger an identical job per key.
+        self._usage_cache: dict[str, list[dict]] = {}
 
     def scan(self) -> ScanResult:
         print("[AgentSentry] Connecting to AWS...")
@@ -159,6 +170,13 @@ class AWSScanner:
             for kw in ["public", "external", "internet", "api", "web", "lambda"]
         )
 
+        # Least-privilege analysis (opt-in) — which granted services go unused.
+        service_last_accessed = (
+            self._fetch_service_last_accessed(role["Arn"])
+            if self.analyze_usage
+            else []
+        )
+
         return NonHumanIdentity(
             id=role["RoleId"],
             name=role_name,
@@ -173,6 +191,7 @@ class AWSScanner:
             trust_policy=trust_policy,
             is_cross_account=is_cross_account,
             is_internet_facing=is_internet_facing,
+            service_last_accessed=service_last_accessed,
         )
 
     # ------------------------------------------------------------------
@@ -237,6 +256,14 @@ class AWSScanner:
         # Keys are "rotated" when they're recreated — creation date is the rotation date
         last_rotated = created_date
 
+        # Least-privilege analysis (opt-in) — access advisor is per-user, so the
+        # cache means a user's second key reuses the first key's job result.
+        service_last_accessed = (
+            self._fetch_service_last_accessed(user["Arn"])
+            if self.analyze_usage
+            else []
+        )
+
         return NonHumanIdentity(
             id=key["AccessKeyId"],
             name=f"{username} / {key['AccessKeyId'][:8]}...",
@@ -249,6 +276,7 @@ class AWSScanner:
             attached_policies=policy_names,
             inline_policies=inline_policies,
             is_internet_facing=True,  # Access keys are by nature external credentials
+            service_last_accessed=service_last_accessed,
         )
 
     # ------------------------------------------------------------------
@@ -375,6 +403,63 @@ class AWSScanner:
                 # No permission to read this policy — skip, don't crash
                 self._policy_doc_cache[arn] = []
         return docs
+
+    def _fetch_service_last_accessed(self, arn: str) -> list[dict]:
+        """
+        Fetch IAM Access Advisor data for a principal: which services it is
+        *granted* and when each was *last used*.
+
+        AWS returns this via an async job: generate_service_last_accessed_details
+        kicks off the analysis, then get_service_last_accessed_details is polled
+        until the job completes. We cap the polling so a slow/stuck job can't hang
+        the whole scan — a principal that doesn't return in time just yields no
+        usage data (treated as "unknown", never as "unused").
+
+        Returns a list of dicts shaped for NonHumanIdentity.service_last_accessed:
+            {"namespace": "s3", "service": "Amazon S3", "last_authenticated": dt|None}
+        """
+        import time
+
+        if arn in self._usage_cache:
+            return self._usage_cache[arn]
+
+        try:
+            job_id = self.iam.generate_service_last_accessed_details(Arn=arn)["JobId"]
+        except ClientError:
+            self._usage_cache[arn] = []
+            return []
+
+        services: list[dict] = []
+        for _ in range(10):  # ~ up to 10 polls; jobs usually finish in 1–2
+            try:
+                resp = self.iam.get_service_last_accessed_details(JobId=job_id)
+            except ClientError:
+                self._usage_cache[arn] = []
+                return []
+
+            status = resp.get("JobStatus")
+            if status == "IN_PROGRESS":
+                time.sleep(0.5)
+                continue
+            if status != "COMPLETED":
+                self._usage_cache[arn] = []
+                return []  # FAILED or unknown — no usable data
+
+            for entry in resp.get("ServicesLastAccessed", []):
+                services.append(
+                    {
+                        "namespace": entry.get("ServiceNamespace", ""),
+                        "service": entry.get("ServiceName", ""),
+                        # Absent LastAuthenticated == granted but never used.
+                        "last_authenticated": entry.get("LastAuthenticated"),
+                    }
+                )
+            self._usage_cache[arn] = services
+            return services
+
+        # Polling exhausted — cache empty so we don't re-run the job for this ARN.
+        self._usage_cache[arn] = []
+        return []
 
     def _get_account_id(self) -> str:
         try:

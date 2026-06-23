@@ -10,6 +10,10 @@ Required permissions (read-only):
   iam:List*, iam:Get*, sts:GetCallerIdentity,
   s3:ListAllMyBuckets, lambda:ListFunctions,
   secretsmanager:ListSecrets
+
+Optional (only for --analyze-usage least-privilege analysis):
+  iam:GenerateServiceLastAccessedDetails,
+  iam:GetServiceLastAccessedDetails
 """
 
 from __future__ import annotations
@@ -22,11 +26,17 @@ from agentsentry.providers.base import BaseProvider, PermissionStatus
 
 class AWSProvider(BaseProvider):
 
-    def __init__(self, profile: str | None = None, region: str = "us-east-1"):
+    def __init__(
+        self,
+        profile: str | None = None,
+        region: str = "us-east-1",
+        analyze_usage: bool = False,
+    ):
         self.profile = (
             profile or os.environ.get("AWS_PROFILE") or self._default_profile()
         )
         self.region = os.environ.get("AWS_DEFAULT_REGION", region)
+        self.analyze_usage = analyze_usage
 
     @staticmethod
     def _default_profile() -> str | None:
@@ -107,7 +117,11 @@ class AWSProvider(BaseProvider):
     def scan(self) -> ScanResult:
         from agentsentry.scanners.aws import AWSScanner
 
-        scanner = AWSScanner(profile=self.profile, region=self.region)
+        scanner = AWSScanner(
+            profile=self.profile,
+            region=self.region,
+            analyze_usage=self.analyze_usage,
+        )
         self._scanner = scanner
         return scanner.scan()
 

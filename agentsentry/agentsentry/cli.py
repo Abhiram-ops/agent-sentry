@@ -318,6 +318,12 @@ def cmd_permissions(provider_name: str):
 )
 @click.option("--profile", default=None, help="AWS credential profile")
 @click.option("--region", default="us-east-1", show_default=True)
+@click.option(
+    "--analyze-usage",
+    is_flag=True,
+    help="AWS: data-driven least-privilege via Access Advisor (slower; needs "
+    "iam:GenerateServiceLastAccessedDetails + iam:GetServiceLastAccessedDetails)",
+)
 @click.option("--org", default=None, help="GitHub org")
 @click.option("--namespace", default=None, help="K8s namespace")
 @click.option("--context", default=None, help="K8s kubeconfig context")
@@ -337,6 +343,7 @@ def scan(
     json_output,
     profile,
     region,
+    analyze_usage,
     org,
     namespace,
     context,
@@ -362,6 +369,7 @@ def scan(
         path=path,
         profile=profile,
         region=region,
+        analyze_usage=analyze_usage,
         org=org,
         namespace=namespace,
         context=context,
@@ -489,6 +497,7 @@ def _build_provider(
     path=".",
     profile=None,
     region="us-east-1",
+    analyze_usage=False,
     org=None,
     namespace=None,
     context=None,
@@ -507,7 +516,7 @@ def _build_provider(
     if target == "aws":
         from agentsentry.providers.aws import AWSProvider
 
-        p = AWSProvider(profile=profile, region=region)
+        p = AWSProvider(profile=profile, region=region, analyze_usage=analyze_usage)
         return p, p
     if target == "azure":
         from agentsentry.providers.azure import AzureProvider
