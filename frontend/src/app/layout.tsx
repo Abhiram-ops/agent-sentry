@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     siteName:    "AgentSentry",
     title:        TITLE,
     description: DESC,
-    images: [{ url: "/og-image", width: 1200, height: 630, alt: "AgentSentry — NHI & AI Agent Risk Auditor" }],
+    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "AgentSentry — NHI & AI Agent Risk Auditor" }],
   },
   twitter: {
     card:        "summary_large_image",
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     creator:     "@AbhiramLanka",
     title:        TITLE,
     description: DESC,
-    images:      ["/og-image"],
+    images:      ["/og-image.svg"],
   },
   robots: {
     index:  true,
