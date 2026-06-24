@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendPlainEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,16 +10,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    console.log("[Feedback]", {
-      name,
-      email,
-      role,
-      wouldUse,
-      problem,
-      working,
-      broken,
-      other,
-      submittedAt: new Date().toISOString(),
+    await sendPlainEmail({
+      from: "AgentSentry Feedback <contact@agentsentry.org>",
+      to: "srikar@agentsentry.org",
+      replyTo: email,
+      subject: `[Feedback] ${name} — Would use: ${wouldUse}`,
+      text: [
+        `Name: ${name}`,
+        `Email: ${email}`,
+        `Role: ${role || "—"}`,
+        `Would use regularly: ${wouldUse}`,
+        ``,
+        `--- What problem does AgentSentry solve? ---`,
+        problem,
+        ``,
+        `--- What's working well? ---`,
+        working || "—",
+        ``,
+        `--- What's broken or missing? ---`,
+        broken,
+        ``,
+        `--- Anything else? ---`,
+        other || "—",
+        ``,
+        `Submitted: ${new Date().toISOString()}`,
+      ].join("\n"),
     });
 
     return NextResponse.json({ success: true }, { status: 200 });
