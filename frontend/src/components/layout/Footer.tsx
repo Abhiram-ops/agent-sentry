@@ -128,6 +128,7 @@ export default function Footer() {
             <ul className="footer-links">
               <li><Link href="/signup">Get started free</Link></li>
               <li><Link href="/contact">Contact</Link></li>
+              <li><Link href="/feedback">Feedback</Link></li>
               <li><Link href="mailto:support@agentsentry.org">support@agentsentry.org</Link></li>
             </ul>
           </div>
