@@ -65,7 +65,7 @@ export default function FeedbackPage() {
     marginBottom: "8px",
     fontWeight: 600,
     fontSize: "14px",
-    color: "#e2e8f0",
+    color: "#ffffff",
   };
 
   return (
