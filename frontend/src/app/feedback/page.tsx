@@ -51,9 +51,9 @@ export default function FeedbackPage() {
     width: "100%",
     padding: "10px 12px",
     borderRadius: "6px",
-    border: "1px solid #334155",
-    background: "#0f1419",
-    color: "#e2e8f0",
+    border: "1px solid #cbd5e1",
+    background: "#f8fafc",
+    color: "#0f172a",
     fontFamily: "inherit",
     fontSize: "15px",
     outline: "none",
@@ -63,9 +63,9 @@ export default function FeedbackPage() {
   const labelStyle: React.CSSProperties = {
     display: "block",
     marginBottom: "8px",
-    fontWeight: 600,
+    fontWeight: 700,
     fontSize: "14px",
-    color: "#ffffff",
+    color: "#0f172a",
   };
 
   return (
@@ -114,6 +114,7 @@ export default function FeedbackPage() {
             What&apos;s broken? What&apos;s missing? Takes 5 minutes.
           </p>
 
+          <div style={{ background: "#ffffff", borderRadius: "12px", padding: "32px", border: "1px solid #e2e8f0" }}>
           {submitted ? (
             <div
               style={{
@@ -269,6 +270,7 @@ export default function FeedbackPage() {
               </button>
             </form>
           )}
+          </div>
         </div>
       </main>
       <Footer />
