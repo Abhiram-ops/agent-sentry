@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { GithubIcon } from '@/components/ui/GithubIcon';
 
 const NAV_LINKS = [
@@ -45,6 +46,13 @@ export function NavbarWeb3() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [auth, setAuth] = useState<AuthState>({ status: 'loading' });
+  const pathname = usePathname();
+  const isHome = pathname === '/';
+
+  // Anchor-only links (e.g. #features) only work on the homepage.
+  // On any other page, prefix with "/" so the browser navigates home first.
+  const resolveHref = (href: string) =>
+    href.startsWith('#') && !isHome ? `/${href}` : href;
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 16);
@@ -90,7 +98,7 @@ export function NavbarWeb3() {
 
         <nav className="nav-links" aria-label="Primary">
           {NAV_LINKS.map((link) => (
-            <Link key={link.href} href={link.href}>{link.label}</Link>
+            <Link key={link.href} href={resolveHref(link.href)}>{link.label}</Link>
           ))}
         </nav>
 
@@ -153,7 +161,7 @@ export function NavbarWeb3() {
 
       <div className={`container nav-mobile-menu${menuOpen ? ' open' : ''}`}>
         {NAV_LINKS.map((link) => (
-          <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>
+          <Link key={link.href} href={resolveHref(link.href)} onClick={() => setMenuOpen(false)}>{link.label}</Link>
         ))}
         <Link
           href={CONTRIBUTE_LINK.href}
