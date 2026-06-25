@@ -10,6 +10,7 @@ const routes = [
   { path: "/terms",    changeFreq: "monthly", priority: 0.4 },
   { path: "/privacy",  changeFreq: "monthly", priority: 0.4 },
   { path: "/feedback", changeFreq: "monthly", priority: 0.6 },
+  { path: "/contribute", changeFreq: "monthly", priority: 0.6 },
 ];
 
 export async function GET() {
