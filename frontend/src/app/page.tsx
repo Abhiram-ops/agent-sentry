@@ -5,6 +5,7 @@ import HowItWorks from '@/components/sections/HowItWorks';
 import Providers from '@/components/sections/Providers';
 import Features from '@/components/sections/Features';
 import Footer from '@/components/layout/Footer';
+import { FadeIn } from '@/components/ui/FadeIn';
 
 // Below-the-fold, animation-heavy sections — code-split so their JS
 // (framer-motion, SVG/graph rendering) only loads as the user scrolls.
@@ -42,14 +43,14 @@ export default function Home() {
       {/* Proof of work — live static audit of an agent codebase */}
       <section id="live-audit" aria-label="Live audit demonstration" className="section section-dark">
         <div className="container">
-          <div className="section-header centered">
+          <FadeIn className="section-header centered">
             <div className="section-label" style={{ justifyContent: 'center' }}>Proof of work</div>
             <h2>Watch a real scan run</h2>
             <p>
               No staged demo — this is the actual CLI scanning a sample agent codebase and surfacing
               a critical PREA finding line by line.
             </p>
-          </div>
+          </FadeIn>
           <LiveAuditTerminal />
         </div>
       </section>
@@ -59,13 +60,13 @@ export default function Home() {
       {/* Proof of work — blast-radius attack graph with raw JSON evidence */}
       <section id="attack-graph" aria-label="Attack graph demonstration" className="section section-dark">
         <div className="container">
-          <div className="section-header centered">
+          <FadeIn className="section-header centered">
             <div className="section-label" style={{ justifyContent: 'center' }}>Proof of work</div>
             <h2>From one compromised agent to your data</h2>
             <p>
               Click a node to inspect the raw evidence behind each hop in the blast radius graph.
             </p>
-          </div>
+          </FadeIn>
           <AttackGraphVisualizer />
         </div>
       </section>

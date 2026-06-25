@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { GithubIcon } from '@/components/ui/GithubIcon';
 import HeroTerminal from './HeroTerminal';
 
@@ -44,26 +45,36 @@ export function HeroWeb3() {
       <div className="hero-bg-glow" />
       <div className="container hero-inner">
         <div>
-          <div className="hero-badge badge badge-blue">
+          <motion.div className="hero-badge badge badge-blue"
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45 }}>
             <span className="badge-dot" />
             Open source · v0.2.0
-          </div>
-          <h1>
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}>
             Find every <em>Machine&apos;s Identity</em> before they do.
-          </h1>
-          <p className="hero-desc">
+          </motion.h1>
+          <motion.p className="hero-desc"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}>
             AI agents and service accounts are the new attack surface — ungoverned, under-monitored, and multiplying fast.
             AgentSentry discovers every non-human identity in your cloud, scores each one with a provable risk formula,
             and gives you a fix-it checklist before attackers find what you haven&apos;t.
-          </p>
-          <div className="hero-cta">
+          </motion.p>
+          <motion.div className="hero-cta"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}>
             <Link href="/signup" className="btn btn-primary btn-lg">Get started free</Link>
             <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <GithubIcon size={16} color="currentColor" />
               Star on GitHub
             </Link>
-          </div>
-          <div className="hero-stats">
+          </motion.div>
+          <motion.div className="hero-stats"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}>
             <div className="hero-stat">
               <Counter target={1610} suffix="+" />
               <div className="hero-stat-label">Active CVEs tracked</div>
@@ -76,9 +87,13 @@ export function HeroWeb3() {
               <div className="hero-stat-value is-compact">AGPL-3.0</div>
               <div className="hero-stat-label">Open source license</div>
             </div>
-          </div>
+          </motion.div>
         </div>
-        <HeroTerminal />
+        <motion.div
+          initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}>
+          <HeroTerminal />
+        </motion.div>
       </div>
     </section>
   );

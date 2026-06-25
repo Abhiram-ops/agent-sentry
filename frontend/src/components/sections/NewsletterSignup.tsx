@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 export function NewsletterSignup() {
   const [email, setEmail] = useState("");
@@ -30,7 +31,9 @@ export function NewsletterSignup() {
 
   return (
     <section className="section section-dark">
-      <div className="container newsletter-inner">
+      <motion.div className="container newsletter-inner"
+        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.5 }}>
         <span className="newsletter-eyebrow">Blast Radius by AgentSentry</span>
         <h2>Stay ahead of machine identity threats</h2>
         <p>
@@ -63,7 +66,7 @@ export function NewsletterSignup() {
           <p className="newsletter-status" style={{ color: "var(--critical)" }}>Something went wrong. Try again.</p>
         )}
         <p className="newsletter-note">No spam. Unsubscribe anytime. Every Tuesday.</p>
-      </div>
+      </motion.div>
     </section>
   );
 }

@@ -39,13 +39,15 @@ export default function Contact() {
           <p>Choose the channel that works best for you.</p>
         </motion.div>
         <div className="contact-grid">
-          {contacts.map(({ icon: Icon, platform, handle, href, description }) => (
-            <a key={platform} href={href} target="_blank" rel="noopener noreferrer" className="contact-card">
+          {contacts.map(({ icon: Icon, platform, handle, href, description }, i) => (
+            <motion.a key={platform} href={href} target="_blank" rel="noopener noreferrer" className="contact-card"
+              initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }} transition={{ duration: 0.45, delay: i * 0.1 }}>
               <div className="contact-platform">{platform}</div>
               <Icon style={{ width: 22, height: 22, color: "var(--accent)", marginBottom: 12 }} />
               <h3>{handle}</h3>
               <p>{description}</p>
-            </a>
+            </motion.a>
           ))}
         </div>
       </div>
