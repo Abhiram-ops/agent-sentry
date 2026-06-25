@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deductCredits, getUserFromRequest } from '@/lib/db';
 
+// Server-authoritative credit costs. The client sends only the action name;
+// the server resolves the cost. This prevents clients from under-reporting cost.
+const CREDIT_COSTS: Record<string, number> = {
+  scan_local:  0,
+  scan_mock:   0,
+  scan_aws:    1,
+  scan_azure:  1,
+  scan_gcp:    1,
+  scan_github: 1,
+  scan_k8s:    1,
+  scan_all:    5,
+  visualize:   0.5,
+};
+const DEFAULT_CREDIT_COST = 1; // fallback for unlisted actions
+
 interface DeductBody {
   action?: string;
-  credits_required?: number;
 }
 
 export async function POST(req: NextRequest) {
@@ -14,14 +28,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as DeductBody;
-    const { action, credits_required: creditsRequired } = body;
+    const { action } = body;
 
-    if (!action || typeof creditsRequired !== 'number' || creditsRequired <= 0) {
-      return NextResponse.json(
-        { error: 'action and a positive credits_required are required.' },
-        { status: 400 },
-      );
+    if (!action || typeof action !== 'string' || !action.trim()) {
+      return NextResponse.json({ error: 'action is required.' }, { status: 400 });
     }
+
+    // Resolve cost server-side — never trust the client-supplied amount.
+    const creditsRequired = CREDIT_COSTS[action] ?? DEFAULT_CREDIT_COST;
 
     const result = await deductCredits(user.id, creditsRequired, action);
 

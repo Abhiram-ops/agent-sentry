@@ -116,6 +116,17 @@ https://github.com/Abhiram-ops/agent-sentry
 Be concise and direct. Use code blocks for commands.`;
 
 export async function POST(req: Request) {
+  // Rate-limit: 30 requests per IP per hour to protect the Groq quota.
+  const ip = (req as Request & { headers: Headers }).headers.get('x-forwarded-for') ?? 'unknown';
+  const { checkRateLimit } = await import('@/lib/rateLimit');
+  const allowed = await checkRateLimit(ip, 'chat', 30, 60).catch(() => true);
+  if (!allowed) {
+    return new Response(
+      `data: ${JSON.stringify({ error: 'rate_limited' })}\n\ndata: [DONE]\n\n`,
+      { headers: { 'Content-Type': 'text/event-stream' } },
+    );
+  }
+
   const { messages } = await req.json();
   const apiKey = process.env.GROQ_API_KEY;
 

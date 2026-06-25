@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
 import { getStripe, BILLING_PAUSED, BILLING_PAUSED_MESSAGE } from '@/lib/stripe';
 
 export async function POST(req: NextRequest) {
@@ -8,9 +8,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: BILLING_PAUSED_MESSAGE }, { status: 503 });
     }
 
-    const user = await getUserFromRequest(req);
+    const user = await getSessionUser();
     if (!user) {
-      return NextResponse.json({ error: 'Invalid or missing API key.' }, { status: 401 });
+      return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
     }
 
     if (user.tier !== 'pro') {
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Automation billing is not configured.' }, { status: 500 });
     }
 
-    const origin = req.headers.get('origin') ?? new URL(req.url).origin;
+    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://agentsentry.org';
     const stripe = getStripe();
 
     const session = await stripe.checkout.sessions.create({

@@ -11,12 +11,10 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function baseUrl(req: NextRequest): string {
-  return (
-    req.headers.get('origin') ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    req.nextUrl.origin
-  );
+function baseUrl(): string {
+  // Never trust the Origin header for auth link construction — an attacker
+  // could set Origin to their own domain and capture the one-time token.
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://agentsentry.org';
 }
 
 /**
@@ -51,7 +49,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const link = `${baseUrl(req)}/auth/callback?token=${token}&email=${encodeURIComponent(email)}`;
+    const link = `${baseUrl()}/auth/callback?token=${token}&email=${encodeURIComponent(email)}`;
     await sendLoginLinkEmail(email, link);
 
     return genericOk;

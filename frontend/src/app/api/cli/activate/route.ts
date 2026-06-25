@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserByActivationCode, markCliActivated, recordConsent } from '@/lib/db';
 import { sendProGuideEmail } from '@/lib/email';
 import { POLICY_VERSION } from '@/lib/policy';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 interface ActivateBody {
   activation_code?: string;
@@ -20,6 +21,12 @@ interface ActivateBody {
  */
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
+    const allowed = await checkRateLimit(ip, 'cli/activate', 10, 60);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many activation attempts. Try again later.' }, { status: 429 });
+    }
+
     const body = (await req.json()) as ActivateBody;
     const code = body.activation_code?.trim();
 

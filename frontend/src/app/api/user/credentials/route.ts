@@ -12,12 +12,8 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function baseUrl(req: NextRequest): string {
-  return (
-    req.headers.get('origin') ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    req.nextUrl.origin
-  );
+function baseUrl(): string {
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://agentsentry.org';
 }
 
 /**
@@ -52,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     const token = await createEmailChange(user.id, newEmail);
-    const link = `${baseUrl(req)}/api/auth/verify-email?token=${token}`;
+    const link = `${baseUrl()}/api/auth/verify-email?token=${token}`;
     await sendEmailChangeVerification(newEmail, link);
 
     return NextResponse.json({

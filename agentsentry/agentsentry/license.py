@@ -21,19 +21,11 @@ Tiers:
 
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
 import json
 import os
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-
-# ── Secrets (offline HMAC fallback) ───────────────────────────────────────────
-_FREE_SECRET: bytes = b"as-fr-v1-7k2m9p4n"  # free tier
-_PRO_SECRET: bytes = b"as-lk-v1-3m9n7q2x4p"  # pro tier
 
 # ── URLs ──────────────────────────────────────────────────────────────────────
 _DEFAULT_API_BASE = "https://agent-sentry-beta.vercel.app"
@@ -59,11 +51,6 @@ def _activate_url() -> str:
 # ── Tier policy ───────────────────────────────────────────────────────────────
 FREE_SCAN_TARGETS = {"local", "mock"}
 
-# ── Key regexes ───────────────────────────────────────────────────────────────
-_FREE_RE = re.compile(r"^AF-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
-_PRO_RE = re.compile(r"^AS-([A-Z2-7]{4}-){3}[A-Z2-7]{4}$", re.IGNORECASE)
-# Simple format issued by the website claim API: AS-FREE-XXXX-XXXX (hex)
-_SIMPLE_FREE_RE = re.compile(r"^AS-FREE-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}$", re.IGNORECASE)
 
 
 # ── Storage ───────────────────────────────────────────────────────────────────
@@ -78,57 +65,6 @@ def _license_dir() -> Path:
 
 def _license_file() -> Path:
     return _license_dir() / "license.json"
-
-
-# ── Offline HMAC validation ───────────────────────────────────────────────────
-def _decode_key(key: str, secret: bytes) -> bool:
-    """Return True if the key's HMAC validates against the given secret."""
-    b32 = key.upper().split("-", 1)[1].replace("-", "")
-    pad = (8 - len(b32) % 8) % 8
-    try:
-        raw = base64.b32decode(b32 + "=" * pad)
-    except Exception:
-        return False
-    if len(raw) < 10:
-        return False
-    mac_bytes = raw[:6]
-    nonce = raw[6:10]
-    expected = hmac.new(secret, nonce, hashlib.sha256).digest()[:6]
-    return hmac.compare_digest(mac_bytes, expected)
-
-
-def _validate_key(key: str) -> str | None:
-    """Validate an offline key and return its tier: 'free', 'pro', or None."""
-    key = key.strip().upper()
-    if _SIMPLE_FREE_RE.match(key):
-        return "free"
-    if _FREE_RE.match(key) and _decode_key(key, _FREE_SECRET):
-        return "free"
-    if _PRO_RE.match(key) and _decode_key(key, _PRO_SECRET):
-        return "pro"
-    return None
-
-
-def _make_key(secret: bytes, prefix: str, nonce: bytes | None = None) -> str:
-    """Generate a key from a nonce (random if not provided)."""
-    if nonce is None:
-        nonce = os.urandom(4)
-    mac = hmac.new(secret, nonce, hashlib.sha256).digest()
-    raw = mac[:6] + nonce  # 10 bytes
-    enc = base64.b32encode(raw).decode().rstrip("=")  # 16 chars
-    return f"{prefix}-{enc[:4]}-{enc[4:8]}-{enc[8:12]}-{enc[12:16]}"
-
-
-def generate_free_key(email: str) -> str:
-    """Generate a deterministic free key from an email (server-side use)."""
-    nonce = hashlib.sha256(email.lower().encode()).digest()[:4]
-    return _make_key(_FREE_SECRET, "AF", nonce)
-
-
-def generate_pro_key(purchase_id: str) -> str:
-    """Generate a deterministic pro key from a purchase ID (server-side use)."""
-    nonce = hashlib.sha256(purchase_id.encode()).digest()[:4]
-    return _make_key(_PRO_SECRET, "AS", nonce)
 
 
 # ── Online activation ─────────────────────────────────────────────────────────
@@ -233,23 +169,16 @@ def activate(code: str, consent: bool = False) -> tuple[bool, str]:
             "source": "cli_activation",
         }
 
-    network_failed = False
     try:
         tier = _activate_online(code, consent=consent_record)
     except NetworkError:
-        tier = None
-        network_failed = True
+        return False, "network"
 
     if tier:
         _store(code, tier, source="online", consent=consent_record)
         return True, tier
 
-    offline_tier = _validate_key(code)
-    if offline_tier:
-        _store(code.upper(), offline_tier, source="offline", consent=consent_record)
-        return True, offline_tier
-
-    return False, "network" if network_failed else "invalid"
+    return False, "invalid"
 
 
 def check() -> tuple[str | None, dict]:
@@ -269,13 +198,10 @@ def check() -> tuple[str | None, dict]:
         return None, {}
 
     tier = data.get("tier") or data.get("plan")
-    if data.get("source") == "online":
-        return (tier, data) if tier in ("free", "pro") else (None, {})
-
-    # offline (or legacy) entry → re-validate the HMAC key
-    key = data.get("key") or data.get("code", "")
-    offline_tier = _validate_key(key)
-    return (offline_tier, data) if offline_tier else (None, {})
+    # Trust the stored tier for both online and legacy offline activations.
+    # Offline HMAC re-validation was removed; the license file is protected
+    # at 0600 and is only writable by the activating user.
+    return (tier, data) if tier in ("free", "pro") else (None, {})
 
 
 # ── Gate enforcement ──────────────────────────────────────────────────────────

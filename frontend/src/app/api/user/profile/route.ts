@@ -15,7 +15,6 @@ export async function GET() {
 
     return NextResponse.json({
       email: user.email,
-      api_key: user.api_key,
       api_key_preview: `${user.api_key.slice(0, 6)}…${user.api_key.slice(-6)}`,
       credits_balance: user.credits_balance,
       tier: user.tier,

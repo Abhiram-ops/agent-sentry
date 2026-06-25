@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'A new API key has been generated and emailed to you.',
-      api_key: newKey,
       api_key_preview: `${newKey.slice(0, 6)}…${newKey.slice(-6)}`,
     });
   } catch (err) {

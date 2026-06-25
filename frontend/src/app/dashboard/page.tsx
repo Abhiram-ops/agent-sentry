@@ -19,7 +19,6 @@ const PRO_BENEFITS = [
 
 interface Profile {
   email: string;
-  api_key: string;
   api_key_preview: string;
   credits_balance: number;
   tier: Tier;
@@ -62,8 +61,6 @@ export default function DashboardPage() {
   const [banner, setBanner] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
 
   // Profile actions
-  const [copied, setCopied] = useState(false);
-  const [showKey, setShowKey] = useState(false);
   const [changingEmail, setChangingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [emailBusy, setEmailBusy] = useState(false);
@@ -127,15 +124,6 @@ export default function DashboardPage() {
     }
   }, []);
 
-  async function handleCopyKey() {
-    if (!profile) return;
-    try {
-      await navigator.clipboard.writeText(profile.api_key);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch { /* clipboard unavailable */ }
-  }
-
   async function handleLogout() {
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
     router.replace('/');
@@ -179,7 +167,7 @@ export default function DashboardPage() {
       const res = await fetch('/api/user/regenerate-api-key', { method: 'POST' });
       const json = await res.json();
       if (res.ok) {
-        setProfile(p => (p ? { ...p, api_key: json.api_key, api_key_preview: json.api_key_preview } : p));
+        setProfile(p => (p ? { ...p, api_key_preview: json.api_key_preview } : p));
         setBanner({ kind: 'success', text: 'New API key generated and emailed to you.' });
       } else {
         setBanner({ kind: 'error', text: json.error ?? 'Could not regenerate key.' });
@@ -198,7 +186,7 @@ export default function DashboardPage() {
     try {
       const res = await fetch('/api/billing/create-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${profile.api_key}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ package_id: packageId }),
       });
       const json = await res.json();
@@ -219,10 +207,7 @@ export default function DashboardPage() {
     setSubBusy(true);
     setBanner(null);
     try {
-      const res = await fetch('/api/billing/subscribe', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${profile.api_key}` },
-      });
+      const res = await fetch('/api/billing/subscribe', { method: 'POST' });
       const json = await res.json();
       if (res.ok && json.checkout_url) {
         window.location.assign(json.checkout_url);
@@ -241,10 +226,7 @@ export default function DashboardPage() {
     setSubBusy(true);
     setBanner(null);
     try {
-      const res = await fetch('/api/billing/portal', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${profile.api_key}` },
-      });
+      const res = await fetch('/api/billing/portal', { method: 'POST' });
       const json = await res.json();
       if (res.ok && json.portal_url) {
         window.location.assign(json.portal_url);
@@ -335,16 +317,15 @@ export default function DashboardPage() {
                     <KeyRound style={{ width: 12, height: 12 }} /> API key
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <code className="copy-field-code" style={{ minWidth: 240 }}>
-                      {showKey ? profile.api_key : profile.api_key_preview}
+                    <code className="copy-field-code" style={{ minWidth: 240, letterSpacing: 1 }}>
+                      {profile.api_key_preview}
                     </code>
-                    <button type="button" onClick={() => setShowKey(s => !s)} className="dash-label" style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                      {showKey ? 'Hide' : 'Show'}
-                    </button>
-                    <button type="button" onClick={handleCopyKey} aria-label="Copy API key" className={`copy-field-btn ${copied ? 'copied' : ''}`} style={{ width: 42, height: 42 }}>
-                      {copied ? <Check style={{ width: 16, height: 16 }} /> : <Copy style={{ width: 16, height: 16 }} />}
-                    </button>
                   </div>
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+                    Your full API key is not displayed for security. To retrieve it, email{' '}
+                    <a href="mailto:support@agentsentry.org" style={{ color: 'var(--accent)' }}>support@agentsentry.org</a>{' '}
+                    from your registered address and we&apos;ll send it securely.
+                  </p>
                   <div style={{ marginTop: 12 }}>
                     <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={regenBusy}>
                       <RefreshCw style={{ width: 13, height: 13, marginRight: 6 }} /> {regenBusy ? 'Regenerating…' : 'Regenerate key'}

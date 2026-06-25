@@ -143,12 +143,14 @@ async function sendLicenseEmail(toEmail: string, key: string, buyerName: string)
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
 
-  // Verify Gumroad signature if secret is configured
-  if (PING_SECRET) {
-    const sig = req.headers.get('x-gumroad-signature') ?? '';
-    if (!sig || !verifySignature(rawBody, sig, PING_SECRET)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-    }
+  // GUMROAD_PING_SECRET must always be configured — fail closed if missing.
+  if (!PING_SECRET) {
+    console.error('[gumroad-webhook] GUMROAD_PING_SECRET is not set — rejecting request');
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+  }
+  const sig = req.headers.get('x-gumroad-signature') ?? '';
+  if (!sig || !verifySignature(rawBody, sig, PING_SECRET)) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
   // Parse Gumroad form-encoded payload
