@@ -14,6 +14,8 @@ const NAV_LINKS = [
   { label: 'Contact',      href: '/contact'      },
 ];
 
+const CONTRIBUTE_LINK = { label: 'Share a scan →', href: '/contribute' };
+
 const GITHUB_URL = 'https://github.com/Abhiram-ops/agent-sentry';
 
 function LogoMark() {
@@ -95,6 +97,24 @@ export function NavbarWeb3() {
         <div className="nav-sep" />
 
         <div className="nav-actions">
+          <Link
+            href={CONTRIBUTE_LINK.href}
+            className="nav-ghost"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#3b82f6',
+              border: '1px solid rgba(59,130,246,0.35)',
+              borderRadius: 20,
+              padding: '4px 12px',
+              background: 'rgba(59,130,246,0.08)',
+            }}
+          >
+            {CONTRIBUTE_LINK.label}
+          </Link>
           <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="nav-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
             <GithubIcon size={15} color="currentColor" />
             GitHub
@@ -135,6 +155,13 @@ export function NavbarWeb3() {
         {NAV_LINKS.map((link) => (
           <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>
         ))}
+        <Link
+          href={CONTRIBUTE_LINK.href}
+          onClick={() => setMenuOpen(false)}
+          style={{ fontWeight: 700, color: '#3b82f6' }}
+        >
+          {CONTRIBUTE_LINK.label}
+        </Link>
         <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <GithubIcon size={15} color="currentColor" />
           GitHub
