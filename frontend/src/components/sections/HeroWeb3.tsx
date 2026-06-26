@@ -59,9 +59,7 @@ export function HeroWeb3() {
           <motion.p className="hero-desc"
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}>
-            AI agents and service accounts are the new attack surface — ungoverned, under-monitored, and multiplying fast.
-            AgentSentry discovers every non-human identity in your cloud, scores each one with a provable risk formula,
-            and gives you a fix-it checklist before attackers find what you haven&apos;t.
+            Your infrastructure tells a story. Make sure you&apos;re the first one to read it.
           </motion.p>
           <motion.div className="hero-cta"
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
