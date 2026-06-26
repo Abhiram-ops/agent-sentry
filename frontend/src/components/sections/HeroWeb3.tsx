@@ -54,7 +54,7 @@ export function HeroWeb3() {
           <motion.h1
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}>
-            Find every <em>Machine&apos;s Identity</em> before they do.
+            One tool. Every API key, agent, and service account mapped. <em>See your complete attack surface before attackers do.</em>
           </motion.h1>
           <motion.p className="hero-desc"
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
