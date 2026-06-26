@@ -113,6 +113,7 @@ export default function DocsPage() {
               ["#providers","Providers"],
               ["#output","Output formats"],
               ["#advanced","Advanced"],
+              ["#api-key","API Key"],
             ].map(([href, label]) => (
               <a key={href} href={href}>
                 {label}
@@ -480,6 +481,42 @@ export default function DocsPage() {
             )} />
             <p style={{ margin: "12px 0 0", color: "var(--text-faint)", fontSize: 11 }}>
               This queries AWS Access Advisor per identity — runs slower but gives precise, defensible revocation recommendations.
+            </p>
+          </div>
+        </Section>
+
+        {/* API Key */}
+        <Section id="api-key" icon={Key} accent="#f59e0b" title="Your AgentSentry API Key">
+          <p style={{ margin: 0 }}>
+            Your AgentSentry API key authenticates the CLI with our backend — it tells us who you are, what tier you&apos;re on, and tracks credit usage when you run scans.
+          </p>
+
+          <div style={{ border: "1px solid #21262d", borderRadius: 10, padding: "16px 20px" }}>
+            <strong style={{ fontSize: 13, display: "block", marginBottom: 8, color: "var(--text)" }}>What it is used for</strong>
+            <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 13, lineHeight: 2 }}>
+              <li>Authenticating the <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>agentsentry activate</code> command</li>
+              <li>Gating Pro features and deducting scan credits</li>
+              <li>Identifying your account when you contact support</li>
+            </ul>
+          </div>
+
+          <div style={{ border: "1px solid #21262d", borderRadius: 10, padding: "16px 20px" }}>
+            <strong style={{ fontSize: 13, display: "block", marginBottom: 8, color: "var(--text)" }}>What it is NOT used for</strong>
+            <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 13, lineHeight: 2 }}>
+              <li>Connecting to AWS, Azure, or GCP — your cloud credentials stay on your machine and never touch our servers</li>
+              <li>Linking to any third-party platform or deployment tool</li>
+            </ul>
+          </div>
+
+          <div style={{ border: "1px solid #f59e0b33", borderRadius: 10, background: "#f59e0b08", padding: "16px 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <Key style={{ width: 15, height: 15, color: "#f59e0b" }} />
+              <span style={{ color: "#f59e0b", fontWeight: 600, fontSize: 14 }}>How to retrieve your full API key</span>
+            </div>
+            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 13, lineHeight: 1.7 }}>
+              For security, your full API key is never displayed in the dashboard — only a short preview is shown. If you need the full key, email{" "}
+              <a href="mailto:support@agentsentry.org" style={{ color: "#f59e0b" }}>support@agentsentry.org</a>{" "}
+              from your registered address and we&apos;ll send it securely.
             </p>
           </div>
         </Section>
