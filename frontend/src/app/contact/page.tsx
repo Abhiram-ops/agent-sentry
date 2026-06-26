@@ -40,7 +40,7 @@ export default function ContactPage() {
           <div className="auth-header">
             <div className="auth-eyebrow">Contact</div>
             <h1>Get in touch</h1>
-            <p>Questions, partnerships, enterprise inquiries — I reply within 24 hours.</p>
+            <p>Questions, partnerships, enterprise inquiries, I reply within 24 hours.</p>
           </div>
 
           {status === "sent" ? (
@@ -51,13 +51,13 @@ export default function ContactPage() {
             >
               <CheckCircle style={{ width: 48, height: 48, color: "var(--accent)", margin: "0 auto 20px" }} />
               <p>Message sent!</p>
-              <p>Check your inbox — a confirmation is on its way.</p>
+              <p>Check your inbox, a confirmation is on its way.</p>
             </motion.div>
           ) : (
             <div className="auth-card">
               <div className="auth-card-top" />
               <form onSubmit={handleSubmit} className="auth-form">
-                {/* Honeypot field — hidden from real users, bots tend to fill every input */}
+                {/* Honeypot field, hidden from real users, bots tend to fill every input */}
                 <input type="text"
                   name="website"
                   value={form.website}

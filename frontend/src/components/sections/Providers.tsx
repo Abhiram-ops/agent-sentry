@@ -108,8 +108,8 @@ export default function Providers() {
           <div className="section-label">Providers</div>
           <h2>Not just AWS. Everywhere you deploy.</h2>
           <p>
-            Six independent providers — install only what you need. Each one checks its own
-            permissions before touching a single API. Start with <code style={{ color: "var(--accent)" }}>local</code> — it
+            Six independent providers, install only what you need. Each one checks its own
+            permissions before touching a single API. Start with <code style={{ color: "var(--accent)" }}>local</code>, it
             needs nothing and finds more than you expect.
           </p>
         </motion.div>

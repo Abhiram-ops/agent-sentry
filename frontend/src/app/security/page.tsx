@@ -1,7 +1,7 @@
 import LegalShell from "@/components/legal/LegalShell";
 
 export const metadata = {
-  title: "Security — AgentSentry",
+  title: "Security, AgentSentry",
   description:
     "How AgentSentry protects your data and how to report a vulnerability. Stateless scans, magic-link auth, responsible disclosure.",
 };
@@ -17,30 +17,30 @@ export default function SecurityPage() {
       <div className="legal-callout">
         <p>
           <strong>Stateless by design.</strong> Scans run on your machine with your credentials. We never
-          receive your cloud keys and never store your scan results — the data that would be most valuable to
+          receive your cloud keys and never store your scan results, the data that would be most valuable to
           an attacker simply isn&rsquo;t on our servers.
         </p>
       </div>
 
       <h2>How we protect your data</h2>
       <ul>
-        <li><strong>Data in transit</strong> — all traffic to the hosted service is encrypted with TLS.</li>
-        <li><strong>Data at rest</strong> — we store the minimum (account email, license tier, billing reference). No credentials, no scan contents.</li>
-        <li><strong>Authentication</strong> — passwordless magic-link sign-in. There is no password to phish or brute-force. Tokens are single-use, cryptographically random, and expire after 24 hours.</li>
-        <li><strong>Abuse controls</strong> — login/signup requests are rate-limited per IP, and responses are generic to prevent account enumeration.</li>
-        <li><strong>Open source</strong> — the CLI is AGPL-3.0 and fully auditable. You never have to take our word for what it does.</li>
+        <li><strong>Data in transit</strong>, all traffic to the hosted service is encrypted with TLS.</li>
+        <li><strong>Data at rest</strong>, we store the minimum (account email, license tier, billing reference). No credentials, no scan contents.</li>
+        <li><strong>Authentication</strong>, passwordless magic-link sign-in. There is no password to phish or brute-force. Tokens are single-use, cryptographically random, and expire after 24 hours.</li>
+        <li><strong>Abuse controls</strong>, login/signup requests are rate-limited per IP, and responses are generic to prevent account enumeration.</li>
+        <li><strong>Open source</strong>, the CLI is AGPL-3.0 and fully auditable. You never have to take our word for what it does.</li>
       </ul>
 
       <h2>What the CLI sends home</h2>
       <p>
         The only network calls the CLI makes to us are license activation and (for Pro automation) a
-        subscription-status check. These transmit your license key and plan — never your credentials or
+        subscription-status check. These transmit your license key and plan, never your credentials or
         findings. Cloud API calls go directly from your machine to your cloud provider.
       </p>
 
       <h2>Reporting a vulnerability</h2>
       <p>
-        If you discover a security issue, please report it privately — <strong>do not open a public GitHub
+        If you discover a security issue, please report it privately, <strong>do not open a public GitHub
         issue</strong>.
       </p>
       <ul>
@@ -60,7 +60,7 @@ export default function SecurityPage() {
       </ul>
       <h3>Out of scope</h3>
       <ul>
-        <li>Third-party services we depend on (Vercel, Stripe, Resend) — report those to the relevant provider</li>
+        <li>Third-party services we depend on (Vercel, Stripe, Resend), report those to the relevant provider</li>
         <li>Denial-of-service, spam, or social-engineering attacks</li>
         <li>Issues requiring physical access to a user&rsquo;s device</li>
       </ul>

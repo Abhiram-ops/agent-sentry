@@ -37,7 +37,7 @@ export function NewsletterSignup() {
         <span className="newsletter-eyebrow">Blast Radius by AgentSentry</span>
         <h2>Stay ahead of machine identity threats</h2>
         <p>
-          Weekly intel on NHI security and AI agent risks — real findings, practical commands, no fluff.
+          Weekly intel on NHI security and AI agent risks, real findings, practical commands, no fluff.
           Join security engineers and DevOps teams already subscribed.
         </p>
 

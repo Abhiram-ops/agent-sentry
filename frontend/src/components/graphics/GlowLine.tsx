@@ -5,8 +5,8 @@
  * without hard borders.
  *
  * Usage:
- *   <GlowLine color="green" />         — green glow at top of section
- *   <GlowLine color="dim" position="bottom" />  — subtle white line at bottom
+ *   <GlowLine color="green" />        , green glow at top of section
+ *   <GlowLine color="dim" position="bottom" /> , subtle white line at bottom
  */
 
 interface GlowLineProps {

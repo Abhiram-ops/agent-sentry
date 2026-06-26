@@ -19,7 +19,7 @@ interface UploadedImage {
 }
 
 const MAX_IMAGES = 3;
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB source — the redactor downscales the export.
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB source, the redactor downscales the export.
 
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -176,7 +176,7 @@ export default function ContributePage() {
             Contribute a Scan Result
           </h1>
           <p style={{ color: "#94a3b8", marginBottom: 18, fontSize: 16, lineHeight: 1.6 }}>
-            Ran a scan? Share what AgentSentry found. Real results make the tool — and our research —
+            Ran a scan? Share what AgentSentry found. Real results make the tool, and our research,
             sharper. Redact anything sensitive right here before it ever leaves your device.
           </p>
 
@@ -195,7 +195,7 @@ export default function ContributePage() {
             <span style={{ fontSize: 18, lineHeight: 1 }}>🔒</span>
             <p style={{ margin: 0, fontSize: 13, color: "#cbd5e1", lineHeight: 1.6 }}>
               <strong style={{ color: "#e2e8f0" }}>Your privacy is the default.</strong> Image redaction
-              runs entirely in your browser — originals never upload. We store nothing without your
+              runs entirely in your browser, originals never upload. We store nothing without your
               explicit consent below, and we never ask for live credentials.
             </p>
           </div>
@@ -204,7 +204,7 @@ export default function ContributePage() {
             <div style={{ background: "#fff", borderRadius: 12, padding: 32, border: "1px solid #3b82f6" }}>
               <h3 style={{ color: "#2563eb", margin: "0 0 8px", fontSize: 20 }}>✓ Thank you!</h3>
               <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
-                Your scan result is in. This genuinely helps us improve AgentSentry — we&apos;ll be in
+                Your scan result is in. This genuinely helps us improve AgentSentry, we&apos;ll be in
                 touch if we have follow-up questions.
               </p>
             </div>
@@ -318,7 +318,7 @@ export default function ContributePage() {
                   </div>
                 </div>
 
-                {/* Video link (not a file upload — see note) */}
+                {/* Video link (not a file upload, see note) */}
                 <div>
                   <label style={label}>Video walkthrough link (optional)</label>
                   <input

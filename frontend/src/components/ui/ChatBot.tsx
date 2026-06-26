@@ -60,7 +60,7 @@ function TypingDots() {
 
 export default function ChatBot() {
   const [open, setOpen] = useState(false);
-  const [msgs, setMsgs] = useState<Msg[]>([{ role: "assistant", content: "Hey! I'm the AgentSentry assistant with access to the live codebase. Ask me anything — setup, scanning, risk scoring, fixing findings, or how the code works." }]);
+  const [msgs, setMsgs] = useState<Msg[]>([{ role: "assistant", content: "Hey! I'm the AgentSentry assistant with access to the live codebase. Ask me anything, setup, scanning, risk scoring, fixing findings, or how the code works." }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -80,7 +80,7 @@ export default function ChatBot() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setVisible(true);
-      // .chatbot-panel goes full-screen below 680px (see globals.css) —
+      // .chatbot-panel goes full-screen below 680px (see globals.css),
       // don't auto-open a full-screen takeover on those viewports.
       if (window.innerWidth < 680) setUnread(1);
       else setOpen(true);

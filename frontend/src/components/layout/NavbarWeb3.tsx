@@ -83,7 +83,7 @@ export function NavbarWeb3() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch {
-      // ignore — clear client state regardless
+      // ignore, clear client state regardless
     }
     window.location.assign('/');
   }

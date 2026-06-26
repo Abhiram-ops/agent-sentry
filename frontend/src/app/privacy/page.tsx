@@ -1,9 +1,9 @@
 import LegalShell from "@/components/legal/LegalShell";
 
 export const metadata = {
-  title: "Privacy Policy — AgentSentry",
+  title: "Privacy Policy, AgentSentry",
   description:
-    "How AgentSentry handles your data. Your cloud credentials never leave your machine — scans run entirely on your own infrastructure.",
+    "How AgentSentry handles your data. Your cloud credentials never leave your machine, scans run entirely on your own infrastructure.",
 };
 
 export default function PrivacyPage() {
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
           <strong>Your credentials never leave your machine.</strong> The AgentSentry CLI
           (<code>nhi-audit</code>) makes every cloud API call locally, using credentials that stay on
           your own infrastructure. We never receive, store, or transmit your AWS, Azure, GCP, GitHub,
-          or Kubernetes credentials — and we never see the identities, policies, or resources a scan finds.
+          or Kubernetes credentials, and we never see the identities, policies, or resources a scan finds.
         </p>
       </div>
 
@@ -34,22 +34,22 @@ export default function PrivacyPage() {
       <h2>2. What we collect</h2>
       <p>We collect the minimum needed to run accounts, licensing, and billing:</p>
       <ul>
-        <li><strong>Account data</strong> — your email address, used for passwordless (magic-link) sign-in.</li>
-        <li><strong>License data</strong> — your license key/tier and activation timestamps, so the CLI can verify your plan.</li>
-        <li><strong>Billing data</strong> — handled by Stripe. We store a customer reference and subscription status, never your card details.</li>
-        <li><strong>Basic web logs</strong> — standard request metadata (IP, user agent, timestamps) for security and abuse prevention.</li>
+        <li><strong>Account data</strong>, your email address, used for passwordless (magic-link) sign-in.</li>
+        <li><strong>License data</strong>, your license key/tier and activation timestamps, so the CLI can verify your plan.</li>
+        <li><strong>Billing data</strong>, handled by Stripe. We store a customer reference and subscription status, never your card details.</li>
+        <li><strong>Basic web logs</strong>, standard request metadata (IP, user agent, timestamps) for security and abuse prevention.</li>
       </ul>
 
       <h2>3. What we do NOT collect</h2>
       <ul>
         <li>Your cloud credentials or API keys.</li>
-        <li>The contents of any scan — the identities, roles, policies, secrets, or resources AgentSentry finds.</li>
+        <li>The contents of any scan, the identities, roles, policies, secrets, or resources AgentSentry finds.</li>
         <li>Any secret <em>values</em>. The CLI flags risky secrets locally; it never transmits them.</li>
       </ul>
       <p>
         Scan results live only on your machine (printed to your terminal, or written to the output file
         you choose). If you use the optional automation/scheduled-scan add-on, only the summary fields you
-        explicitly opt into emailing are sent — never raw findings.
+        explicitly opt into emailing are sent, never raw findings.
       </p>
 
       <h2>4. How we use your data</h2>
@@ -68,12 +68,12 @@ export default function PrivacyPage() {
       </p>
       <ul>
         <li>
-          <strong>At sign-up (web)</strong> — before your account is created, you must actively agree to
+          <strong>At sign-up (web)</strong>, before your account is created, you must actively agree to
           the Terms of Service and this Privacy Policy in a confirmation dialog. You cannot create an
           account without granting this consent.
         </li>
         <li>
-          <strong>At CLI activation</strong> — the <code>agentsentry activate</code> command shows the
+          <strong>At CLI activation</strong>, the <code>agentsentry activate</code> command shows the
           same terms and requires explicit acceptance before the tool is activated on your machine.
         </li>
       </ul>
@@ -81,7 +81,7 @@ export default function PrivacyPage() {
         When you consent, we record only what is needed to prove that consent: the type of consent
         (sign-up or CLI activation), which documents and version you agreed to, the time, and the IP
         address the request came from. We do not collect any additional profile information as part of
-        this — no name, company, phone number, or job title is required or stored.
+        this, no name, company, phone number, or job title is required or stored.
       </p>
       <p>
         If we materially change the Terms or this Policy, we update the version and may ask you to consent

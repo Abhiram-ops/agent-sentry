@@ -1,7 +1,7 @@
 import LegalShell from "@/components/legal/LegalShell";
 
 export const metadata = {
-  title: "Terms of Service — AgentSentry",
+  title: "Terms of Service, AgentSentry",
   description:
     "Terms of Service for AgentSentry. Use it only on environments you own or are authorized to audit.",
 };
@@ -34,7 +34,7 @@ export default function TermsPage() {
       <h2>2. Permitted use</h2>
       <ul>
         <li>Auditing non-human identities and AI-agent attack surface in environments you own.</li>
-        <li>Auditing environments you have been explicitly authorized (in writing) to assess — e.g. as an employee, contractor, or engaged penetration tester.</li>
+        <li>Auditing environments you have been explicitly authorized (in writing) to assess, e.g. as an employee, contractor, or engaged penetration tester.</li>
         <li>Security research and education on systems you control.</li>
       </ul>
 
@@ -46,7 +46,7 @@ export default function TermsPage() {
         <li>Circumventing license enforcement or sharing paid license keys.</li>
       </ul>
 
-      <h2>4. Licensing — open source and commercial</h2>
+      <h2>4. Licensing, open source and commercial</h2>
       <p>
         The AgentSentry CLI is free and open source under the{" "}
         <a href="https://www.gnu.org/licenses/agpl-3.0.html">GNU AGPL-3.0-or-later</a> license. You are free
@@ -57,7 +57,7 @@ export default function TermsPage() {
         network (for example, building it into a hosted product), the AGPL requires you to release your
         corresponding source under a compatible license. Organizations that want to embed AgentSentry into a
         proprietary or closed-source product can obtain a separate commercial license that lifts this
-        obligation — contact <a href="mailto:licensing@agentsentry.org">licensing@agentsentry.org</a>.
+        obligation, contact <a href="mailto:licensing@agentsentry.org">licensing@agentsentry.org</a>.
       </p>
       <p>
         Paid &ldquo;Pro&rdquo; and add-on features of the hosted service are provided under these Terms, not

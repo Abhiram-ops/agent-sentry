@@ -18,9 +18,9 @@ const FACTORS: readonly FactorRow[] = [
 ] as const;
 
 const TOC = [
-  { href: "#def-4-1", label: "4.1 — Composite risk definition" },
+  { href: "#def-4-1", label: "4.1, Composite risk definition" },
   { href: "#factor-table", label: "Factor reference" },
-  { href: "#example-4-1", label: "Worked example — AS-0042" },
+  { href: "#example-4-1", label: "Worked example, AS-0042" },
   { href: "#ai-factor", label: "AI-Amplification factor" },
   { href: "#autonomy-levels", label: "Autonomy levels L1–L5" },
   { href: "#why-prea", label: "Why CVSS/DREAD fall short" },
@@ -70,12 +70,12 @@ export default function MethodologySection() {
 
           <div>
             <div id="def-4-1" className="research-sec">
-              <div className="research-sec-id">Definition 4.1 — Composite risk</div>
+              <div className="research-sec-id">Definition 4.1, Composite risk</div>
               <h3>The PREA formula</h3>
               <p>
                 Risk for an identity n is the product of four independently measurable factors. Because the
                 relationship is multiplicative, a near-zero value in any single factor drives the overall
-                score down — and a maximal value in any factor amplifies the rest.
+                score down, and a maximal value in any factor amplifies the rest.
               </p>
               <div className="formula-block">
                 <div className="formula-text">Risk(n) = P(n) × R(n) × E(n) × A(n)</div>
@@ -84,9 +84,9 @@ export default function MethodologySection() {
             </div>
 
             <div id="factor-table" className="research-sec">
-              <div className="research-sec-id">§4 — Factor reference</div>
+              <div className="research-sec-id">§4, Factor reference</div>
               <h3>Scoring factors</h3>
-              <p>Each term is bounded and derived from statically observable evidence — no runtime instrumentation required.</p>
+              <p>Each term is bounded and derived from statically observable evidence, no runtime instrumentation required.</p>
               <div style={{ overflowX: "auto" }}>
                 <table className="factors-table">
                   <thead>
@@ -110,7 +110,7 @@ export default function MethodologySection() {
             </div>
 
             <div id="example-4-1" className="research-sec">
-              <div className="research-sec-id">Example 4.1 — Finding AS-0042</div>
+              <div className="research-sec-id">Example 4.1, Finding AS-0042</div>
               <h3>Worked example</h3>
               <p>
                 A LangChain agent with admin-scoped credentials, public ingress, plaintext key material, and an
@@ -122,14 +122,14 @@ export default function MethodologySection() {
               </div>
               <div className="research-note">
                 <p>
-                  The same identity with an L2 approval gate (A = 5.0) scores 187.5 — one configuration
+                  The same identity with an L2 approval gate (A = 5.0) scores 187.5, one configuration
                   change moves the finding two severity bands.
                 </p>
               </div>
             </div>
 
             <div id="ai-factor" className="research-sec">
-              <div className="research-sec-id">§4.1, 4.3 — The AI-Amplification factor</div>
+              <div className="research-sec-id">§4.1, 4.3, The AI-Amplification factor</div>
               <h3>Tool irreversibility & composing the A-factor</h3>
               <p>
                 A is the term that distinguishes PREA from conventional identity-risk models. It isolates two
@@ -142,20 +142,20 @@ export default function MethodologySection() {
                 POST) carry a 4× weight. Execute-class tools (code execution, shell, infrastructure mutation)
                 carry a 10× weight, because a single invocation can establish persistence or destroy state with
                 no rollback path. The classification is derived statically from the tool&apos;s declared schema
-                and call sites — no runtime instrumentation is required.
+                and call sites, no runtime instrumentation is required.
               </p>
               <p>
                 A is the product of the maximum irreversibility weight across the agent&apos;s tool surface and
                 the autonomy multiplier, clamped to [1.0, 50.0]. Non-agent identities (service accounts, API
                 keys, IAM roles) take A = 1.0, which reduces PREA to a conventional privilege-exposure model
                 and keeps scores comparable across identity types. The CRITICAL ceiling (A = 50.0) is reached
-                only by execute-class tools inside L4+ loops — exactly the configuration found in the AS-0042
+                only by execute-class tools inside L4+ loops, exactly the configuration found in the AS-0042
                 example above.
               </p>
             </div>
 
             <div id="autonomy-levels" className="research-sec">
-              <div className="research-sec-id">§4.2 — Autonomy levels</div>
+              <div className="research-sec-id">§4.2, Autonomy levels</div>
               <h3>Autonomy levels L1–L5</h3>
               <p>
                 Autonomy is graded by the presence and placement of human-in-the-loop (HITL) gates in the agent
@@ -168,7 +168,7 @@ export default function MethodologySection() {
             </div>
 
             <div id="why-prea" className="research-sec">
-              <div className="research-sec-id">§4.4 — Why PREA</div>
+              <div className="research-sec-id">§4.4, Why PREA</div>
               <h3>Why CVSS and DREAD under-score agents</h3>
               <p>
                 CVSS scores a vulnerability in isolation and DREAD scores a threat scenario; neither models an

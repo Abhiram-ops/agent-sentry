@@ -42,29 +42,29 @@ interface TreeEntry {
 }
 
 /* ------------------------------------------------------------------ */
-/* Data — deterministic script, no randomness                          */
+/* Data, deterministic script, no randomness                          */
 /* ------------------------------------------------------------------ */
 
 const PROMPT = "user@sec-workstation:~/sre-copilot$ ";
 const COMMAND = "agentsentry scan agents --pro";
 
-/** Index in SCRIPT at which the finding is emitted — file tree flags activate here. */
+/** Index in SCRIPT at which the finding is emitted, file tree flags activate here. */
 const FINDING_AT = 8;
 
 const SCRIPT: readonly ScriptLine[] = [
   { kind: "muted", text: "AgentSentry v0.1.7 · Pro license verified (HMAC offline)", delayMs: 300 },
   { kind: "stdout", text: "Discovering agent frameworks in ./ ...", delayMs: 350 },
   { kind: "stdout", text: "  found: LangChain 0.3.x (AgentExecutor) · 1 graph, 4 tools", delayMs: 420 },
-  { kind: "success", text: "✓ chains/rag_chain.py — retrieval only, no tool surface [SAFE]", delayMs: 380 },
+  { kind: "success", text: "✓ chains/rag_chain.py, retrieval only, no tool surface [SAFE]", delayMs: 380 },
   { kind: "stdout", text: "Resolving tool permission surfaces ...", delayMs: 420 },
-  { kind: "warn", text: "⚠ tools/shell_tool.py — subprocess access, gated by allowlist", delayMs: 400 },
+  { kind: "warn", text: "⚠ tools/shell_tool.py, subprocess access, gated by allowlist", delayMs: 400 },
   { kind: "stdout", text: "Computing PREA for 3 non-human identities ...", delayMs: 460 },
   { kind: "blank", text: "", delayMs: 240 },
-  { kind: "critical", text: "■ FINDING AS-0042 — autonomous agent with irreversible tools", delayMs: 200 },
+  { kind: "critical", text: "■ FINDING AS-0042, autonomous agent with irreversible tools", delayMs: 200 },
   { kind: "rule", text: "──────────────────────────────────────────────────────", delayMs: 120 },
   { kind: "stdout", text: "  AGENT      ResearchAgent  agents/agent_executor.py:41", delayMs: 160 },
   { kind: "stdout", text: "  TOOLS      execute_code · shell · http_request", delayMs: 160 },
-  { kind: "stdout", text: "  AUTONOMY   L4 — unsupervised loop, no human-in-the-loop gate", delayMs: 160 },
+  { kind: "stdout", text: "  AUTONOMY   L4, unsupervised loop, no human-in-the-loop gate", delayMs: 160 },
   { kind: "blank", text: "", delayMs: 140 },
   { kind: "muted", text: "  FACTOR              VALUE   EVIDENCE", delayMs: 140 },
   { kind: "stdout", text: "  P  Privilege          5.0   admin-scoped session credentials", delayMs: 150 },
@@ -77,7 +77,7 @@ const SCRIPT: readonly ScriptLine[] = [
   { kind: "stdout", text: "  MITRE      T1059 Command Execution · T1552 Unsecured Credentials", delayMs: 170 },
   { kind: "stdout", text: "  REMEDIATE  scope IAM to read-only; add HITL gate before execute_code", delayMs: 170 },
   { kind: "blank", text: "", delayMs: 160 },
-  { kind: "success", text: "✓ Scan complete — 3 NHIs · 1 critical · 1 warning · report written", delayMs: 200 },
+  { kind: "success", text: "✓ Scan complete, 3 NHIs · 1 critical · 1 warning · report written", delayMs: 200 },
 ] as const;
 
 const FILE_TREE: readonly TreeEntry[] = [
@@ -165,7 +165,7 @@ export default function LiveAuditTerminal() {
   const finished = revealed >= SCRIPT.length;
   const findingVisible = revealed > FINDING_AT;
 
-  // Phase 1 — type the command character by character.
+  // Phase 1, type the command character by character.
   useEffect(() => {
     if (!inView || commandDone) return;
     if (prefersReducedMotion) {
@@ -176,7 +176,7 @@ export default function LiveAuditTerminal() {
     return () => clearTimeout(t);
   }, [inView, typed, commandDone, prefersReducedMotion, runId]);
 
-  // Phase 2 — reveal output lines on their scripted delays.
+  // Phase 2, reveal output lines on their scripted delays.
   useEffect(() => {
     if (!inView || !commandDone || finished) return;
     if (prefersReducedMotion) {
@@ -217,7 +217,7 @@ export default function LiveAuditTerminal() {
           <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
         </div>
         <span className="font-mono text-xs text-zinc-500">
-          agentsentry — static agent audit
+          agentsentry, static agent audit
         </span>
         <button
           type="button"
@@ -230,7 +230,7 @@ export default function LiveAuditTerminal() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[220px_1fr]">
-        {/* Left pane — repository tree */}
+        {/* Left pane, repository tree */}
         <div className="border-b border-zinc-800 py-2 md:border-b-0 md:border-r">
           <p className="px-4 pb-2 pt-1 font-mono text-[10px] uppercase tracking-widest text-zinc-600">
             Target repository
@@ -242,7 +242,7 @@ export default function LiveAuditTerminal() {
           </div>
         </div>
 
-        {/* Right pane — console */}
+        {/* Right pane, console */}
         <div
           ref={scrollRef}
           className="h-80 overflow-y-auto p-4 font-mono text-xs leading-6 md:h-96"

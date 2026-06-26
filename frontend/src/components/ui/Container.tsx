@@ -9,7 +9,7 @@ interface ContainerProps {
 /**
  * The single source of truth for page layout width and horizontal padding.
  * Uses the .container CSS class defined in globals.css.
- * Never override padding here — change the CSS variable instead.
+ * Never override padding here, change the CSS variable instead.
  */
 export function Container({
   children,

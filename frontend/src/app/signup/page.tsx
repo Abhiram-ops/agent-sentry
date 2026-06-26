@@ -21,7 +21,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // clipboard unavailable — ignore
+      // clipboard unavailable, ignore
     }
   }
 
@@ -55,7 +55,7 @@ export default function SignupPage() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }
 
-  // Step 1 — submitting the email opens the consent dialog. No account is
+  // Step 1, submitting the email opens the consent dialog. No account is
   // created until the user explicitly grants consent in the dialog.
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -72,7 +72,7 @@ export default function SignupPage() {
     setShowConsent(true);
   }
 
-  // Step 2 — runs only after the user grants consent in the dialog.
+  // Step 2, runs only after the user grants consent in the dialog.
   async function doSignup() {
     const trimmed = email.trim().toLowerCase();
     setShowConsent(false);
@@ -101,7 +101,7 @@ export default function SignupPage() {
       setStatus("success");
     } catch {
       setStatus("error");
-      setErrorMsg("Network error — please try again.");
+      setErrorMsg("Network error, please try again.");
     }
   }
 
@@ -118,7 +118,7 @@ export default function SignupPage() {
           <div className="auth-header">
             <div className="auth-eyebrow">Get started</div>
             <h1>Create your free account</h1>
-            <p>Get a free CLI activation code — no password, no credit card.</p>
+            <p>Get a free CLI activation code, no password, no credit card.</p>
           </div>
 
           {status === "success" && result ? (
@@ -130,7 +130,7 @@ export default function SignupPage() {
               <div style={{ textAlign: "center" }}>
                 <CheckCircle style={{ width: 40, height: 40, color: "var(--accent)", margin: "0 auto 12px" }} />
                 <p>Account created!</p>
-                <p>Save this now — it won&apos;t be shown again. We&apos;ve also emailed it to {email.trim().toLowerCase()}.</p>
+                <p>Save this now, it won&apos;t be shown again. We&apos;ve also emailed it to {email.trim().toLowerCase()}.</p>
               </div>
 
               {result.activation_code && <CopyField label="CLI activation code" value={result.activation_code} />}
@@ -233,7 +233,7 @@ export default function SignupPage() {
               </p>
               <p>
                 <strong>Data we store.</strong> Only your email, account/license status, and a record of
-                this consent (version, time, IP). Nothing else — no scan contents, no extra profile data.
+                this consent (version, time, IP). Nothing else, no scan contents, no extra profile data.
               </p>
             </div>
 

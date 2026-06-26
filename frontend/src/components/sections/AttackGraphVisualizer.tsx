@@ -31,7 +31,7 @@ interface GraphEdge {
 }
 
 /* ------------------------------------------------------------------ */
-/* Data — mirrors `agentsentry blast nhi://agent/prod-sre-copilot`     */
+/* Data, mirrors `agentsentry blast nhi://agent/prod-sre-copilot`     */
 /* ------------------------------------------------------------------ */
 
 const NODES: readonly GraphNode[] = [
@@ -150,7 +150,7 @@ const NODE_W = 168;
 const NODE_H = 56;
 
 /* ------------------------------------------------------------------ */
-/* JSON pane renderer — line-based key/value colorization, no `any`    */
+/* JSON pane renderer, line-based key/value colorization, no `any`    */
 /* ------------------------------------------------------------------ */
 
 function JsonBlock({ value }: { value: object }) {
@@ -283,7 +283,7 @@ export default function AttackGraphVisualizer() {
                 className="cursor-pointer"
                 role="button"
                 aria-pressed={isSelected}
-                aria-label={`${node.label} — ${style.chipText}`}
+                aria-label={`${node.label}, ${style.chipText}`}
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {

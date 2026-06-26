@@ -103,7 +103,7 @@ export default function DocsPage() {
             AgentSentry CLI
           </h1>
           <p style={{ color: "var(--text-muted)", fontSize: "1.05rem", lineHeight: 1.75, maxWidth: 560, margin: "0 auto" }}>
-            Open-source NHI scanner — runs locally, zero data upload, one command to audit your entire cloud.
+            Open-source NHI scanner, runs locally, zero data upload, one command to audit your entire cloud.
           </p>
           <div className="docs-anchor-nav">
             {[
@@ -133,10 +133,10 @@ export default function DocsPage() {
                 <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Latest</span>
               </div>
               <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 14, lineHeight: 2 }}>
-                <li><strong>Data-driven least-privilege</strong> — <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>scan aws --analyze-usage</code> pulls IAM Access Advisor data and names the exact granted-but-unused services that are safe to revoke (finding NHI-006)</li>
-                <li><strong>Continuous monitoring</strong> — <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>scan --save</code> records to a local history store; <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>agentsentry diff aws</code> shows what changed since the last scan (new identities, newly-zombie, rotation-due)</li>
-                <li><strong>Deeper AWS coverage</strong> — Secrets Manager, RDS, and DynamoDB now scanned as crown-jewel resources, so the attack graph reaches your most sensitive targets</li>
-                <li><strong>Real policy documents</strong> — managed policies are now fetched and analyzed by their actual permissions, not just their names (a custom policy with <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>&quot;Action&quot;: &quot;*&quot;</code> no longer hides as INFO)</li>
+                <li><strong>Data-driven least-privilege</strong>, <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>scan aws --analyze-usage</code> pulls IAM Access Advisor data and names the exact granted-but-unused services that are safe to revoke (finding NHI-006)</li>
+                <li><strong>Continuous monitoring</strong>, <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>scan --save</code> records to a local history store; <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>agentsentry diff aws</code> shows what changed since the last scan (new identities, newly-zombie, rotation-due)</li>
+                <li><strong>Deeper AWS coverage</strong>, Secrets Manager, RDS, and DynamoDB now scanned as crown-jewel resources, so the attack graph reaches your most sensitive targets</li>
+                <li><strong>Real policy documents</strong>, managed policies are now fetched and analyzed by their actual permissions, not just their names (a custom policy with <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>&quot;Action&quot;: &quot;*&quot;</code> no longer hides as INFO)</li>
               </ul>
             </div>
 
@@ -146,7 +146,7 @@ export default function DocsPage() {
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, background: "#21262d", color: "#e6edf3", padding: "2px 10px", borderRadius: 20 }}>v0.1.10</span>
               </div>
               <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 14, lineHeight: 2 }}>
-                <li>Fix <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>~/.aws/config</code> being over-scored — it stores profile names, not keys, so it now correctly scores as INFO</li>
+                <li>Fix <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>~/.aws/config</code> being over-scored, it stores profile names, not keys, so it now correctly scores as INFO</li>
                 <li>Fix GCP <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>credentials.db</code> showing wrong &quot;Hardcoded secrets&quot; description</li>
                 <li>Exclude <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>tests/</code> directories from source scanner to eliminate intentional test-fixture false positives</li>
                 <li>Tighten secret regex: now requires 16+ characters with at least one uppercase letter or digit to cut noise from short placeholder values</li>
@@ -172,8 +172,8 @@ export default function DocsPage() {
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, background: "#21262d", color: "#e6edf3", padding: "2px 10px", borderRadius: 20 }}>v0.1.8</span>
               </div>
               <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 14, lineHeight: 2 }}>
-                <li>Windows Credential Manager scan (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>cmdkey /list</code>) — no admin required</li>
-                <li>macOS Keychain scan (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>security dump-keychain</code>) — metadata only, never reads secret values</li>
+                <li>Windows Credential Manager scan (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>cmdkey /list</code>), no admin required</li>
+                <li>macOS Keychain scan (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>security dump-keychain</code>), metadata only, never reads secret values</li>
                 <li>Cross-platform Docker detection via subprocess (fixes Windows named-pipe blind spot)</li>
                 <li>Expanded credential file coverage: Azure CLI, GitHub CLI, Terraform Cloud, Windows gcloud path</li>
               </ul>
@@ -208,7 +208,7 @@ export default function DocsPage() {
         {/* 2. Quick start */}
         <Section id="quick-start" icon={Terminal} accent="var(--accent)" title="Quick start">
           <p style={{ margin: 0 }}>
-            The fastest way to see AgentSentry in action — scan your local environment. No credentials needed.
+            The fastest way to see AgentSentry in action, scan your local environment. No credentials needed.
           </p>
           <OsTabs tabs={OS_TABS} renderTab={(os) => (
             <CodeBlock lines={[
@@ -238,8 +238,8 @@ export default function DocsPage() {
             </div>
             <p style={{ margin: "0 0 12px", color: "var(--text-muted)", fontSize: 13, lineHeight: 1.7 }}>
               Scans environment variables, .env files, SSH keys, cloud credential files, source code, and OS credential stores.
-              On Windows it reads <strong>Windows Credential Manager</strong> (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>cmdkey /list</code>) — consumer tokens (Xbox Live, MicrosoftAccount) are automatically filtered.
-              On macOS it reads <strong>Keychain</strong> metadata (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>security dump-keychain</code>) — secret values are never read.
+              On Windows it reads <strong>Windows Credential Manager</strong> (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>cmdkey /list</code>), consumer tokens (Xbox Live, MicrosoftAccount) are automatically filtered.
+              On macOS it reads <strong>Keychain</strong> metadata (<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>security dump-keychain</code>), secret values are never read.
             </p>
             <OsTabs tabs={OS_TABS} renderTab={(os) => (
               <CodeBlock lines={[
@@ -414,7 +414,7 @@ export default function DocsPage() {
           </p>
 
           <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "16px 18px", marginBottom: 16, background: "var(--bg-subtle)" }}>
-            <strong style={{ fontSize: 13, display: "block", marginBottom: 10 }}>Step 1 — Version &amp; Consent (30 seconds, no setup)</strong>
+            <strong style={{ fontSize: 13, display: "block", marginBottom: 10 }}>Step 1, Version &amp; Consent (30 seconds, no setup)</strong>
             <p style={{ margin: "0 0 10px", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.6 }}>
               Verify the version and test the new consent gate:
             </p>
@@ -426,7 +426,7 @@ export default function DocsPage() {
                 "# Activate (use your activation code)",
                 `${prompt(os)} agentsentry activate YOUR-CODE`,
                 "",
-                "# → Expect: consent panel asking 'Do you accept Terms & Privacy?' — type 'y'",
+                "# → Expect: consent panel asking 'Do you accept Terms & Privacy?', type 'y'",
               ]} />
             )} />
             <p style={{ margin: "12px 0 0", color: "var(--text-faint)", fontSize: 11 }}>
@@ -435,7 +435,7 @@ export default function DocsPage() {
           </div>
 
           <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "16px 18px", marginBottom: 16, background: "var(--bg-subtle)" }}>
-            <strong style={{ fontSize: 13, display: "block", marginBottom: 10 }}>Step 2 — Continuous Monitoring (1 minute, no AWS needed)</strong>
+            <strong style={{ fontSize: 13, display: "block", marginBottom: 10 }}>Step 2, Continuous Monitoring (1 minute, no AWS needed)</strong>
             <p style={{ margin: "0 0 10px", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.6 }}>
               Test the new scan history + diff feature (uses mock data):
             </p>
@@ -457,7 +457,7 @@ export default function DocsPage() {
           </div>
 
           <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "16px 18px", background: "var(--bg-subtle)" }}>
-            <strong style={{ fontSize: 13, display: "block", marginBottom: 10 }}>Step 3 — Least-Privilege Analysis (AWS, the headline feature)</strong>
+            <strong style={{ fontSize: 13, display: "block", marginBottom: 10 }}>Step 3, Least-Privilege Analysis (AWS, the headline feature)</strong>
             <p style={{ margin: "0 0 10px", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.6 }}>
               Before running this, ensure your AWS read-only role has these 4 new permissions:
             </p>
@@ -480,7 +480,7 @@ export default function DocsPage() {
               ]} />
             )} />
             <p style={{ margin: "12px 0 0", color: "var(--text-faint)", fontSize: 11 }}>
-              This queries AWS Access Advisor per identity — runs slower but gives precise, defensible revocation recommendations.
+              This queries AWS Access Advisor per identity, runs slower but gives precise, defensible revocation recommendations.
             </p>
           </div>
         </Section>
@@ -488,7 +488,7 @@ export default function DocsPage() {
         {/* API Key */}
         <Section id="api-key" icon={Key} accent="#f59e0b" title="Your AgentSentry API Key">
           <p style={{ margin: 0 }}>
-            Your AgentSentry API key authenticates the CLI with our backend — it tells us who you are, what tier you&apos;re on, and tracks credit usage when you run scans.
+            Your AgentSentry API key authenticates the CLI with our backend, it tells us who you are, what tier you&apos;re on, and tracks credit usage when you run scans.
           </p>
 
           <div style={{ border: "1px solid #21262d", borderRadius: 10, padding: "16px 20px" }}>
@@ -503,7 +503,7 @@ export default function DocsPage() {
           <div style={{ border: "1px solid #21262d", borderRadius: 10, padding: "16px 20px" }}>
             <strong style={{ fontSize: 13, display: "block", marginBottom: 8, color: "var(--text)" }}>What it is NOT used for</strong>
             <ul style={{ margin: 0, paddingLeft: 20, color: "var(--text-muted)", fontSize: 13, lineHeight: 2 }}>
-              <li>Connecting to AWS, Azure, or GCP — your cloud credentials stay on your machine and never touch our servers</li>
+              <li>Connecting to AWS, Azure, or GCP, your cloud credentials stay on your machine and never touch our servers</li>
               <li>Linking to any third-party platform or deployment tool</li>
             </ul>
           </div>
@@ -514,7 +514,7 @@ export default function DocsPage() {
               <span style={{ color: "#f59e0b", fontWeight: 600, fontSize: 14 }}>How to retrieve your full API key</span>
             </div>
             <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 13, lineHeight: 1.7 }}>
-              For security, your full API key is never displayed in the dashboard — only a short preview is shown. If you need the full key, email{" "}
+              For security, your full API key is never displayed in the dashboard, only a short preview is shown. If you need the full key, email{" "}
               <a href="mailto:support@agentsentry.org" style={{ color: "#f59e0b" }}>support@agentsentry.org</a>{" "}
               from your registered address and we&apos;ll send it securely.
             </p>

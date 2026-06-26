@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 const STEPS = [
   { n: "01", title: "Discover",
-    desc: "Point AgentSentry at your AWS account. It enumerates every IAM role, access key, service account, OAuth token, and AI agent in minutes — including ones you forgot existed." },
+    desc: "Point AgentSentry at your AWS account. It enumerates every IAM role, access key, service account, OAuth token, and AI agent in minutes, including ones you forgot existed." },
   { n: "02", title: "Score",
     desc: "Each identity gets a P×R×E×A risk score: Privilege × Reachability × Exposure × AI-Amplification. Critical identities surface immediately. CISA KEV enrichment flags active CVEs." },
   { n: "03", title: "Visualize",
@@ -20,7 +20,7 @@ export default function HowItWorks() {
           className="section-header centered">
           <div className="section-label" style={{ justifyContent: "center" }}>How it works</div>
           <h2>From zero to attack graph in under three minutes.</h2>
-          <p>No agents to deploy. No SaaS data upload. Runs entirely local — your cloud credentials never leave your machine.</p>
+          <p>No agents to deploy. No SaaS data upload. Runs entirely local, your cloud credentials never leave your machine.</p>
         </motion.div>
 
         <div className="steps-grid">

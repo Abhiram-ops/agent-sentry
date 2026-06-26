@@ -3,7 +3,7 @@
  * Floating ambient glow blobs used in the Hero section.
  * Each orb is a blurred radial gradient that animates via CSS keyframes
  * defined in globals.css (orb-1, orb-2, orb-3).
- * Purely decorative — pointer-events disabled, aria-hidden.
+ * Purely decorative, pointer-events disabled, aria-hidden.
  */
 
 interface Orb {

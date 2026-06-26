@@ -168,7 +168,7 @@ export default function FeedbackPage() {
                   name="broken"
                   value={formData.broken}
                   onChange={handleChange}
-                  placeholder="Be honest — what stopped you or frustrated you?"
+                  placeholder="Be honest, what stopped you or frustrated you?"
                   required
                   rows={3}
                   style={fieldStyle}

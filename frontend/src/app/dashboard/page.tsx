@@ -10,11 +10,11 @@ import type { CreditTransaction, Tier, ScanReport, SubscriptionStatus } from '@/
 import { Copy, Check, Mail, KeyRound, RefreshCw, Zap, Download, Trash2 } from 'lucide-react';
 
 const PRO_BENEFITS = [
-  'All cloud scanners — AWS, Azure, GCP, GitHub, and Kubernetes',
-  'AI-agent framework detection — LangChain, CrewAI, and AutoGen',
+  'All cloud scanners, AWS, Azure, GCP, GitHub, and Kubernetes',
+  'AI-agent framework detection, LangChain, CrewAI, and AutoGen',
   'Blast-radius mapping with lateral-movement attack graphs',
   'CISA KEV enrichment and JSON exports for CI pipelines',
-  'Automated scheduled scans (Automation add-on, $9/mo) — recurring local scans that email you when new NHIs, zombie credentials, or rotation-due keys are found',
+  'Automated scheduled scans (Automation add-on, $9/mo), recurring local scans that email you when new NHIs, zombie credentials, or rotation-due keys are found',
 ];
 
 interface Profile {
@@ -29,7 +29,7 @@ interface Profile {
   subscription_current_period_end: string | null;
 }
 
-// AgentSentry is in beta — new purchases/subscriptions are paused. Keep this
+// AgentSentry is in beta, new purchases/subscriptions are paused. Keep this
 // in sync with BILLING_PAUSED in src/lib/stripe.ts.
 const PAYMENTS_PAUSED = true;
 
@@ -111,11 +111,11 @@ export default function DashboardPage() {
     } else if (params.get('email_error') === '1') {
       setBanner({ kind: 'error', text: 'That email-change link was invalid or expired.' });
     } else if (params.get('checkout') === 'success') {
-      setBanner({ kind: 'success', text: 'Payment received — your credits will appear shortly.' });
+      setBanner({ kind: 'success', text: 'Payment received, your credits will appear shortly.' });
     } else if (params.get('checkout') === 'cancelled') {
       setBanner({ kind: 'error', text: 'Checkout was cancelled.' });
     } else if (params.get('subscription') === 'success') {
-      setBanner({ kind: 'success', text: 'Automation subscription activated — it may take a moment to sync.' });
+      setBanner({ kind: 'success', text: 'Automation subscription activated, it may take a moment to sync.' });
     } else if (params.get('subscription') === 'cancelled') {
       setBanner({ kind: 'error', text: 'Subscription checkout was cancelled.' });
     }
@@ -153,7 +153,7 @@ export default function DashboardPage() {
         setBanner({ kind: 'error', text: json.error ?? 'Could not start email change.' });
       }
     } catch {
-      setBanner({ kind: 'error', text: 'Network error — please try again.' });
+      setBanner({ kind: 'error', text: 'Network error, please try again.' });
     } finally {
       setEmailBusy(false);
     }
@@ -173,7 +173,7 @@ export default function DashboardPage() {
         setBanner({ kind: 'error', text: json.error ?? 'Could not regenerate key.' });
       }
     } catch {
-      setBanner({ kind: 'error', text: 'Network error — please try again.' });
+      setBanner({ kind: 'error', text: 'Network error, please try again.' });
     } finally {
       setRegenBusy(false);
     }
@@ -197,7 +197,7 @@ export default function DashboardPage() {
       setBanner({ kind: 'error', text: json.error ?? 'Failed to start checkout.' });
       setBuyingId(null);
     } catch {
-      setBanner({ kind: 'error', text: 'Network error — please try again.' });
+      setBanner({ kind: 'error', text: 'Network error, please try again.' });
       setBuyingId(null);
     }
   }
@@ -216,7 +216,7 @@ export default function DashboardPage() {
       setBanner({ kind: 'error', text: json.error ?? 'Failed to start checkout.' });
       setSubBusy(false);
     } catch {
-      setBanner({ kind: 'error', text: 'Network error — please try again.' });
+      setBanner({ kind: 'error', text: 'Network error, please try again.' });
       setSubBusy(false);
     }
   }
@@ -235,7 +235,7 @@ export default function DashboardPage() {
       setBanner({ kind: 'error', text: json.error ?? 'Failed to open billing portal.' });
       setSubBusy(false);
     } catch {
-      setBanner({ kind: 'error', text: 'Network error — please try again.' });
+      setBanner({ kind: 'error', text: 'Network error, please try again.' });
       setSubBusy(false);
     }
   }
@@ -245,7 +245,7 @@ export default function DashboardPage() {
   }
 
   async function handleDeleteAccount() {
-    if (!confirm('Request account deletion? We\'ll email you a confirmation link — your account is only deleted after you click it.')) return;
+    if (!confirm('Request account deletion? We\'ll email you a confirmation link, your account is only deleted after you click it.')) return;
     setDeleteBusy(true);
     setBanner(null);
     try {
@@ -257,7 +257,7 @@ export default function DashboardPage() {
         setBanner({ kind: 'error', text: json.error ?? 'Could not start account deletion.' });
       }
     } catch {
-      setBanner({ kind: 'error', text: 'Network error — please try again.' });
+      setBanner({ kind: 'error', text: 'Network error, please try again.' });
     } finally {
       setDeleteBusy(false);
     }
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                 {profile.subscription_status === 'active' ? (
                   <>
                     <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 16 }}>
-                      Register a local scheduled scan with the CLI below. Reports are written to a directory you choose, and — with <code style={{ fontFamily: 'var(--font-mono)' }}>--notify-email</code> — a summary is emailed here after each run.
+                      Register a local scheduled scan with the CLI below. Reports are written to a directory you choose, and, with <code style={{ fontFamily: 'var(--font-mono)' }}>--notify-email</code>, a summary is emailed here after each run.
                     </p>
                     <div className="copy-field-row" style={{ marginBottom: 16 }}>
                       <code className="copy-field-code">{SCHEDULE_CMD}</code>
@@ -473,7 +473,7 @@ export default function DashboardPage() {
                 ) : (
                   <>
                     <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 16 }}>
-                      Run scans on a schedule from your own machine — no credentials leave your environment. Each run diffs
+                      Run scans on a schedule from your own machine, no credentials leave your environment. Each run diffs
                       against the previous scan and alerts you to new identities (with remediation suggestions), newly-zombie
                       credentials, and credentials due for rotation.
                     </p>
@@ -486,7 +486,7 @@ export default function DashboardPage() {
                         </p>
                       ) : (
                         <Button onClick={handleSubscribe} disabled={subBusy}>
-                          {subBusy ? 'Redirecting…' : 'Subscribe — $9/mo'}
+                          {subBusy ? 'Redirecting…' : 'Subscribe, $9/mo'}
                         </Button>
                       )
                     ) : (

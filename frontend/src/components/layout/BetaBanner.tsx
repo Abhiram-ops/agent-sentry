@@ -40,7 +40,7 @@ export function BetaBanner() {
       }}
     >
       <strong>AgentSentry is under active development (beta).</strong>{' '}
-      Please don&apos;t pay for Pro features yet — Pro purchases are temporarily disabled. If
+      Please don&apos;t pay for Pro features yet, Pro purchases are temporarily disabled. If
       you&apos;d like early access to Pro, email{' '}
       <a href="mailto:support@agentsentry.org" style={{ color: '#fff', textDecoration: 'underline' }}>
         support@agentsentry.org

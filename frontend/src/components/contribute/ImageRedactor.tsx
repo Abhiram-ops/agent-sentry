@@ -19,7 +19,7 @@ interface Props {
  * Loads an image, lets the user draw redaction boxes over it, and bakes a
  * DESTRUCTIVE pixelation into those regions before export. Pixelation (mosaic)
  * is used rather than a CSS/gaussian blur because a gaussian blur is partially
- * reversible — a mosaic at a coarse block size is not. The original pixels
+ * reversible, a mosaic at a coarse block size is not. The original pixels
  * never leave the browser: the parent only ever receives the redacted Blob.
  */
 export function ImageRedactor({ file, onRedacted, onRemove }: Props) {
@@ -168,7 +168,7 @@ export function ImageRedactor({ file, onRedacted, onRemove }: Props) {
       </div>
 
       <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 10px" }}>
-        Drag over anything sensitive — keys, account IDs, emails — to permanently pixelate it.
+        Drag over anything sensitive, keys, account IDs, emails, to permanently pixelate it.
         Redaction happens here in your browser; only the redacted image is uploaded.
       </p>
 

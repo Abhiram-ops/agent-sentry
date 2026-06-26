@@ -9,8 +9,8 @@ const FREE = [
   "P×R×E×A risk scoring engine",
   "MITRE ATT&CK technique mapping",
   "Blast radius analysis",
-  "CLI — runs locally, no data leaves you",
-  "Open source — AGPL-3.0 license",
+  "CLI, runs locally, no data leaves you",
+  "Open source, AGPL-3.0 license",
 ];
 
 const PRO = [
@@ -19,16 +19,16 @@ const PRO = [
   "--enrich: CISA KEV threat intel enrichment",
   "--json: JSON output for pipelines & CI",
   "Interactive multi-cloud scan mode",
-  "One-time purchase — license key, yours forever",
+  "One-time purchase, license key, yours forever",
   "Priority email support",
 ];
 
 const AUTOMATION = [
-  "Local OS-scheduled recurring scans (cron / Task Scheduler) — your machine, your cadence",
+  "Local OS-scheduled recurring scans (cron / Task Scheduler), your machine, your cadence",
   "Diff-based alerts for newly-detected identities, with least-privilege remediation suggestions",
   "Zombie-credential alerts (180-day inactivity threshold)",
-  "Credential rotation-due reminders (90-day cadence) — for cloud creds and your AgentSentry API key",
-  "Reports saved to a directory you choose — no credential upload, ever",
+  "Credential rotation-due reminders (90-day cadence), for cloud creds and your AgentSentry API key",
+  "Reports saved to a directory you choose, no credential upload, ever",
 ];
 
 function CheckIcon() {
@@ -50,7 +50,7 @@ export default function Pricing() {
           <h2>Free forever. Pay once for Pro.</h2>
           <p>
             The scanner is open source and always will be. Pro unlocks reports, enrichment, and
-            JSON output — one payment, lifetime license.
+            JSON output, one payment, lifetime license.
           </p>
         </motion.div>
 
@@ -111,7 +111,7 @@ export default function Pricing() {
               <span className="pricing-billing" style={{ marginBottom: 0 }}>/month</span>
             </div>
             <div className="pricing-desc" style={{ minHeight: "auto", marginBottom: 0 }}>
-              Hands-off, scheduled audits of your environment — set it up once from the CLI.
+              Hands-off, scheduled audits of your environment, set it up once from the CLI.
             </div>
           </div>
           <ul className="pricing-addon-features">

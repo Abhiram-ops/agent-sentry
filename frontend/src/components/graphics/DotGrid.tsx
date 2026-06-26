@@ -1,7 +1,7 @@
 /**
  * DotGrid
  * Subtle repeating dot pattern used as a section background.
- * Purely decorative — pointer-events disabled, aria-hidden.
+ * Purely decorative, pointer-events disabled, aria-hidden.
  * Fades out at the bottom so it blends cleanly into the next section.
  */
 export function DotGrid({ opacity = 0.5 }: { opacity?: number }) {
@@ -31,7 +31,7 @@ export function DotGrid({ opacity = 0.5 }: { opacity?: number }) {
         <rect width="100%" height="100%" fill="url(#dot-pattern)" />
       </svg>
 
-      {/* Gradient mask — fades bottom 40% to transparent */}
+      {/* Gradient mask, fades bottom 40% to transparent */}
       <div style={{
         position:   "absolute",
         inset:       0,

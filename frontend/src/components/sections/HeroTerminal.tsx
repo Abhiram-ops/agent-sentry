@@ -17,7 +17,7 @@ const LINES: Line[] = [
   { delay: 300, segments: [{ text: '  ▸ Scanning AI agents (LangChain / CrewAI)', cls: 't-info' }] },
   { delay: 800, segments: [{ text: '    ✓ 3 agents detected', cls: 't-success' }] },
   { delay: 500, segments: [{ text: ' ' }] },
-  { delay: 200, segments: [{ text: '  Discovery complete — ', cls: 't-success' }, { text: '85 identities', cls: 't-cmd' }, { text: ' found.', cls: 't-success' }] },
+  { delay: 200, segments: [{ text: '  Discovery complete, ', cls: 't-success' }, { text: '85 identities', cls: 't-cmd' }, { text: ' found.', cls: 't-success' }] },
   { delay: 700, segments: [{ text: ' ' }] },
   { delay: 200, segments: [{ text: '  Computing P×R×E×A risk scores…', cls: 't-dim' }] },
   { delay: 900, segments: [{ text: ' ' }] },
@@ -70,7 +70,7 @@ export default function HeroTerminal() {
           <span className="t-dot t-dot-r" />
           <span className="t-dot t-dot-y" />
           <span className="t-dot t-dot-g" />
-          <span className="terminal-bar-title">agentsentry — live scan</span>
+          <span className="terminal-bar-title">agentsentry, live scan</span>
         </div>
         <div className="terminal-body" id="terminal-output">
           {LINES.slice(0, revealed).map((line, i) => (

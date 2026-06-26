@@ -62,7 +62,7 @@ export default function LoginPage() {
       setStatus("sent");
     } catch {
       setStatus("error");
-      setErrorMsg("Network error — please try again.");
+      setErrorMsg("Network error, please try again.");
     }
   }
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
           <div className="auth-header">
             <div className="auth-eyebrow">Sign in</div>
             <h1>Welcome back</h1>
-            <p>Enter your email and we&apos;ll send you a one-time sign-in link — no password needed.</p>
+            <p>Enter your email and we&apos;ll send you a one-time sign-in link, no password needed.</p>
           </div>
 
           {status === "sent" ? (

@@ -36,7 +36,7 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?:   boolean;
-  /** Renders an <a> tag when provided — backward-compat with old Button usage */
+  /** Renders an <a> tag when provided, backward-compat with old Button usage */
   href?:      string;
   target?:    string;
   rel?:       string;

@@ -20,7 +20,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const SITE_URL = "https://agentsentry.org";
-const TITLE    = "AgentSentry — NHI & AI Agent Risk Auditor";
+const TITLE    = "AgentSentry, NHI & AI Agent Risk Auditor";
 const DESC     =
   "AgentSentry is an open-source CLI that discovers every Non-Human Identity (NHI) and AI agent across AWS, Azure, GCP, GitHub, and Kubernetes, scores their blast radius, and surfaces the exact permissions to revoke. Free to use.";
 
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     siteName:    "AgentSentry",
     title:        TITLE,
     description: DESC,
-    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "AgentSentry — NHI & AI Agent Risk Auditor" }],
+    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "AgentSentry, NHI & AI Agent Risk Auditor" }],
   },
   twitter: {
     card:        "summary_large_image",
